@@ -109,12 +109,79 @@ def _model_list_text(models: list[str], descriptions: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def _get_few_shot_examples() -> tuple[list[database.ClassificationFeedback], str]:
+    """
+    Query up to 3 recent ClassificationFeedback rows (not yet used as examples,
+    where a human correction exists) and format them as a few-shot block.
+
+    Returns (rows, formatted_text).  rows is the list to mark after use.
+    formatted_text is the block to inject into the Stage 1 prompt, or "" if none.
+    """
+    try:
+        with database.get_session() as session:
+            rows = (
+                session.query(database.ClassificationFeedback)
+                .filter(
+                    database.ClassificationFeedback.used_as_example == False,  # noqa: E712
+                    database.ClassificationFeedback.corrected_payout_type != None,  # noqa: E711
+                )
+                .order_by(database.ClassificationFeedback.corrected_at.desc())
+                .limit(3)
+                .all()
+            )
+            # Detach from session so we can use ids later
+            example_ids = [r.id for r in rows]
+            examples = [
+                {
+                    "id": r.id,
+                    "cusip": r.filing.cusip if r.filing else None,
+                    "original": r.original_payout_type,
+                    "corrected": r.corrected_payout_type,
+                    "reason": r.correction_reason or "",
+                }
+                for r in rows
+            ]
+
+        if not examples:
+            return [], ""
+
+        lines = ["## Recent human corrections (use as examples):"]
+        for ex in examples:
+            cusip_str = f"CUSIP {ex['cusip']} | " if ex["cusip"] else ""
+            reason_str = f" | Reason: {ex['reason']}" if ex["reason"] else ""
+            lines.append(
+                f"- {cusip_str}Classifier predicted: {ex['original']} | "
+                f"Human correction: {ex['corrected']}{reason_str}"
+            )
+        return example_ids, "\n".join(lines) + "\n"
+
+    except Exception as exc:
+        log.warning("Failed to load few-shot feedback examples: %s", exc)
+        return [], ""
+
+
+def _mark_examples_used(example_ids: list[str]) -> None:
+    """Mark ClassificationFeedback rows as used_as_example = True."""
+    if not example_ids:
+        return
+    try:
+        with database.get_session() as session:
+            for row_id in example_ids:
+                row = session.get(database.ClassificationFeedback, row_id)
+                if row:
+                    row.used_as_example = True
+            session.commit()
+    except Exception as exc:
+        log.warning("Failed to mark feedback examples as used: %s", exc)
+
+
 def _build_stage1_prompt(
     cover_text: str,
     models: list[str],
     descriptions: dict[str, str],
     cusip_hint: str | None,
     cusip_hint_in_schema: bool,
+    few_shot_block: str = "",
 ) -> str:
     model_list = _model_list_text(models, descriptions)
 
@@ -132,8 +199,10 @@ def _build_stage1_prompt(
             "fits well, return 'unknown' — do not force a wrong match.\n"
         )
 
+    few_shot_section = f"\n{few_shot_block}" if few_shot_block else ""
+
     return f"""Classify the following 424B2 filing into one of the PRISM payout types listed below.
-{hint_section}
+{hint_section}{few_shot_section}
 Available PRISM models:
 {model_list}
 
@@ -329,11 +398,15 @@ def classify_filing(
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
     # ------------------------------------------------------------------
-    # Stage 1 — cover page
+    # Stage 1 — cover page (with few-shot feedback injection)
     # ------------------------------------------------------------------
     log.info("Classification stage 1: filing=%s  chars=%d", filing_id, len(cover_text))
+    example_ids, few_shot_block = _get_few_shot_examples()
+    if example_ids:
+        log.info("Injecting %d few-shot feedback example(s) into stage 1 prompt", len(example_ids))
     prompt1 = _build_stage1_prompt(
-        cover_text, models, descriptions, cusip_hint, cusip_hint_in_schema
+        cover_text, models, descriptions, cusip_hint, cusip_hint_in_schema,
+        few_shot_block=few_shot_block,
     )
 
     t0 = time.monotonic()
@@ -358,6 +431,9 @@ def classify_filing(
         "Stage 1 result: model=%s  confidence=%.2f",
         result1.payout_type_id, result1.confidence_score,
     )
+
+    # Mark few-shot examples as used now that the stage 1 call completed
+    _mark_examples_used(example_ids)
 
     # If stage 1 is confident enough → done
     if result1.confidence_score >= config.CLASSIFICATION_CONFIDENCE_THRESHOLD:

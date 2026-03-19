@@ -185,15 +185,18 @@ export default function FieldTable({ fields, filingId, onFieldUpdated, selectedI
           </thead>
           <tbody>
             {filtered.map(f => {
-              const isLow      = f.low_confidence && !f.not_found
-              const isSelected = selectedId === f.id
+              const isLow       = f.low_confidence && !f.not_found
+              const isSchemaErr = !!f.validation_error && f.confidence_score === 0.0
+              const isSelected  = selectedId === f.id
               const rowBg = isSelected
                 ? 'bg-blue-100 ring-1 ring-inset ring-blue-300'
-                : f.not_found
-                  ? 'bg-slate-50'
-                  : isLow
-                    ? 'bg-amber-50'
-                    : 'bg-white'
+                : isSchemaErr
+                  ? 'bg-red-50 border-l-4 border-red-500'
+                  : f.not_found
+                    ? 'bg-slate-50'
+                    : isLow
+                      ? 'bg-amber-50'
+                      : 'bg-white'
               const clickProps = onSelectField
                 ? { onClick: () => onSelectField(f), role: 'button', tabIndex: 0,
                     onKeyDown: e => e.key === 'Enter' && onSelectField(f) }
@@ -210,9 +213,19 @@ export default function FieldTable({ fields, filingId, onFieldUpdated, selectedI
                   </td>
                   <td className="px-4 py-2 align-top">
                     <div>
-                      {formatValue(f.reviewed_value !== null && f.reviewed_value !== undefined
-                        ? f.reviewed_value
-                        : f.extracted_value)}
+                      <div className="flex items-start gap-1.5 flex-wrap">
+                        {formatValue(f.reviewed_value !== null && f.reviewed_value !== undefined
+                          ? f.reviewed_value
+                          : f.extracted_value)}
+                        {isSchemaErr && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-300 shrink-0"
+                            title={f.validation_error}
+                          >
+                            schema error
+                          </span>
+                        )}
+                      </div>
                       {showExcerpts && f.source_excerpt && (
                         <p className="mt-1 text-xs text-slate-400 italic truncate max-w-xs" title={f.source_excerpt}>
                           "{f.source_excerpt.slice(0, 100)}"

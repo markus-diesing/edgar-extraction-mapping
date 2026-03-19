@@ -1,0 +1,180 @@
+# issuer_Barclays_Bank.yaml
+#
+# Per-issuer extraction hints for: Barclays Bank PLC
+#
+# Sources: 000095010326002918 (CUSIP 06749FWP0)
+#          000191870426005324 (CUSIP 06749FWA3)
+#          000191870426007178 (CUSIP 06749GBC0)
+#
+# Key finding: Barclays uses "Lesser Performing Underlier" (dual-asset) and
+# "Least Performing Underlier" (3+ assets), and "Barrier Value" (not "Barrier Level").
+# Coupon barrier is separately labeled "Coupon Barrier Value".
+
+issuer_key: Barclays Bank PLC
+
+aliases:
+  cik_patterns:
+    - "312070"
+  name_match_patterns:
+    - Barclays Bank PLC
+    - BARCLAYS BANK PLC
+    - Barclays
+  entity_names:
+    - Barclays Bank PLC
+    - BARCLAYS BANK PLC
+
+section_headings:
+  - KEY TERMS
+  - Payment at Maturity
+  - Automatic Redemption
+  - Coupon Barrier Value
+  - Redemption Premium
+
+key_terms_position: >
+  early — "KEY TERMS*" section appears within the first 100 lines immediately after
+  the product title and document header. Grey header rows with white data cells.
+  Tables span approximately 100–150 lines.
+
+document_structure: >
+  Barclays uses HTML tables with styled TD elements (STYLE attributes with background
+  colour and borders). The KEY TERMS section contains all economic parameters in a
+  two-column label:value format. Multi-asset products include a per-underlying sub-table
+  showing Initial Underlier Value, Barrier Value, and Coupon Barrier Value for each
+  asset. Single-asset products reference "Reference Asset"; dual-asset uses
+  "Lesser Performing Underlier"; basket (3+) uses "Least Performing Underlier".
+
+field_hints:
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Barrier Value
+      - Barrier value
+      - Knock-In Level
+    label_in_doc: "Barrier Value"
+    format: >
+      Expressed as percentage of Initial Underlier Value, e.g. "65.00% of Initial Underlier
+      Value". The absolute level may also appear in the per-underlying sub-table.
+    typical_location: KEY TERMS table; per-underlying sub-table for multi-asset products
+
+  coupon.rate:
+    synonyms:
+      - Contingent Coupon
+      - Contingent Coupon Rate
+      - Redemption Premium
+    label_in_doc: "Contingent Coupon" or "Redemption Premium"
+    format: >
+      Stated as both dollar amount per $1,000 principal and annual percentage,
+      e.g. "$90.00 per $1,000 (9.00% per annum)".
+    typical_location: KEY TERMS table
+
+  coupon.barrierLevel:
+    synonyms:
+      - Coupon Barrier Value
+      - Coupon Barrier value
+    label_in_doc: "Coupon Barrier Value"
+    format: >
+      Expressed as percentage of Initial Underlier Value, e.g. "70.00% of Initial
+      Underlier Value". Distinct from Barrier Value (which governs principal loss).
+    typical_location: KEY TERMS table; per-underlying sub-table for multi-asset products
+
+  autocall.callLevel:
+    synonyms:
+      - Observation Date
+      - Automatic Redemption
+      - Call trigger
+    label_in_doc: "Observation Date" for dates; trigger is typically at Initial Underlier Value (100%)
+    format: >
+      Observation dates listed explicitly. Autocall triggers when Closing Value ≥
+      Initial Underlier Value on an Observation Date. Early redemption amount stated
+      under "Automatic Redemption:" section.
+    typical_location: KEY TERMS table; "Automatic Redemption:" sub-section
+
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Underlier
+      - Reference Asset
+      - Lesser Performing Underlier
+      - Least Performing Underlier
+    label_in_doc: >
+      "Underlier" (single-asset), "Reference Asset" (alternative single-asset),
+      "Lesser Performing Underlier" (dual-asset products),
+      "Least Performing Underlier" (basket of 3+ assets)
+    format: >
+      Full company or index name, e.g. "Common Stock of Caterpillar Inc.",
+      "Common Stock of Deere & Company". For multi-asset: extract each underlying
+      separately as U1, U2, U3 from the per-underlying sub-table.
+    typical_location: KEY TERMS table and/or per-underlying sub-table
+    _note: >
+      WORST-OF BASKET: "Lesser Performing Underlier" = dual-asset worst-of;
+      "Least Performing Underlier" = 3+ asset worst-of basket.
+      Both indicate a worst-of structure. Single underlying = "Underlier" or "Reference Asset".
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Initial Underlier Value
+      - Initial underlying value
+      - Closing Value on the Pricing Date
+    label_in_doc: "Initial Underlier Value" (single/dual-asset) or "Initial underlying value" (multi-asset)
+    format: Absolute price or index level, e.g. "$150.00" or "19,324.56"
+    typical_location: KEY TERMS table; per-underlying sub-table
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Maturity Date
+    label_in_doc: "Maturity Date:*" (with asterisk footnote marker)
+    format: "Date string e.g. 'March 21, 2029'"
+    typical_location: KEY TERMS table
+
+  product.denomination:
+    synonyms:
+      - Principal Amount
+      - Stated principal amount
+    label_in_doc: "Principal Amount" or "Stated principal amount"
+    format: "$1,000 per note"
+    typical_location: KEY TERMS table
+
+  identifiers.cusip:
+    synonyms:
+      - CUSIP
+      - CUSIP / ISIN
+    label_in_doc: "CUSIP / ISIN:" (combined field)
+    format: "9-character CUSIP, e.g. '06749FWA3'"
+    typical_location: KEY TERMS table; cover page header
+
+  identifiers.isin:
+    synonyms:
+      - ISIN
+      - CUSIP / ISIN
+    label_in_doc: "CUSIP / ISIN:" (same field row as CUSIP)
+    format: "12-character ISIN, e.g. 'US0674AFWP01'"
+    typical_location: KEY TERMS table
+
+  product.issuePrice:
+    synonyms:
+      - Initial Issue Price
+      - Price to Public
+    label_in_doc: "Initial Issue Price" with footnote superscripts "(1)(2)"
+    format: "$1,000 per $1,000 principal (100%) or stated range"
+    typical_location: KEY TERMS table
+
+general_notes: >
+  BARRIER vs COUPON BARRIER: Barclays uses two distinct barrier levels. "Barrier Value"
+  governs principal loss at maturity (knock-in). "Coupon Barrier Value" governs whether
+  the contingent coupon is paid on each observation date. Both expressed as % of
+  Initial Underlier Value.
+
+  WORST-OF BASKET LANGUAGE: "Underlier" = single asset. "Lesser Performing Underlier"
+  = dual-asset worst-of. "Least Performing Underlier" = 3+ asset basket worst-of.
+  All three indicate the relevant asset's performance drives the payout.
+
+  PAYOUT FORMULA: "Payment at Maturity:" section with sub-cases:
+    a) If Closing Value of [Underlier] on Final Observation Date ≥ Barrier Value: full principal
+    b) If below Barrier Value: principal × (Final / Initial) — full downside loss
+  "Automatic Redemption:" section describes early call payment (principal + Redemption Premium).
+
+  FOOTNOTES: Barclays uses dagger (†) and asterisk (*) superscripts on field labels.
+  "Unpaid Coupon Amounts" may accumulate if the coupon barrier was breached on prior dates
+  (memory coupon structure — check product-by-product).
+
+  IMAGE-EMBEDDED FORMULAS: Some Barclays filings embed complex payout formulas as image
+  files (image_001.jpg etc.). Use the text labels from "Payment at Maturity:" sub-cases
+  and "Hypothetical Examples" table for extraction when images are present.

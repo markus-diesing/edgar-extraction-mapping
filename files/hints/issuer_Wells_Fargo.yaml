@@ -1,0 +1,139 @@
+# issuer_Wells_Fargo.yaml
+#
+# Per-issuer extraction hints for: Wells Fargo & Company
+#
+# Sources: 000183988226014761 (CUSIP 95001DP95)
+#          000183988226014758 (CUSIP 95001DPB0)
+#          000183988226014750 (CUSIP 95001DP87)
+#
+# IMPORTANT NOTE ON SCOPE:
+# The Wells Fargo 424B2 filings in the current dataset are FIXED-RATE CALLABLE NOTES
+# (also called "Medium-Term Notes, Series N"). These are plain unsecured debt instruments
+# with a fixed interest rate and an issuer call option — they are NOT structured notes
+# linked to an equity index or basket.
+#
+# As a result, most PRISM fields related to barriers, underlying assets, and contingent
+# coupons do NOT apply to these products. Extraction should reflect this:
+# - underlyingTerms: not applicable
+# - barrier: not applicable
+# - autocall (index-linked trigger): not applicable; there IS an issuer call, but it is
+#   purely date-based (Optional Redemption), not index-based
+#
+# These products likely map to the PRISM "unknown" or a plain-debt model until a
+# dedicated PRISM model for fixed-rate callable notes is created.
+# See IMPROVEMENTS_TODO.md: schema gap "fixedRateCallableNote".
+
+issuer_key: Wells Fargo & Company
+
+aliases:
+  cik_patterns:
+    - "72971"
+  name_match_patterns:
+    - Wells Fargo & Company
+    - WELLS FARGO & COMPANY/MN
+    - Wells Fargo
+  entity_names:
+    - Wells Fargo & Company
+    - WELLS FARGO & COMPANY/MN
+
+section_headings:
+  - Payment at Maturity
+  - Optional Redemption
+  - Optional Redemption Dates
+  - Interest
+
+key_terms_position: >
+  early — basic label:value table within the first 80 lines. No colored headers;
+  plain Times New Roman font with simple cell borders. Much simpler structure than
+  equity-linked structured products.
+
+document_structure: >
+  Wells Fargo fixed-rate callable note supplements have a minimal structure. No
+  per-underlying table. No barrier or coupon barrier rows. Key economic terms are
+  a short list: CUSIP, Stated Maturity Date, Interest Rate, Optional Redemption
+  Dates, Principal Amount, Original Offering Price. The "Payment at Maturity" section
+  states a simple fixed cash amount (principal + accrued interest).
+
+field_hints:
+  coupon.rate:
+    synonyms:
+      - Interest Rate
+      - Fixed Rate
+    label_in_doc: "Interest Rate"
+    format: >
+      Fixed annual percentage, e.g. "4.70% per annum". Interest accrues semi-annually.
+      No monthly or quarterly equivalent stated.
+    typical_location: KEY TERMS table
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Stated Maturity Date
+    label_in_doc: "Stated Maturity Date"
+    format: "Date string, e.g. 'March 23, 2033'"
+    typical_location: Key terms table
+
+  autocall.callSchedule:
+    synonyms:
+      - Optional Redemption Dates
+      - Optional Redemption
+    label_in_doc: "Optional Redemption Dates"
+    format: >
+      CAUTION: This is an ISSUER call option (not index-based autocall). Dates are
+      explicit calendar dates starting typically 1.5 years after issuance. The issuer
+      may redeem at par on any of these dates. Do not map to PRISM autocall trigger
+      level — there is no underlying index or trigger percentage.
+    typical_location: Key terms table
+    _note: >
+      Wells Fargo optional redemption is fundamentally different from equity-linked
+      autocall. There is no index, no trigger level, no barrier. The issuer simply
+      has the right to call the notes on listed dates.
+
+  product.denomination:
+    synonyms:
+      - Principal Amount
+    label_in_doc: "Principal Amount"
+    format: "$1,000 per note"
+    typical_location: Key terms table
+
+  identifiers.cusip:
+    synonyms:
+      - CUSIP Number
+      - CUSIP
+    label_in_doc: "CUSIP Number"
+    format: "9-character CUSIP e.g. '95001DP95'"
+    typical_location: Key terms table; document header
+    _note: ISIN is typically NOT listed for Wells Fargo fixed-rate notes.
+
+  product.issuePrice:
+    synonyms:
+      - Original Offering Price
+      - Price to Public
+    label_in_doc: "Original Offering Price"
+    format: >
+      "$1,000 per note (100%)" for institutional. May vary by investor class
+      (e.g. "$982.50 for fee-based accounts") — footnotes explain the discount.
+    typical_location: Key terms table
+
+general_notes: >
+  SCOPE WARNING: Wells Fargo 424B2 filings in the current dataset are fixed-rate
+  callable notes (unsecured Medium-Term Notes, Series N). These are NOT equity-linked
+  or index-linked structured products. PRISM fields for underlying assets, barrier
+  levels, coupon barriers, and participation rates will all be null / not_found.
+
+  CLASSIFICATION: These filings should classify as "unknown" until a PRISM model for
+  plain fixed-rate callable notes ("fixedRateCallableNote") is created. Do not force
+  them into a yield-enhancement or barrier product model.
+
+  PAYOUT: "Payment at Maturity: $1,000 per note, plus any accrued and unpaid interest."
+  "Optional Redemption: On any Optional Redemption Date, Wells Fargo may redeem all
+  (but not less than all) of the notes at a price equal to 100% of principal plus
+  accrued and unpaid interest."
+
+  INTEREST: Semi-annual fixed-rate coupon. No contingent coupon structure.
+
+  ISIN: Typically not listed — only "CUSIP Number:" field is present.
+
+  INVESTOR CLASSES: Original offering price may differ by investor type:
+  - $1,000.00 (broker-dealer channel)
+  - $982.50 (fee-based accounts)
+  Footnotes explain which applies. Use the primary listed price for extraction.

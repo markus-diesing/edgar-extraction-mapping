@@ -1,0 +1,213 @@
+# issuer_JPMorgan_Chase_Co.yaml
+#
+# Per-issuer extraction hints for: JPMorgan Chase & Co
+#
+# NOTE: This file covers JPMorgan Chase & Co (CIK 19617, the parent holding company).
+# It is DISTINCT from JPMorgan Chase Financial Company LLC (the structured products
+# subsidiary, covered in issuer_JPMorgan_Chase_Financial.yaml).
+#
+# Sources: 000183988225047850 (CUSIP 48136G4V9)
+#          000121390025081835 (CUSIP 48136G2Y5)
+#          000121390025095397 (CUSIP 48136GR85)
+#
+# Key findings:
+# - Uses "Interest Barrier" for coupon gate, "Buffer Threshold"/"Trigger Value" for
+#   principal-loss barrier — very different from JPMorgan Financial LLC terminology.
+# - "Buffer Amount" is an explicit field defining downside cushion percentage.
+# - "Review Date" = autocall observation date; "Automatic Call" = autocall event.
+# - Single-index products in analyzed filings; no worst-of language observed.
+# - Complex payout formulas sometimes rendered as image files (image4.gif etc.).
+
+issuer_key: JPMorgan Chase & Co
+
+aliases:
+  cik_patterns:
+    - "19617"
+  name_match_patterns:
+    - JPMorgan Chase & Co
+    - JPMORGAN CHASE & CO
+    - JP Morgan Chase
+  entity_names:
+    - JPMorgan Chase & Co
+    - JPMORGAN CHASE & CO
+
+section_headings:
+  - Key Terms
+  - Key Terms Relating to the Review Dates and Interest Payment Dates
+  - Payment at Maturity If the Notes Have Not Been Automatically Called
+  - Automatic Call
+  - Total Contingent Interest Payments
+  - Supplemental Terms of the Notes
+
+key_terms_position: >
+  early — multi-section "Key Terms" layout with blue header bars (approx. #4E8ABE).
+  Primary Key Terms table is within the first 200 lines. Complex products have an
+  additional "Key Terms Relating to the Review Dates and Interest Payment Dates"
+  sub-section. Key Terms span 300+ lines across multiple continuation pages.
+
+document_structure: >
+  JPMorgan Chase & Co uses heavily formatted HTML with modern CSS styling (box-sizing,
+  pixel/point measurements). Section headers in blue (#4E8ABE). The Key Terms section
+  is the primary data source with label:value rows. A separate "Key Terms Relating to
+  the Review Dates" sub-section lists observation date specifics. Payout formulas appear
+  both in text and occasionally as embedded image files (image4.gif). The Automatic Call
+  section and Payment at Maturity section have distinct sub-cases with bullet points.
+
+field_hints:
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Buffer Threshold
+      - Trigger Value
+      - Trigger Level
+      - Knock-In Level
+    label_in_doc: "Buffer Threshold" or "Trigger Value"
+    format: >
+      Expressed as percentage of Initial Value, e.g. "50.00% of the Initial Value"
+      or as an absolute index level (e.g. "6,394.10"). The Buffer Threshold may be
+      defined as Initial Value minus the Buffer Amount.
+    typical_location: Key Terms table
+    _note: >
+      IMPORTANT: "Buffer Threshold" / "Trigger Value" governs principal loss at maturity.
+      Do NOT confuse with "Interest Barrier" which controls coupon eligibility.
+      The Buffer Amount field (e.g. "+5%") adds a cushion: Trigger = Initial × (1 - Buffer).
+
+  coupon.rate:
+    synonyms:
+      - Contingent Interest Rate
+      - Contingent Interest Payment
+      - Interest Rate
+    label_in_doc: "Contingent Interest Rate" or "Contingent Interest Payment"
+    format: >
+      Stated as annual rate and monthly equivalent, e.g. "11.25% per annum
+      (0.9375% per month)" or as dollar amount "$9.375 per $1,000 principal amount".
+    typical_location: Key Terms table
+
+  coupon.barrierLevel:
+    synonyms:
+      - Interest Barrier
+      - Coupon Barrier
+      - interest barrier
+    label_in_doc: "Interest Barrier"
+    format: >
+      Percentage of Initial Value, e.g. "70.00% of the Initial Value" or absolute
+      index level. Controls whether contingent interest is paid on each Review Date.
+    typical_location: Key Terms table
+    _note: >
+      JPMorgan Chase & Co. uses "Interest Barrier" consistently for the coupon gate.
+      This is functionally identical to "Coupon Barrier" (other issuers) and
+      "Coupon Barrier Value" (Barclays/Citigroup).
+
+  autocall.callLevel:
+    synonyms:
+      - Review Date
+      - Automatic Call
+      - Potential Autocall Date
+      - Call Date
+    label_in_doc: "Review Date" (observation date); "Automatic Call" (the trigger event)
+    format: >
+      Review Dates are listed as specific dates (monthly or quarterly schedule).
+      Autocall triggers when the Index closing level on a Review Date ≥ 100% of
+      Initial Value ("greater than or equal to the Initial Value"). Early redemption
+      amount = $1,000 per note plus any contingent interest due.
+    typical_location: "Key Terms Relating to the Review Dates" sub-section
+
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Underlying
+      - Index
+      - Reference Asset
+    label_in_doc: "Underlying" or "Index"
+    format: >
+      Full index name, e.g. "MerQube US Tech+ Vol Advantage Index",
+      "MerQube Global Opportunities Index". Analyzed filings are single-index products.
+    typical_location: Key Terms table, "Underlying:" or "Index:" row
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Initial Value
+      - Initial Index Level
+      - Pricing Date closing level
+    label_in_doc: "Initial Value"
+    format: >
+      Absolute index level on the Pricing Date, e.g. "12,556.20".
+      Also described as "the closing level of the [Index] on the Pricing Date".
+    typical_location: Key Terms table
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Stated Maturity Date
+      - Due Date
+      - Maturity Date
+    label_in_doc: "Stated Maturity Date" or "Due Date"
+    format: "Date string, e.g. 'October 3, 2030'"
+    typical_location: Key Terms table
+
+  product.denomination:
+    synonyms:
+      - Principal Amount
+      - Stated Principal Amount
+    label_in_doc: "Principal Amount" or "Stated Principal Amount"
+    format: "$1,000 per note"
+    typical_location: Key Terms table
+
+  product.participationRate:
+    synonyms:
+      - Buffer Amount
+      - Downside leverage
+    label_in_doc: "Buffer Amount"
+    format: >
+      Positive percentage representing downside cushion, e.g. "+5.00%". This is NOT a
+      participation multiplier — it is the buffer before losses begin. If Buffer Amount
+      = 5%, losses start only after the Index has fallen > 5% from initial.
+    typical_location: Key Terms table
+    _note: >
+      The Buffer Amount means: if Buffer = 5% and Index falls 8%, the note loses only
+      3% (= 8% − 5%). Payout formula: $1,000 × (Index Return + Buffer Amount) where
+      Index Return is negative. Verify PRISM field mapping for this concept.
+
+  identifiers.cusip:
+    synonyms:
+      - CUSIP
+    label_in_doc: "CUSIP"
+    format: "9-character CUSIP e.g. '48136G4V9'"
+    typical_location: Key Terms table; cover page header
+
+  product.issuePrice:
+    synonyms:
+      - Price to Public
+      - Issue Price
+      - Original Issue Price
+    label_in_doc: "Price to Public"
+    format: >
+      "$1,000 per note (100% of principal)". Estimated value (economic fair value at
+      issuance) is separately disclosed and is typically lower, e.g. "$944–$960 range".
+    typical_location: Key Terms table; cover-page pricing table
+
+general_notes: >
+  PARENT vs. SUBSIDIARY: JPMorgan Chase & Co is the parent holding company; JPMorgan
+  Chase Financial Company LLC is the structured products subsidiary. Both file 424B2s
+  but with different product styles and terminology. Ensure the correct hint file is
+  matched.
+
+  KEY BARRIER TERMINOLOGY DIFFERENCE vs. JPMorgan Financial LLC:
+  - JPMorgan Chase & Co: "Buffer Threshold"/"Trigger Value" = principal barrier;
+    "Interest Barrier" = coupon gate; "Buffer Amount" = explicit downside cushion.
+  - JPMorgan Financial LLC: "Barrier Level" and "Interest Barrier" (similar coupon gate).
+  Do not mix these up.
+
+  PAYOUT FORMULA SECTION: The full payout formula appears under the heading:
+  "Payment at Maturity If the Notes Have Not Been Automatically Called" — very long
+  heading, but this is the authoritative source for settlement type, barrier level,
+  buffer amount, and participation terms. Treat it as the highest-confidence source.
+
+  IMAGE-EMBEDDED FORMULAS: Some filings use image4.gif (and similar) for payout
+  diagrams. Use the text sub-cases in the "Payment at Maturity" section and the
+  Hypothetical Payout Profile table for reliable extraction when images are present.
+
+  REVIEW DATES: "Review Date" is JPMorgan Chase & Co's term for autocall observation
+  date. "Automatic Call" describes the event. Dates are listed explicitly in the
+  "Key Terms Relating to the Review Dates and Interest Payment Dates" sub-section.
+
+  BUFFER AMOUNT: This is an explicit product feature reducing the first N% of downside
+  loss. If Buffer Amount = 5% and Trigger Value = 50%, effective protection extends to
+  55% decline before any loss. Payout below Trigger: $1,000 × (Index Return + Buffer).

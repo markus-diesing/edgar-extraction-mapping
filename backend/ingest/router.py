@@ -78,6 +78,8 @@ class FilingRecord(BaseModel):
     classification_confidence: float | None
     ingest_timestamp: str
     filing_folder_path: str | None
+    title_excerpt: str | None = None
+    product_features: dict | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +91,12 @@ def _now() -> str:
 
 
 def _filing_to_record(f: database.Filing) -> FilingRecord:
+    product_features = None
+    if f.classification_product_features:
+        try:
+            product_features = json.loads(f.classification_product_features)
+        except Exception:
+            pass
     return FilingRecord(
         id=f.id,
         cusip=f.cusip,
@@ -100,6 +108,8 @@ def _filing_to_record(f: database.Filing) -> FilingRecord:
         classification_confidence=f.classification_confidence,
         ingest_timestamp=f.ingest_timestamp,
         filing_folder_path=f.filing_folder_path,
+        title_excerpt=f.classification_title_excerpt or None,
+        product_features=product_features,
     )
 
 

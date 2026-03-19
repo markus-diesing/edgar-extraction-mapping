@@ -1,0 +1,184 @@
+# issuer_Citigroup.yaml
+#
+# Per-issuer extraction hints for: Citigroup Inc
+#
+# Sources: 000191870426006689 (CUSIP 17332UG26)
+#          000191870426007632 (CUSIP 17332UV86)
+#          000191870426007610 (CUSIP 17332UX27)
+#
+# Key finding: Citigroup uses "Final barrier value" (not "Barrier Level"),
+# "Coupon barrier value" for the coupon gate, and "Worst performing underlying"
+# for worst-of basket language.
+
+issuer_key: Citigroup Inc
+
+aliases:
+  cik_patterns:
+    - "831001"
+  name_match_patterns:
+    - Citigroup Inc
+    - CITIGROUP INC
+    - Citigroup
+    - Citi
+  entity_names:
+    - Citigroup Inc
+    - CITIGROUP INC
+
+section_headings:
+  - KEY TERMS
+  - Payment at maturity
+  - Contingent coupon payment dates
+  - Potential redemption dates
+  - Underlying
+
+key_terms_position: >
+  early — "KEY TERMS" section with a distinctive green/teal background header
+  (approx. #59AE43). The multi-column underlying table appears within the first
+  200 lines. A "Key Terms (continued)" notice signals the section continues
+  across pages.
+
+document_structure: >
+  Citigroup uses modern HTML with styled tables (flexbox/grid layouts, pixel-precise
+  padding). The KEY TERMS section contains a multi-column per-underlying table with
+  columns: Underlying | Initial underlying value | Coupon barrier value | Final
+  barrier value. Dates (potential redemption dates, contingent coupon payment dates)
+  are enumerated explicitly in separate rows. The green/teal header color (#59AE43
+  or similar) marks each section boundary.
+
+field_hints:
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Final barrier value
+      - Final Barrier Value
+      - barrier value
+    label_in_doc: "Final barrier value"
+    format: >
+      Expressed as percentage of initial underlying value, e.g. "60.00% of initial
+      underlying value". Appears as a column in the per-underlying table or as a
+      standalone row in KEY TERMS.
+    typical_location: Per-underlying sub-table in KEY TERMS section
+    _note: >
+      "Final barrier value" controls principal loss at maturity — distinct from
+      "Coupon barrier value" which controls coupon eligibility. Do not conflate them.
+
+  coupon.rate:
+    synonyms:
+      - Contingent coupon
+      - Contingent coupon rate
+      - Contingent Coupon
+    label_in_doc: "Contingent coupon" or "Contingent coupon rate"
+    format: >
+      Stated as both monthly and annual rates, e.g. "0.8417% per month (approximately
+      10.10% per annum)" or as a dollar amount per $1,000 principal.
+    typical_location: KEY TERMS table
+
+  coupon.barrierLevel:
+    synonyms:
+      - Coupon barrier value
+      - Coupon barrier
+    label_in_doc: "Coupon barrier value"
+    format: >
+      Expressed as percentage of initial underlying value, e.g. "70.00% of initial
+      underlying value". Controls whether the contingent coupon is paid on each
+      valuation date. Separate from "Final barrier value".
+    typical_location: Per-underlying sub-table in KEY TERMS section; also a column header
+
+  autocall.callLevel:
+    synonyms:
+      - Potential redemption dates
+      - Potential redemption date
+      - Automatic redemption
+    label_in_doc: "Potential redemption dates"
+    format: >
+      Explicit list of dates, e.g. "June 16, 2026, September 16, 2026, …".
+      Autocall trigger level is typically 100% of initial underlying value on any
+      potential redemption date — not always stated as an explicit percentage.
+    typical_location: KEY TERMS table; separate row listing all observation dates
+
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Underlying
+      - Underlying asset
+      - Worst performing underlying
+    label_in_doc: "Underlying" (column header in per-underlying table)
+    format: >
+      Full index or equity name, e.g. "Nasdaq-100 Index®", "MSCI Emerging Markets
+      Index". For multi-asset products the worst-of is called "worst performing
+      underlying" in payout formulas — extract each underlying separately.
+    typical_location: Per-underlying sub-table column header in KEY TERMS
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Initial underlying value
+      - Initial value
+      - initial underlying value
+    label_in_doc: "Initial underlying value"
+    format: >
+      Absolute index level or normalised value (e.g. "100.00" or "19,324.56").
+      Defined as the closing value on the pricing date. Superscript footnote may
+      indicate it is set on the pricing date.
+    typical_location: Per-underlying sub-table in KEY TERMS; also in Preliminary Terms
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Maturity date
+    label_in_doc: "Maturity date:"
+    format: "Date string, e.g. 'March 16, 2029'"
+    typical_location: KEY TERMS table
+
+  product.denomination:
+    synonyms:
+      - Stated principal amount
+      - Principal amount
+    label_in_doc: "Stated principal amount"
+    format: "$1,000 per security"
+    typical_location: KEY TERMS table
+
+  identifiers.cusip:
+    synonyms:
+      - CUSIP
+      - CUSIP / ISIN
+    label_in_doc: "CUSIP / ISIN:" (combined field row)
+    format: "9-character CUSIP e.g. '17332UG26'"
+    typical_location: KEY TERMS table; cover page
+
+  identifiers.isin:
+    synonyms:
+      - ISIN
+    label_in_doc: "CUSIP / ISIN:" (same row as CUSIP)
+    format: "12-character ISIN"
+    typical_location: KEY TERMS table
+
+  product.issuePrice:
+    synonyms:
+      - Issue price
+      - Price to public
+    label_in_doc: "Issue price"
+    format: "100.00% of principal or $1,000 per security; footnoted with cost breakdown"
+    typical_location: KEY TERMS table
+
+general_notes: >
+  BARRIER vs COUPON BARRIER: Citigroup uses two separate barrier levels.
+  "Final barrier value" = principal loss trigger at maturity (e.g. 60%).
+  "Coupon barrier value" = coupon eligibility gate on each valuation date (e.g. 70%).
+  Both are expressed as percentages of the respective initial underlying value and
+  appear as columns in the per-underlying sub-table.
+
+  WORST-OF BASKET LANGUAGE: "Worst performing underlying" — the exact phrase used for
+  the basket worst-of reference. Payout formula reads:
+    If worst performing underlying final value ≥ final barrier value → $1,000
+    If below → $1,000 + ($1,000 × underlying return of worst performing underlying)
+  Extract "Underlying return" = (Final Value − Initial Value) / Initial Value.
+
+  AUTOCALL: "Potential redemption dates" lists all observation dates. Trigger level is
+  typically 100% of initial underlying value (par call) but may vary — check the
+  payout formula sub-section for "if the closing level of each underlying on [date]
+  is greater than or equal to its initial underlying value".
+
+  VALUATION DATES: "Contingent coupon payment dates" and "Potential redemption dates"
+  are explicitly listed. The final element in the dates list corresponds to the Final
+  Valuation Date.
+
+  LAYOUT: Green/teal section headers (#59AE43). Multi-page key terms section with
+  "Key Terms (continued)" continuation notice. All percentages rounded to 2 decimal
+  places. Hypothetical examples use normalized 100.00 initial values.

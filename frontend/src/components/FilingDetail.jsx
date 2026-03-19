@@ -240,6 +240,33 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
             {filing.payout_type_id && (
               <p className="text-xs text-blue-600 mt-0.5 font-medium">{filing.payout_type_id}</p>
             )}
+            {/* Product info card — title_excerpt and product_features */}
+            {(filing.title_excerpt || filing.product_features) && (
+              <div className="mt-1.5 text-xs text-slate-500 space-y-1">
+                {filing.title_excerpt && (
+                  <p className="italic text-slate-500 leading-snug">{filing.title_excerpt}</p>
+                )}
+                {filing.product_features && (
+                  <div className="flex flex-wrap gap-1 items-center">
+                    {filing.product_features.type && (
+                      <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                        {filing.product_features.type}
+                      </span>
+                    )}
+                    {(filing.product_features.features || []).map((feat, i) => (
+                      <span key={i} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">
+                        {feat}
+                      </span>
+                    ))}
+                    {(filing.product_features.underlyings || []).map((ul, i) => (
+                      <span key={i} className="px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded text-xs">
+                        {ul}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
