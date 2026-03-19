@@ -267,6 +267,51 @@ def _build_extraction_tool(model_name: str, model_schema: dict) -> dict:
     }
 
 
+def _trim_to_key_terms_section(
+    filing_text: str,
+    issuer_hints: dict | None,
+    window: int = config.MAX_FILING_CHARS,
+) -> tuple[str, bool]:
+    """
+    Trim filing text to a focused window anchored on the Key Terms section.
+
+    Strategy (in order):
+    1. Use the issuer's `section_headings` from the YAML hints as anchors.
+       Take the earliest match and return `window` chars starting 200 chars
+       before that position (to capture any lead-in header row).
+    2. If no issuer-specific heading matches, try cross-issuer fallback anchors.
+    3. If no anchor is found at all, fall back to the first `window` chars
+       (original behaviour — no change vs. prior implementation).
+
+    Returns (trimmed_text, was_trimmed).
+    The was_trimmed flag is used only for logging.
+    """
+    FALLBACK_ANCHORS = [
+        "KEY TERMS", "Key Terms", "SUPPLEMENTAL TERMS",
+        "TERMS OF THE NOTES", "PRODUCT TERMS", "OFFERING TERMS",
+    ]
+
+    issuer_headings: list[str] = []
+    if issuer_hints:
+        issuer_headings = issuer_hints.get("section_headings", [])
+
+    # Issuer-specific headings first, then fallbacks — deduplicated, order preserved
+    all_anchors = list(dict.fromkeys(issuer_headings + FALLBACK_ANCHORS))
+
+    best_pos = -1
+    for anchor in all_anchors:
+        idx = filing_text.find(anchor)
+        if idx >= 0 and (best_pos < 0 or idx < best_pos):
+            best_pos = idx
+
+    if best_pos < 0:
+        return filing_text[:window], False
+
+    start = max(0, best_pos - 200)
+    end   = min(len(filing_text), start + window)
+    return filing_text[start:end], True
+
+
 def _build_extraction_prompt(
     model_name: str,
     schema_json: str,
@@ -342,6 +387,16 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
         log.info("Applying extraction hints for issuer %r", issuer_name)
     else:
         log.info("No issuer-specific hints matched for issuer %r — using base prompt", issuer_name)
+
+    # Section pre-filter: trim to the Key Terms window before sending to Claude.
+    # Uses issuer section_headings from YAML hints as anchors; falls back to
+    # cross-issuer anchors ("KEY TERMS", etc.); falls back to first MAX_FILING_CHARS.
+    filing_text, was_trimmed = _trim_to_key_terms_section(filing_text, issuer_hints)
+    log.info(
+        "Filing text: %d chars %s",
+        len(filing_text),
+        "(trimmed to key-terms section)" if was_trimmed else "(no section anchor found — using head)",
+    )
 
     # Build prompt and tool definition
     user_prompt = _build_extraction_prompt(model_name, schema_for_prompt, filing_text, hints_block)
