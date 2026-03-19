@@ -1,6 +1,6 @@
 # EDGAR Extraction — Research Findings & Next Steps
 
-*Last updated: 2026-03-18 | Authors: Markus Diesing + Claude*
+*Last updated: 2026-03-19 | Authors: Markus Diesing + Claude*
 
 ---
 
@@ -113,78 +113,78 @@ They use Tesseract OCR (PDF → plain text) before sending to LLM. Store source 
 
 ## 4. Local Filing Dataset
 
-### 4.1 Currently Stored (28 filings as of 2026-03-18)
+### 4.1 Currently Stored (79 filings as of 2026-03-19)
 
-| Issuer | CUSIPs ingested | Status breakdown |
+Expanded from 28 → 79 filings after SEC maintenance ended (2026-03-19). 28/29 target CUSIPs ingested; one confirmed no-hit (see §4.2).
+
+| Issuer | CUSIPs ingested | Notes |
 |---|---|---|
-| Bank of Montreal | 5 | 3 extracted, 2 needs_review |
-| Barclays | 3 | all needs_review |
-| Citigroup | 3 | all extracted |
-| Goldman Sachs | 2 | 1 extracted, 1 needs_review |
-| JPMorgan Chase & Co | 5 | 4 extracted/classified, 1 needs_review |
-| JPMorgan Financial | 3 | 2 extracted, 1 needs_review |
-| UBS AG | 3 | all extracted |
-| Wells Fargo | 3 | all needs_review |
-| Other (09711J) | 1 | ingested only |
+| Bank of Montreal | 10 | |
+| Barclays | 10 | |
+| Citigroup | 10 | |
+| Goldman Sachs | 9 | 40447CXJ4 confirmed no EDGAR hit |
+| JPMorgan Chase & Co | 9 | |
+| JPMorgan Financial | 8 | |
+| UBS AG | 10 | |
+| Wells Fargo | 10 | Fixed-rate callable notes — outside PRISM structured product scope |
+| BofA Finance | 1 | |
+| Other | 1 | |
 
-### 4.2 Expanded Dataset Target (10 per issuer)
+### 4.2 Expanded Dataset — CUSIP Status
 
-Batch ingest triggered 2026-03-18. Target: ~78 total filings (JPMorgan Chase tops out at 8 CUSIPs in current CUSIP_Examples.txt).
+All target CUSIPs have been ingested. One exception:
+- **40447CXJ4 (Goldman Sachs)**: confirmed no EDGAR 424B2 hit. CUSIP may reference a product filed under a different form type or identifier. No further action needed.
 
-**New CUSIPs to ingest:**
-- **BMO** (5 new): 06376F6U8, 06376F6R5, 06376FAE9, 06376FBH1, 06376F6V6
-- **Barclays** (7 new): 06749FWP0, 06749GBY2, 06749FWA3, 06749GBC0, 06749G6H5, 06749GBE6, 06749G6G7
-- **Citigroup** (7 new): 17332UG26, 17332UV86, 17332UX27, 17332UY26, 17332UG59, 17291W4Z1, 17332UW93
-- **Goldman Sachs** (8 new): 40447CXJ4*, 40058JSZ9, 40058JWH4, 40058JWZ4, 40447CWJ5, 40447CWH9, 40447CWK2, 09711JQH5
-- **JPMorgan Chase & Co** (3 new): 48136G6Q8, 48136G3L2, 48134V828
-- **JPMorgan Financial** (7 new): 46660RAG9, 46660R7A6, 46660RD50, 46660RDQ4, 46660RDP6, 46660RCS1, 46660RCM4
-- **UBS AG** (7 new): 90310EEJ0, 90310EGE9, 90310EGF6, 90310EEV3, 90304W558, 90310EGJ8, 90265W2X7
-- **Wells Fargo** (7 new): 95001DP95, 95001DPB0, 95001DP87, 95001DPA2, 95001DPC8, 95001DP38, 95001DP46
-
-*40447CXJ4 had no EDGAR hits in prior run; included for diagnostic value.
+All newly ingested filings are at `ingested` status (no classify/extract run yet). Next extraction run will use the expanded hint set.
 
 ### 4.3 Graphics / Image Handling Note
 Current ingest saves raw HTML with `<base href="https://www.sec.gov/Archives/...">` injection. Images load live from EDGAR when the review UI is open — this works for online use. Fully offline image embedding (base64) is tracked as P4 in `IMPROVEMENTS_TODO.md`. Not blocking for classification/extraction work.
 
 ---
 
-## 5. Work in Progress (as of 2026-03-18)
+## 5. Completed Sprint Work (2026-03-19)
 
-### 5.1 `files/issuer_extraction_hints.json` (background agent running)
-Generates per-issuer field-level extraction hints by reading all locally stored raw HTML filings and the PRISM schema. Covers:
-- Per-issuer `section_headings` and `key_terms_position`
-- Per-field `synonyms` (e.g. JPMorgan uses "Interest Barrier" not "Coupon Barrier")
-- Cross-issuer `field_level_hints` with `description`, `common_synonyms`, `value_format`, and `caution` notes
-Target fields: `barrier.*`, `autocall.*`, `coupon.*`, `underlying.*`, `product.*`, `settlement.*`
+### 5.1 Issuer hint YAML files — all 8 issuers now covered
+Per-issuer field synonym YAML files in `files/hints/` now cover all issuers in the dataset:
 
-### 5.2 Expanded batch ingest (background)
-51 new CUSIPs across 8 issuers. Ingest only (no classify/extract) — used as training corpus for hints generation and future extraction testing.
+| Issuer | File | Key findings |
+|---|---|---|
+| JPMorgan Chase Financial LLC | `issuer_JPMorgan_Chase_Financial.yaml` | "Interest Barrier", "Review Date", "Least Performing" |
+| Bank of Montreal | `issuer_Bank_of_Montreal.yaml` | |
+| UBS AG | `issuer_UBS_AG.yaml` | "Downside Threshold", "Call Threshold Levels" |
+| Goldman Sachs / GS Finance Corp | `issuer_GS_Finance_Corp.yaml` | |
+| BofA Finance LLC | `issuer_BofA_Finance.yaml` | Image-embedded formulas guidance |
+| **Barclays Bank PLC** *(new)* | `issuer_Barclays_Bank.yaml` | "Barrier Value", "Lesser/Least Performing Underlier" (dual vs basket) |
+| **Citigroup Inc** *(new)* | `issuer_Citigroup.yaml` | "Final barrier value", "Worst performing underlying" |
+| **JPMorgan Chase & Co** *(new)* | `issuer_JPMorgan_Chase_Co.yaml` | "Buffer Threshold"/"Trigger Value", "Interest Barrier", "Buffer Amount" |
+| **Wells Fargo** *(new)* | `issuer_Wells_Fargo.yaml` | Fixed-rate notes only; scope warning; no barrier/underlying fields |
+
+Hints are automatically loaded by `hints_loader.py` (mtime-cached) and injected into every extraction prompt.
+
+### 5.2 Sprint tasks completed
+
+| Task | Status | Notes |
+|---|---|---|
+| Complete issuer hints (Task 1) | ✅ Done | All 8 issuers covered; YAML files auto-loaded |
+| Wire hints into extractor (Task 2) | ✅ Already done | `extractor.py` reads YAML via `hints_loader.py` |
+| Classification gate 0.80 (Task 3) | ✅ Already done | `extract/router.py` blocks below `CLASSIFICATION_GATE_CONFIDENCE` |
+| Frontend: title_excerpt + product_features (Task 5) | ✅ Done | Compact card below model pill |
+| Frontend: schema_error highlighting (Task 6) | ✅ Done | Red border + badge + tooltip in FieldTable |
+| Frontend: "correct classification" button (Task 7) | ✅ Already done | "Set Model" + "↺ Reset" in FilingDetail |
+| Wire feedback loop (Task 8) | ✅ Done | classifier.py injects ≤3 examples from ClassificationFeedback |
+| Expand dataset to ~79 filings (Task 4 prep) | ✅ Done | All target CUSIPs ingested; extract run deferred |
 
 ---
 
 ## 6. Prioritised Next Steps
 
-### Immediate (this sprint)
+### Ready to run (next session — requires Markus approval)
 
-1. **[ ] Complete `issuer_extraction_hints.json`** — wait for background agent, review output, validate synonyms against actual filing text. Then wire into `extractor.py` as an optional prompt prefix.
+1. **[ ] Re-run classify + extract on expanded 79-filing dataset** — all hints now wired in. Run classify on all `ingested` filings, then extract on successfully classified ones. Measure fill rate improvement vs. baseline (40–55%). Target: > 65%. *Requires ANTHROPIC_API_KEY and backend running.*
 
-2. **[ ] Add field-level `extractionHint` to extraction prompt** — update `_build_extraction_prompt()` in `extractor.py` to prepend issuer hints when available. Fallback: cross-issuer `field_level_hints` always applied.
+2. **[ ] Section-level document pre-filtering (Task 9)** — identify the key terms section per issuer (first 200 lines for BMO, lines 147–280 for JPMorgan, etc.) and pass only that slice to the extraction call. Reduces token cost and improves focus. Architecture decision needed: per-issuer line ranges hard-coded in YAML hints, or keyword-anchor-based trimming?
 
-3. **[ ] Add `CLASSIFICATION_GATE_CONFIDENCE` = 0.80** — below this, set `status = needs_classification_review` in `classifier.py`. Block `POST /api/extract/{id}` with 400 until manually confirmed. Prevents extraction waste on uncertain classifications.
-
-4. **[ ] Re-run extraction on expanded dataset** — once hints are wired in, run classify+extract on the 78-filing dataset. Measure field fill rate improvement (baseline: 40–55%). Target: > 65%.
-
-### Short-term (next sprint)
-
-5. **[ ] Frontend: display `title_excerpt` + `product_features`** on classification result card.
-
-6. **[ ] Frontend: `schema_error` field highlighting** — red border + tooltip with `validation_error` message in expert review view.
-
-7. **[ ] Frontend: "correct classification" button** — writes `ClassificationFeedback` row. Infrastructure already in DB.
-
-8. **[ ] Wire feedback loop** — query `ClassificationFeedback` for `used_as_example = False`, include ≤3 as few-shot examples in classification prompt, mark `used_as_example = True`.
-
-9. **[ ] Section-level document pre-filtering for extraction** — identify key terms section per issuer (based on structural analysis in `RESEARCH_FINDINGS_AND_NEXT_STEPS.md §3.3 Insight 4`) and pass only that section to the extraction call.
+3. **[ ] EDGAR series filing detection** — surface in the UI when a filing contains multiple CUSIPs (series filing). Risk: parameters from different products may be mixed. Future: "break multi-filing to individual datasets" decomposition feature.
 
 ### Medium-term (schema work — owner: PRISM model creation group)
 

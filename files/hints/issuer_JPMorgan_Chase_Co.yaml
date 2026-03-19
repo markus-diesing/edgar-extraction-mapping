@@ -60,7 +60,7 @@ field_hints:
       - Trigger Value
       - Trigger Level
       - Knock-In Level
-    label_in_doc: "Buffer Threshold" or "Trigger Value"
+    label_in_doc: '"Buffer Threshold" or "Trigger Value"'
     format: >
       Expressed as percentage of Initial Value, e.g. "50.00% of the Initial Value"
       or as an absolute index level (e.g. "6,394.10"). The Buffer Threshold may be
@@ -76,7 +76,7 @@ field_hints:
       - Contingent Interest Rate
       - Contingent Interest Payment
       - Interest Rate
-    label_in_doc: "Contingent Interest Rate" or "Contingent Interest Payment"
+    label_in_doc: '"Contingent Interest Rate" or "Contingent Interest Payment"'
     format: >
       Stated as annual rate and monthly equivalent, e.g. "11.25% per annum
       (0.9375% per month)" or as dollar amount "$9.375 per $1,000 principal amount".
@@ -103,20 +103,20 @@ field_hints:
       - Automatic Call
       - Potential Autocall Date
       - Call Date
-    label_in_doc: "Review Date" (observation date); "Automatic Call" (the trigger event)
+    label_in_doc: Review Date (observation date) / Automatic Call (the trigger event)
     format: >
       Review Dates are listed as specific dates (monthly or quarterly schedule).
       Autocall triggers when the Index closing level on a Review Date ≥ 100% of
       Initial Value ("greater than or equal to the Initial Value"). Early redemption
       amount = $1,000 per note plus any contingent interest due.
-    typical_location: "Key Terms Relating to the Review Dates" sub-section
+    typical_location: '"Key Terms Relating to the Review Dates" sub-section'
 
   underlyingTerms.underlyingAssets[*].name:
     synonyms:
       - Underlying
       - Index
       - Reference Asset
-    label_in_doc: "Underlying" or "Index"
+    label_in_doc: '"Underlying" or "Index"'
     format: >
       Full index name, e.g. "MerQube US Tech+ Vol Advantage Index",
       "MerQube Global Opportunities Index". Analyzed filings are single-index products.
@@ -138,7 +138,7 @@ field_hints:
       - Stated Maturity Date
       - Due Date
       - Maturity Date
-    label_in_doc: "Stated Maturity Date" or "Due Date"
+    label_in_doc: '"Stated Maturity Date" or "Due Date"'
     format: "Date string, e.g. 'October 3, 2030'"
     typical_location: Key Terms table
 
@@ -146,7 +146,7 @@ field_hints:
     synonyms:
       - Principal Amount
       - Stated Principal Amount
-    label_in_doc: "Principal Amount" or "Stated Principal Amount"
+    label_in_doc: '"Principal Amount" or "Stated Principal Amount"'
     format: "$1,000 per note"
     typical_location: Key Terms table
 

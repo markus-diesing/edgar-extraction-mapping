@@ -60,7 +60,7 @@ field_hints:
       - Contingent Coupon
       - Contingent Coupon Rate
       - Redemption Premium
-    label_in_doc: "Contingent Coupon" or "Redemption Premium"
+    label_in_doc: '"Contingent Coupon" or "Redemption Premium"'
     format: >
       Stated as both dollar amount per $1,000 principal and annual percentage,
       e.g. "$90.00 per $1,000 (9.00% per annum)".
@@ -81,7 +81,7 @@ field_hints:
       - Observation Date
       - Automatic Redemption
       - Call trigger
-    label_in_doc: "Observation Date" for dates; trigger is typically at Initial Underlier Value (100%)
+    label_in_doc: Observation Date (for dates); trigger is typically at Initial Underlier Value (100%)
     format: >
       Observation dates listed explicitly. Autocall triggers when Closing Value ≥
       Initial Underlier Value on an Observation Date. Early redemption amount stated
@@ -113,14 +113,14 @@ field_hints:
       - Initial Underlier Value
       - Initial underlying value
       - Closing Value on the Pricing Date
-    label_in_doc: "Initial Underlier Value" (single/dual-asset) or "Initial underlying value" (multi-asset)
+    label_in_doc: '"Initial Underlier Value" (single/dual-asset) or "Initial underlying value" (multi-asset)'
     format: Absolute price or index level, e.g. "$150.00" or "19,324.56"
     typical_location: KEY TERMS table; per-underlying sub-table
 
   structuredProductsGeneric.maturityDate:
     synonyms:
       - Maturity Date
-    label_in_doc: "Maturity Date:*" (with asterisk footnote marker)
+    label_in_doc: 'Maturity Date:* (with asterisk footnote marker)'
     format: "Date string e.g. 'March 21, 2029'"
     typical_location: KEY TERMS table
 
@@ -128,7 +128,7 @@ field_hints:
     synonyms:
       - Principal Amount
       - Stated principal amount
-    label_in_doc: "Principal Amount" or "Stated principal amount"
+    label_in_doc: '"Principal Amount" or "Stated principal amount"'
     format: "$1,000 per note"
     typical_location: KEY TERMS table
 
@@ -136,7 +136,7 @@ field_hints:
     synonyms:
       - CUSIP
       - CUSIP / ISIN
-    label_in_doc: "CUSIP / ISIN:" (combined field)
+    label_in_doc: 'CUSIP / ISIN: (combined field)'
     format: "9-character CUSIP, e.g. '06749FWA3'"
     typical_location: KEY TERMS table; cover page header
 
@@ -144,7 +144,7 @@ field_hints:
     synonyms:
       - ISIN
       - CUSIP / ISIN
-    label_in_doc: "CUSIP / ISIN:" (same field row as CUSIP)
+    label_in_doc: 'CUSIP / ISIN: (same field row as CUSIP)'
     format: "12-character ISIN, e.g. 'US0674AFWP01'"
     typical_location: KEY TERMS table
 
@@ -152,7 +152,7 @@ field_hints:
     synonyms:
       - Initial Issue Price
       - Price to Public
-    label_in_doc: "Initial Issue Price" with footnote superscripts "(1)(2)"
+    label_in_doc: 'Initial Issue Price (with footnote superscripts "(1)(2)")'
     format: "$1,000 per $1,000 principal (100%) or stated range"
     typical_location: KEY TERMS table
 

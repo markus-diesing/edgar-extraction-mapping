@@ -66,7 +66,7 @@ field_hints:
       - Contingent coupon
       - Contingent coupon rate
       - Contingent Coupon
-    label_in_doc: "Contingent coupon" or "Contingent coupon rate"
+    label_in_doc: '"Contingent coupon" or "Contingent coupon rate"'
     format: >
       Stated as both monthly and annual rates, e.g. "0.8417% per month (approximately
       10.10% per annum)" or as a dollar amount per $1,000 principal.
@@ -100,7 +100,7 @@ field_hints:
       - Underlying
       - Underlying asset
       - Worst performing underlying
-    label_in_doc: "Underlying" (column header in per-underlying table)
+    label_in_doc: Underlying (column header in per-underlying table)
     format: >
       Full index or equity name, e.g. "Nasdaq-100 Index®", "MSCI Emerging Markets
       Index". For multi-asset products the worst-of is called "worst performing
@@ -138,14 +138,14 @@ field_hints:
     synonyms:
       - CUSIP
       - CUSIP / ISIN
-    label_in_doc: "CUSIP / ISIN:" (combined field row)
+    label_in_doc: 'CUSIP / ISIN: (combined field row)'
     format: "9-character CUSIP e.g. '17332UG26'"
     typical_location: KEY TERMS table; cover page
 
   identifiers.isin:
     synonyms:
       - ISIN
-    label_in_doc: "CUSIP / ISIN:" (same row as CUSIP)
+    label_in_doc: 'CUSIP / ISIN: (same row as CUSIP)'
     format: "12-character ISIN"
     typical_location: KEY TERMS table
 
