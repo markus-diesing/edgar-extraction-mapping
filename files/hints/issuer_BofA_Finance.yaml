@@ -1,0 +1,206 @@
+# issuer_BofA_Finance.yaml
+#
+# Per-issuer extraction hints for: BofA Finance LLC
+#
+# Structure:
+#   aliases:           CIK patterns and name match strings used to detect this issuer
+#   section_headings:  Key section headings to locate in the filing HTML
+#   key_terms_position: Where to find the primary terms table in the document
+#   document_structure: Describes the overall layout of this issuer's filings
+#   field_hints:       Per PRISM field — synonyms, label text, format, location
+#   general_notes:     High-level notes about this issuer's filing conventions
+#
+# Sources: 000191870425016638
+
+issuer_key: BofA Finance LLC
+
+aliases:
+  cik_patterns:
+    - "1682472"
+  name_match_patterns:
+    - BofA Finance
+    - Bank of America
+    - BOFA
+  entity_names:
+    - BofA Finance LLC
+    - Bank of America Corporation
+
+section_headings:
+  - Terms of the Notes
+  - Observation Dates, Contingent Payment Dates and Call Payment Dates
+  - Contingent Coupon Payment and Redemption Amount Determination
+
+key_terms_position: >
+  early — bullet-point summary on cover page within first 200 lines; structured 'Terms
+  of the Notes' table with blue (#0080FF) row headers appears around line 600
+
+document_structure: >
+  BofA supplements begin with a bullet-point feature summary, followed by a detailed
+  'Terms of the Notes' table using alternating grey/white rows with blue field-label
+  cells. A separate table shows all observation dates and payment dates. A 'Contingent
+  Coupon Payment and Redemption Amount Determination' section has payoff diagrams.
+
+field_hints:
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Underlyings
+      - Underlying
+      - each Underlying
+      - Least Performing Underlying
+      - Least Performing
+      - Worst Performing
+      - Worst-of
+    label_in_doc: "Underlyings: (blue cell in Terms table)"
+    format: "'The Nasdaq-100® Index (Bloomberg symbol: \"NDX\"), the Russell 2000® Index (Bloomberg symbol: \"RTY\") and the S&P 500® Index (Bloomberg symbol: \"SPX\"), each a price return index.' For multi-underlying products: extract each index separately as U1, U2, U3. 'Least Performing Underlying' = worst-of basket; do NOT treat it as a single underlying name."
+    typical_location: "Terms of the Notes table, 'Underlyings' row"
+
+  underlyingTerms.underlyingAssets[*].bloombergTicker:
+    synonyms:
+      - Bloomberg symbol
+    label_in_doc: Bloomberg symbol in parentheses after index name
+    format: "'(Bloomberg symbol: \"NDX\")'"
+    typical_location: "Terms of the Notes table, 'Underlyings' row"
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Starting Value
+    label_in_doc: "Starting Value: (blue cell in Terms table)"
+    format: "Per-underlying absolute levels: 'NDX: 24,679.99 / RTY: 2,436.484 / SPX: 6,688.46'"
+    typical_location: "Terms of the Notes table, 'Starting Value' row"
+
+  underlyingTerms.underlyingAssets[*].finalLevel:
+    synonyms:
+      - Ending Value
+      - Observation Value on Valuation Date
+    label_in_doc: "Ending Value: (blue cell in Terms table)"
+    format: "'With respect to each Underlying, its Observation Value on the Valuation Date.'"
+    typical_location: "Terms of the Notes table, 'Ending Value' row"
+
+  coupon.rate:
+    synonyms:
+      - Contingent Coupon Payment
+      - contingent coupon rate
+    label_in_doc: "Contingent Coupon Payment: (blue cell)"
+    format: "'$7.50 per $1,000.00 in principal amount of Notes (equal to a rate of 0.75% per month or 9.00% per annum)'"
+    typical_location: Terms of the Notes table; cover bullets
+
+  coupon.barrierLevel:
+    synonyms:
+      - Coupon Barrier
+    label_in_doc: "Coupon Barrier: (blue cell in Terms table)"
+    format: "Per-underlying values: 'NDX: 17,275.99, which is 70.00% of its Starting Value'. Extract 0.70."
+    typical_location: "Terms of the Notes table, 'Coupon Barrier' row"
+
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Threshold Value
+    label_in_doc: "Threshold Value: (blue cell in Terms table)"
+    format: "Per-underlying values: 'NDX: 17,275.99, which is 70.00% of its Starting Value'. In this product, Threshold Value = Coupon Barrier."
+    typical_location: "Terms of the Notes table, 'Threshold Value' row"
+
+  coupon.observationDates:
+    synonyms:
+      - Observation Dates
+    label_in_doc: "Observation Dates: (blue cell in Terms table)"
+    format: "Monthly dates. 'subject to postponement as described under ...'"
+    typical_location: "Terms of the Notes table, 'Observation Dates' row; separate 'Observation Dates, Contingent Payment Dates and Call Payment Dates' table"
+
+  structuredProductsGeneric.tradeDate:
+    synonyms:
+      - Pricing Date
+    label_in_doc: "Pricing Date:"
+    format: "Date string, e.g. 'September 30, 2025'"
+    typical_location: Terms of the Notes table
+
+  structuredProductsGeneric.issueDate:
+    synonyms:
+      - Issue Date
+    label_in_doc: "Issue Date:"
+    format: "Date string, e.g. 'October 3, 2025'"
+    typical_location: Terms of the Notes table
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Maturity Date
+    label_in_doc: "Maturity Date:"
+    format: Date string
+    typical_location: Terms of the Notes table
+
+  structuredProductsGeneric.valuationDate:
+    synonyms:
+      - Valuation Date
+    label_in_doc: "Valuation Date:"
+    format: "Date string. Note: 'August 31, 2026, subject to postponement'"
+    typical_location: Terms of the Notes table
+
+  autocall.callSchedule:
+    synonyms:
+      - callable monthly at our option
+      - Call Payment Dates
+    label_in_doc: "Cover bullet: 'Beginning on January 5, 2026, callable monthly at our option'"
+    format: Issuer-option (not automatic) call. Call dates = Observation Dates starting from first callable date.
+    typical_location: Cover page bullet summary; Observation Dates table
+    _note: >
+      BofA callable notes use ISSUER CALL OPTION (not automatic/mandatory autocall). The
+      issuer may call at its option, not based on index level. This differs from
+      JPMorgan/UBS autocall structure.
+
+  underlyingTerms.barrierObservation:
+    synonyms:
+      - monthly Observation Date
+    label_in_doc: Observation Dates in Terms table
+    format: Monthly observation (European-style at each monthly observation date, not daily/continuous)
+    typical_location: Terms of the Notes
+
+general_notes: >
+  BofA Finance LLC (BofA Finance or 'Issuer', guaranteed by Bank of America Corporation
+  'BAC') uses blue cell headers (#0080FF) in their 'Terms of the Notes' table. Key
+  differences: 'Starting Value' instead of 'Initial Level'; 'Ending Value' instead of
+  'Final Level'; 'Threshold Value' for the principal barrier; 'Coupon Barrier' for the
+  coupon observation trigger. This is an ISSUER-CALLABLE (not autocall) product — the
+  issuer decides whether to call, not an automatic trigger. Multiple underlyings are
+  worst-of structure. 'Observation Value' is the closing level on each Observation Date.
+
+  WORST-OF BASKET: BofA uses 'Least Performing Underlying' or 'Least Performing' as the
+  worst-of basket reference (same terminology as JPMorgan). When any section refers to
+  'the Least Performing Underlying', extract all basket constituents separately as U1, U2,
+  U3 — do NOT treat it as a single underlying name.
+
+  IMAGE-EMBEDDED FORMULAS: BofA commonly renders the 'Redemption Amount' payout formula
+  as embedded images (e.g. image_003.jpg, image_004.jpg). These image files reference
+  SEC EDGAR directly and are NOT available as local files during extraction. When the
+  Redemption Amount section contains only <img> tags with no readable formula text, use
+  the following alternative sources instead (all present as extractable text):
+
+  1. COVER PAGE BULLETS (first 100 lines): State the structure in plain prose, e.g.
+     "subject to 1:1 downside exposure to decreases in the value of the Least Performing
+     Underlying." Use this for participation rate and downside gearing.
+
+  2. THRESHOLD VALUE ROW in 'Terms of the Notes' table: States barrier per underlying as
+     both absolute level and percentage, e.g. "NDX: 17,275.99, which is 70.00% of its
+     Starting Value." Extract the percentage (0.70) as the barrier level.
+
+  3. SCENARIO CONDITION LABELS (text immediately before each formula image): e.g.
+     "a) If the Ending Value of the Least Performing Underlying is greater than or equal
+     to its Threshold Value:" and "b) If the Ending Value...is less than its Threshold
+     Value:". These condition labels define the barrier payoff structure.
+
+  4. EARLY REDEMPTION AMOUNT ROW: Typically stated in full text (not an image), e.g.
+     "For each $1,000.00 in principal amount of Notes, $1,000.00, plus the applicable
+     Contingent Coupon Payment..." Use this for the call redemption amount.
+
+  5. HYPOTHETICAL PAYOUT PROFILE AND EXAMPLES TABLE: Present as a full numeric text
+     table with columns for Ending Value (as % of Starting Value), Redemption Amount,
+     and Contingent Coupon Payment. This table fully represents the payoff structure:
+     - Rows at or above Threshold Value show par + coupon
+     - Rows below Threshold Value show principal loss proportional to decline
+     Treat this table as the authoritative proxy for the payout formula when the
+     explicit formula images are unavailable.
+
+  6. RISK FACTORS (prose): Contains explicit downside description, e.g. "1% of the
+     principal amount for each 1% that the Ending Value of the Least Performing
+     Underlying is less than its Starting Value" — confirms 1:1 downside, no leverage.
+
+  Confidence: Fields extracted from Threshold Value row and Hypothetical Payout table
+  should be assigned confidence 0.90. Fields extracted from cover bullets or risk
+  factors prose should be assigned confidence 0.80.

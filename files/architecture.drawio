@@ -1,0 +1,176 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.6 Chrome/140.0.7339.249 Electron/38.8.0 Safari/537.36" version="29.3.6">
+  <diagram name="EDGAR Extraction — Architecture" id="edgar-arch-v1">
+    <mxGraphModel dx="2334" dy="1152" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;fontStyle=1;fontSize=16;fontColor=#1a1a1a;" value="EDGAR Structured Note Extraction &amp; Mapping — System Architecture" vertex="1">
+          <mxGeometry height="30" width="860" x="10" y="8" as="geometry" />
+        </mxCell>
+        <mxCell id="UI" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;                  fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#003366;                  rounded=1;arcSize=3;shadow=0;" value="① FRONTEND — React 18 · Vite · Tailwind CSS" vertex="1">
+          <mxGeometry height="155" width="860" x="10" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-note" parent="UI" style="text;html=1;align=left;fontSize=8;fontStyle=2;fontColor=#003366;" value="Single-page application. All user interactions trigger REST calls to the backend." vertex="1">
+          <mxGeometry height="18" width="830" x="15" y="127" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-search" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Filing Search &amp; Ingest&lt;/b&gt;&lt;br/&gt;           EDGAR full-text search&lt;br/&gt;           Ingest queue · filing list" vertex="1">
+          <mxGeometry height="82" width="190" x="15" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-detail" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Filing Detail &amp; Actions&lt;/b&gt;&lt;br/&gt;           Status · KPI strip&lt;br/&gt;           Classify · Extract · Approve · Export&lt;br/&gt;           Classification override / reset" vertex="1">
+          <mxGeometry height="82" width="195" x="220" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-review" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Field Review&lt;/b&gt;&lt;br/&gt;           Simple view (FieldTable)&lt;br/&gt;           Expert view (source highlight)&lt;br/&gt;           Inline field edit · accept / reject" vertex="1">
+          <mxGeometry height="82" width="195" x="430" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-expert" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Expert Tools&lt;/b&gt;&lt;br/&gt;           Hints editor (per-issuer YAML)&lt;br/&gt;           Section prompt editor&lt;br/&gt;           Extraction settings" vertex="1">
+          <mxGeometry height="82" width="205" x="640" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="API" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;                  fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a4d00;                  rounded=1;arcSize=3;" value="② BACKEND — FastAPI · Python 3.13 · Uvicorn" vertex="1">
+          <mxGeometry height="290" width="860" x="10" y="274" as="geometry" />
+        </mxCell>
+        <mxCell id="api-routers-label" parent="API" style="text;html=1;align=left;fontStyle=1;fontSize=9;fontColor=#1a4d00;" value="REST API Routers  ( /api/* )" vertex="1">
+          <mxGeometry height="16" width="200" x="15" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="api-ingest" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Ingest&lt;/b&gt;&lt;br/&gt;           /ingest/* · /filings/*&lt;br/&gt;           Download · persist&lt;br/&gt;           Reset · override · fetch-images" vertex="1">
+          <mxGeometry height="88" width="128" x="15" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-classify" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Classify&lt;/b&gt;&lt;br/&gt;           /classify/*&lt;br/&gt;           2-stage pipeline&lt;br/&gt;           CUSIP hint · model list" vertex="1">
+          <mxGeometry height="88" width="128" x="158" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-extract" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Extract&lt;/b&gt;&lt;br/&gt;           /extract/*&lt;br/&gt;           Single-call or&lt;br/&gt;section-by-section" vertex="1">
+          <mxGeometry height="88" width="128" x="301" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-export" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Export&lt;/b&gt;&lt;br/&gt;           /export/*&lt;br/&gt;           Approved → JSON&lt;br/&gt;           Single · batch" vertex="1">
+          <mxGeometry height="88" width="118" x="444" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-hints" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Hints&lt;/b&gt;&lt;br/&gt;           /hints/*&lt;br/&gt;           Issuer &amp; cross-issuer&lt;br/&gt;           field hint CRUD" vertex="1">
+          <mxGeometry height="88" width="118" x="577" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-settings" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Sections / Settings&lt;/b&gt;&lt;br/&gt;           /sections/* · /settings/*&lt;br/&gt;           Section prompts&lt;br/&gt;           Runtime config" vertex="1">
+          <mxGeometry height="88" width="135" x="710" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-modules-label" parent="API" style="text;html=1;align=left;fontStyle=1;fontSize=9;fontColor=#1a4d00;" value="Processing Modules" vertex="1">
+          <mxGeometry height="16" width="200" x="15" y="153" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-edgar" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;edgar_client.py&lt;/b&gt;&lt;br/&gt;           HTTP · rate limiter&lt;br/&gt;           Retry + backoff&lt;br/&gt;           HTML parse · image DL" vertex="1">
+          <mxGeometry height="88" width="158" x="15" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-classifier" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;classifier.py&lt;/b&gt;&lt;br/&gt;           Stage 1: cover page&lt;br/&gt;           Stage 2: targeted sections&lt;br/&gt;           Confidence threshold" vertex="1">
+          <mxGeometry height="88" width="158" x="188" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-extractor" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;extractor.py&lt;/b&gt;&lt;br/&gt;           PRISM field extraction&lt;br/&gt;           Glossary + issuer hints&lt;br/&gt;           Schema validation" vertex="1">
+          <mxGeometry height="88" width="158" x="361" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-exporter" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;exporter.py&lt;/b&gt;&lt;br/&gt;           Accepted fields →&lt;br/&gt;           PRISM JSON output&lt;br/&gt;           Schema-valid" vertex="1">
+          <mxGeometry height="88" width="148" x="534" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-loaders" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;                  strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;schema_loader&lt;/b&gt;&lt;br/&gt;           &lt;b&gt;hints_loader&lt;/b&gt;&lt;br/&gt;           Mtime-cached reads&lt;br/&gt;           Live reload without restart" vertex="1">
+          <mxGeometry height="88" width="148" x="697" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="DATA" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;                  fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;                  rounded=1;arcSize=3;" value="③ DATA LAYER — SQLite (WAL) · Local Filesystem" vertex="1">
+          <mxGeometry height="227" width="425" x="1006" y="274" as="geometry" />
+        </mxCell>
+        <mxCell id="data-sqlite" parent="DATA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#666666;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;SQLite Database&lt;/b&gt;&lt;br/&gt;           &lt;i&gt;filings&lt;/i&gt; · &lt;i&gt;extraction_results&lt;/i&gt; · &lt;i&gt;field_results&lt;/i&gt;&lt;br/&gt;           &lt;i&gt;edit_log&lt;/i&gt; · &lt;i&gt;classification_feedback&lt;/i&gt; · &lt;i&gt;api_usage_log&lt;/i&gt;&lt;br/&gt;           Managed via SQLAlchemy ORM" vertex="1">
+          <mxGeometry height="86" width="390" x="15" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="data-fs" parent="DATA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#666666;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Local Filesystem&lt;/b&gt; — &lt;code&gt;data/filings/{accession}/&lt;/code&gt;&lt;br/&gt;           &lt;b&gt;raw.html&lt;/b&gt; — full 424B2 filing HTML&lt;br/&gt;           &lt;b&gt;image_*.jpg / .png&lt;/b&gt; — downloaded formula images&lt;br/&gt;           &lt;b&gt;metadata.json&lt;/b&gt; — CUSIP, issuer, image list · &lt;b&gt;export_*.json&lt;/b&gt; — PRISM output" vertex="1">
+          <mxGeometry height="86" width="393" x="15" y="135" as="geometry" />
+        </mxCell>
+        <mxCell id="EXT" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;                  fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#7a3500;                  rounded=1;arcSize=3;" value="External Services" vertex="1">
+          <mxGeometry height="171" width="760" x="-8" y="698" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-efts" parent="EXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#d79b00;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;SEC EDGAR — Full-Text Search&lt;/b&gt;&lt;br/&gt;           efts.sec.gov · 424B2 search by CUSIP or text&lt;br/&gt;           Returns accession numbers + CIK" vertex="1">
+          <mxGeometry height="68" width="226" x="12" y="51" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-archives" parent="EXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#d79b00;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;SEC EDGAR — Document Archives&lt;/b&gt;&lt;br/&gt;           sec.gov/Archives/edgar/data/{cik}/{acc}/&lt;br/&gt;           424B2 HTML filing · index · images (jpg / png)" vertex="1">
+          <mxGeometry height="68" width="211" x="254" y="51" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-note" parent="EXT" style="text;html=1;align=center;fontSize=8;fontColor=#7a3500;fontStyle=2;" value="≤ 10 req/s EDGAR rate limit · exponential backoff on 429/503" vertex="1">
+          <mxGeometry height="30" width="360" x="-55" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-claude" parent="EXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffefd5;                  strokeColor=#d79b00;fontSize=9;align=center;verticalAlign=middle;fontStyle=0;" value="&lt;b&gt;Anthropic Claude API&lt;/b&gt;&lt;br/&gt;           Model: claude-sonnet-4-20250514&lt;br/&gt;           &lt;b&gt;Classification:&lt;/b&gt; Stage 1 (cover) + Stage 2 (sections)&lt;br/&gt;           &lt;b&gt;Extraction:&lt;/b&gt; single-call or per-section&lt;br/&gt;           Usage tracked → api_usage_log (tokens · cost · duration)" vertex="1">
+          <mxGeometry height="98" width="248" x="501" y="46" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="swimlane;startSize=20;fontSize=9;fontStyle=1;                  fillColor=#ffffff;strokeColor=#aaaaaa;rounded=1;" value="Legend" vertex="1">
+          <mxGeometry height="51" width="390" x="-8" y="872" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-sync" parent="legend" style="text;html=1;fontSize=8;fontColor=#333333;" value="━━ synchronous call" vertex="1">
+          <mxGeometry height="16" width="130" x="10" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-async" parent="legend" style="text;html=1;fontSize=8;fontColor=#d79b00;" value="╌╌ external network call" vertex="1">
+          <mxGeometry height="16" width="155" x="155" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-config" parent="legend" style="text;html=1;fontSize=8;fontColor=#9673a6;" value="╌╌ config file read" vertex="1">
+          <mxGeometry height="16" width="130" x="315" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ui-api" edge="1" parent="1" source="UI" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;                  entryX=0.5;entryY=0;entryDx=0;entryDy=0;                  fontSize=9;fontColor=#003366;strokeColor=#6c8ebf;                  endArrow=block;startArrow=block;startFill=0;endFill=1;" target="API" value="HTTP REST /api/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-api-data" edge="1" parent="1" source="API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;                  entryX=0.5;entryY=0;entryDx=0;entryDy=0;                  fontSize=9;fontColor=#333333;strokeColor=#666666;                  endArrow=block;startArrow=block;startFill=0;endFill=1;" target="DATA" value="SQLAlchemy ORM · file R/W">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="445" />
+              <mxPoint x="938" y="445" />
+              <mxPoint x="938" y="388" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-edgar-efts" edge="1" parent="1" source="mod-edgar" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=0.25;exitY=1;exitDx=0;exitDy=0;                  entryX=0;entryY=0.5;entryDx=0;entryDy=0;                  fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;                  dashed=1;endArrow=open;endFill=0;" target="ext-efts" value="CUSIP / text search">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="64" y="690" />
+              <mxPoint x="64" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-edgar-arch" edge="1" parent="1" source="mod-edgar" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=0.75;exitY=1;exitDx=0;exitDy=0;                  entryX=0;entryY=0.048;entryDx=0;entryDy=0;                  fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;                  dashed=1;endArrow=open;endFill=0;jumpStyle=arc;entryX=0.592;entryPerimeter=0;" target="ext-archives" value="HTML · index · images">
+          <mxGeometry relative="1" x="-0.4081" as="geometry">
+            <mxPoint y="1" as="offset" />
+            <Array as="points">
+              <mxPoint x="145" y="534" />
+              <mxPoint x="145" y="663" />
+              <mxPoint x="371" y="663" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-class-claude" edge="1" parent="1" source="mod-classifier" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=0.25;exitY=1;exitDx=0;exitDy=0;                  entryX=0;entryY=0.6;entryDx=0;entryDy=0;                  fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;                  dashed=1;endArrow=open;endFill=0;" target="ext-claude" value="classification prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="238" y="648" />
+              <mxPoint x="617" y="648" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-extract-claude" edge="1" parent="1" source="mod-extractor" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;                  entryX=0;entryY=0.8;entryDx=0;entryDy=0;                  fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;                  dashed=1;endArrow=open;endFill=0;" target="ext-claude" value="extraction prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="626" />
+              <mxPoint x="617" y="626" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cfg-loaders" edge="1" parent="1" source="CFG" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;                  jettySize=auto;exitX=0;exitY=0.4;exitDx=0;exitDy=0;                  entryX=1;entryY=0.65;entryDx=0;entryDy=0;                  fontSize=8;fontColor=#3d1f5c;strokeColor=#9673a6;                  dashed=1;endArrow=open;endFill=0;" target="mod-loaders" value="file reads (mtime-cached, live reload)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CFG" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;                  fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1f5c;                  rounded=1;arcSize=3;" value="Knowledge &amp; Config Files" vertex="1">
+          <mxGeometry height="240" width="390" x="1034" y="525" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-schema" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;PRISM JSON Schema&lt;/b&gt;&lt;br/&gt;           9 payout model definitions&lt;br/&gt;           Field types · enums · constraints" vertex="1">
+          <mxGeometry height="70" width="170" x="15" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-hints" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Issuer Hints (YAML)&lt;/b&gt;&lt;br/&gt;           Per-issuer field synonyms&lt;br/&gt;           Label positions · filing notes" vertex="1">
+          <mxGeometry height="70" width="175" x="200" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-sections" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Section Specs (YAML)&lt;/b&gt;&lt;br/&gt;           Section names · search anchors&lt;br/&gt;           Per-section system notes" vertex="1">
+          <mxGeometry height="70" width="170" x="15" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-runtime" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Runtime Settings (YAML)&lt;/b&gt;&lt;br/&gt;           Extraction mode (single / sectioned)&lt;br/&gt;           Model · confidence threshold" vertex="1">
+          <mxGeometry height="70" width="175" x="200" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-glossary" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;                  strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Financial Glossary (MD)&lt;/b&gt; — Structured product terminology, synonym map, payout formula patterns · injected into extraction system prompt at runtime (mtime-cached)" vertex="1">
+          <mxGeometry height="28" width="360" x="15" y="200" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

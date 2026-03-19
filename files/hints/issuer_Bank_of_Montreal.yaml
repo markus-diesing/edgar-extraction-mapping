@@ -1,0 +1,171 @@
+# issuer_Bank_of_Montreal.yaml
+#
+# Per-issuer extraction hints for: Bank of Montreal
+#
+# Structure:
+#   aliases:           CIK patterns and name match strings used to detect this issuer
+#   section_headings:  Key section headings to locate in the filing HTML
+#   key_terms_position: Where to find the primary terms table in the document
+#   document_structure: Describes the overall layout of this issuer's filings
+#   field_hints:       Per PRISM field — synonyms, label text, format, location
+#   general_notes:     High-level notes about this issuer's filing conventions
+#
+# Sources: 000121465925014523 (p102251424b2.htm), 000183988225055653 (bmo4756_424b2-31767.htm)
+
+issuer_key: Bank of Montreal
+
+aliases:
+  cik_patterns:
+    - "927971"
+  name_match_patterns:
+    - Bank of Montreal
+    - BANK OF MONTREAL
+    - BMO
+  entity_names:
+    - Bank of Montreal
+    - BANK OF MONTREAL /CAN/
+
+section_headings:
+  - "Terms of the Notes:"
+  - "Specific Terms of the Notes:"
+  - "Key Terms of the Notes:"
+  - Additional Terms of the Notes
+  - Selected Risk Considerations
+
+key_terms_position: >
+  early — 'Terms of the Notes' table appears within first 100 lines (cover page),
+  followed by 'Specific Terms of the Notes' table, then 'Key Terms of the Notes'
+  table on page 2
+
+document_structure: >
+  Three-section cover: (1) 'Terms of the Notes' — high-level dates/CUSIP/notional table;
+  (2) 'Specific Terms of the Notes' — multi-column term sheet with Reference Assets,
+  tickers, Initial Levels, rates, Coupon Barrier Level, Trigger Level;
+  (3) 'Key Terms of the Notes' — narrative table on page 2 with definitions
+
+field_hints:
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Reference Assets
+      - Reference Asset
+    label_in_doc: "Reference Assets:"
+    format: "Full name with ticker in quotes: 'The Russell 2000® Index (ticker symbol \"RTY\")'. Multiple assets listed in same cell."
+    typical_location: Specific Terms table header row; Key Terms table first row
+
+  underlyingTerms.underlyingAssets[*].ticker:
+    synonyms:
+      - Ticker Symbol
+      - ticker symbol
+    label_in_doc: Ticker Symbol column in Specific Terms table
+    format: "Exchange ticker, e.g. 'RTY', 'SPX'. Also stated in parentheses: '(ticker symbol \"RTY\")'"
+    typical_location: "Specific Terms of the Notes table, 'Ticker Symbol' column"
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Initial Level
+    label_in_doc: "Initial Level column; Initial Level: in Key Terms table"
+    format: "Absolute index level, e.g. '2,436.484'"
+    typical_location: "Specific Terms table 'Initial Level' column; Key Terms table 'Initial Level' row"
+
+  coupon.rate:
+    synonyms:
+      - Contingent Interest Rate
+    label_in_doc: "Contingent Interest Rate:"
+    format: "'0.7083% per month (approximately 8.50% per annum)'. Dollar amount: '$7.083 for each $1,000 in principal amount'"
+    typical_location: "Specific Terms table 'Contingent Interest Rate' column; Key Terms table 'Contingent Interest Rate' row"
+
+  coupon.barrierLevel:
+    synonyms:
+      - Coupon Barrier Level
+      - Coupon Barrier
+    label_in_doc: "Coupon Barrier Level* (column header); Coupon Barrier Level: (Key Terms row)"
+    format: "Absolute level with percentage: '1,949.187, 80.00% of its Initial Level'. Extract 0.80."
+    typical_location: "Specific Terms table 'Coupon Barrier Level' column; Key Terms table"
+
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Trigger Level
+      - Trigger Event
+    label_in_doc: "Trigger Level* (column header); Trigger Level: (Key Terms row)"
+    format: "Absolute level with percentage: '1,949.187, 80.00% of its Initial Level'. In this issuer's filings, Trigger Level and Coupon Barrier Level are often the same value."
+    typical_location: "Specific Terms table 'Trigger Level' column; Key Terms table"
+
+  barrier.triggerDetails.triggerEffect:
+    synonyms:
+      - Trigger Event
+    label_in_doc: "Trigger Event:"
+    format: "'A Trigger Event will be deemed to occur if the Final Level of any Reference Asset is less than its Trigger Level on the Valuation Date.' Maps to 'default' in PRISM."
+    typical_location: "Key Terms table 'Trigger Event' row"
+
+  coupon.observationDates:
+    synonyms:
+      - Observation Dates
+    label_in_doc: "Observation Dates:"
+    format: "'Three trading days prior to each scheduled Contingent Coupon Payment Date'"
+    typical_location: Key Terms table
+
+  coupon.paymentDates:
+    synonyms:
+      - Contingent Coupon Payment Dates
+    label_in_doc: "Contingent Coupon Payment Dates:"
+    format: "'Interest, if payable, will be paid on the 3rd day of each month (or, if such day is not a business day, the next following business day), beginning on [date] and ending on the Maturity Date.'"
+    typical_location: Key Terms table
+
+  structuredProductsGeneric.tradeDate:
+    synonyms:
+      - Pricing Date
+    label_in_doc: "Pricing Date:"
+    format: Date string in Terms of the Notes table
+    typical_location: Terms of the Notes table, first row
+
+  structuredProductsGeneric.issueDate:
+    synonyms:
+      - Settlement Date
+    label_in_doc: "Settlement Date:"
+    format: Date string
+    typical_location: Terms of the Notes table and Key Terms table
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Maturity Date
+    label_in_doc: "Maturity Date:"
+    format: Date string
+    typical_location: Terms of the Notes table and Key Terms table
+
+  structuredProductsGeneric.valuationDate:
+    synonyms:
+      - Valuation Date
+    label_in_doc: "Valuation Date:"
+    format: Date string
+    typical_location: Terms of the Notes table and Key Terms table
+
+  underlyingTerms.underlyingAssets[*].finalLevel:
+    synonyms:
+      - Final Level
+    label_in_doc: "Final Level:"
+    format: "'With respect to each Reference Asset, the closing level of that Reference Asset on the Valuation Date.'"
+    typical_location: "Key Terms table 'Final Level' row"
+
+  structuredProductsGeneric.notional:
+    synonyms:
+      - Principal Amount
+    label_in_doc: Principal Amount column in Specific Terms table
+    format: "Dollar amount, e.g. '$1,372,000.00'"
+    typical_location: Specific Terms table
+
+  parties.calculationAgent.name:
+    synonyms:
+      - Calculation Agent
+    label_in_doc: "Calculation Agent:"
+    format: "'BMOCM' (BMO Capital Markets Corp.)"
+    typical_location: Key Terms table
+
+general_notes: >
+  Bank of Montreal 424B2 supplements use three layered tables: 'Terms of the Notes'
+  (brief dates), 'Specific Terms of the Notes' (multi-column grid), then 'Key Terms of
+  the Notes' (narrative). Multiple Reference Assets are common (worst-of structure on
+  RTY and SPX). Coupon Barrier Level and Trigger Level are often equal in barrier coupon
+  products. Ticker symbols used are exchange tickers (RTY, SPX), not Bloomberg tickers.
+  Calculation agent is BMOCM (BMO Capital Markets Corp.). Issuer entity name: Bank of
+  Montreal (CIK 927971). Note the 'Contingent Coupons' heading in Key Terms describes
+  contingent payment mechanics.

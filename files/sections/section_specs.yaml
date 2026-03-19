@@ -1,0 +1,268 @@
+identifiers:
+  schema_keys:
+  - identifiers
+  search_headers:
+  - CUSIP
+  - ISIN
+  - VALOREN
+  - WKN
+  - PRODUCT NAME
+  - SECURITY NAME
+  - PRICING SUPPLEMENT
+  - PROSPECTUS SUPPLEMENT
+  max_chars: 8000
+  system_note: "You are extracting identifying codes and the product name from the cover\
+    \ page of a 424B2 SEC filing. Focus on the first 200 lines of the document. CUSIP\
+    \ is always 9 characters (digits and letters). ISIN is 12 characters starting\
+    \ with a country code (e.g. US, XS). The product name is the full legal title\
+    \ as printed, typically in bold on page 1. Do not confuse the CUSIP of the underlying\
+    \ index or stock with the CUSIP of this structured note.\n"
+  required_for:
+  - yieldEnhancementCoupon
+  - yieldEnhancementBarrierCoupon
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+  - yieldEnhancementAutocall
+  - forwardKoStripEquity
+  - equityShare
+  - index
+  - depositaryReceipt
+product_generic:
+  schema_keys:
+  - structuredProductsGeneric
+  - funding
+  search_headers:
+  - ISSUE DATE
+  - PRICING DATE
+  - MATURITY DATE
+  - FINAL VALUATION DATE
+  - DENOMINATION
+  - AGGREGATE PRINCIPAL AMOUNT
+  - ISSUE PRICE
+  - ORIGINAL ISSUE DATE
+  - TRADE DATE
+  - INITIAL PAYMENT DATE
+  - SUBSCRIPTION
+  - SETTLEMENT
+  - INSTRUMENT CURRENCY
+  - PAYMENT AT MATURITY
+  - REDEMPTION AMOUNT
+  - PAYOUT
+  - PAYMENT UPON MATURITY
+  - CALCULATION OF PAYMENT
+  max_chars: 15000
+  system_note: 'You are extracting product-level economic terms from the key terms
+    table of a 424B2 structured note filing. The key terms table typically appears
+    within the first 15 pages and is formatted as a two-column table (Term | Value).
+    Maturity date and issue date are distinct from the underlying observation/fixing
+    dates — do not confuse them. Notional amount (aggregateDenomination) is the total
+    aggregate principal issued, not the face value per unit (denomination). issuePricePercent
+    is expressed as a decimal: 100% = 1.00, 99.5% = 0.995. structuredProductsGeneric.settlement
+    must be one of: cash, physical, cashOrPhysical.
+
+    PAYOUT FORMULA PRIORITY: If the filing contains an explicit mathematical payout
+    formula (e.g. "$1,000 + ($1,000 × greater of X and Y)"), treat it as the most
+    authoritative source for settlement type, participation rate, cap, digital amount,
+    and worst-of/best-of structure. Values extracted from explicit formulas should
+    receive confidence 0.95 or higher.
+
+    '
+  required_for:
+  - yieldEnhancementCoupon
+  - yieldEnhancementBarrierCoupon
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+  - yieldEnhancementAutocall
+underlying_terms:
+  schema_keys:
+  - underlyingTerms
+  - underlyings
+  search_headers:
+  - UNDERLYING
+  - BASKET
+  - INDEX COMPONENT
+  - INITIAL LEVEL
+  - INITIAL CLOSING LEVEL
+  - INITIAL VALUATION DATE
+  - FINAL VALUATION DATE
+  - OBSERVATION DATE
+  - REFERENCE ASSET
+  - LINKED TO
+  - REFERENCE INDEX
+  - REFERENCE STOCK
+  max_chars: 12000
+  system_note: 'You are extracting underlying asset information from a structured
+    note prospectus. For single-underlying products, use key ''U1'' in both underlyings
+    and underlyingTerms maps. For baskets, use ''U1'', ''U2'', ''U3'', etc. in order
+    of appearance. underlyingTerms.initialFixingLevel is a key-value map — never output
+    a scalar. Example for single underlying: {"U1": 5234.18}. Example for basket:
+    {"U1": 5234.18, "U2": 18450.00}. The key must match exactly the key used in the
+    underlyings object for that asset. Bloomberg ticker format examples: ''SPX Index'',
+    ''RTY Index'', ''NDX Index'', ''AAPL UW Equity''. Initial level is the closing
+    price or index level on the initial valuation date — not a strike percentage.
+    If weights are not stated, output null (do not assume equal weighting). underlyingTerms.underlyingObservation
+    must be one of: single, sumOf, worstOf, bestOf. Do not confuse the underlying''s
+    valuation dates with the note''s maturity date.
+
+    '
+  required_for:
+  - yieldEnhancementCoupon
+  - yieldEnhancementBarrierCoupon
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+  - yieldEnhancementAutocall
+  - forwardKoStripEquity
+protection:
+  schema_keys:
+  - barrier
+  - downsideRisk
+  search_headers:
+  - BARRIER
+  - TRIGGER
+  - KNOCK-IN
+  - KNOCK IN
+  - TRIGGER LEVEL
+  - BARRIER LEVEL
+  - DOWNSIDE THRESHOLD
+  - PROTECTION LEVEL
+  - CONTINGENT PROTECTION
+  - CAPITAL AT RISK
+  - BUFFER
+  - BUFFER LEVEL
+  - BUFFER AMOUNT
+  - SOFT PROTECTION
+  - PARTIAL PROTECTION
+  - STRIKE
+  - INITIAL LEVEL
+  - DOWNSIDE RISK
+  max_chars: 10000
+  system_note: 'You are extracting downside protection and barrier/trigger terms from
+    a structured note prospectus. barrier.triggerDetails.triggerLevelRelative is a
+    decimal: 0.60 means the barrier is 60% of the initial level (40% downside protection).
+    If the filing states ''60% Barrier'', output 0.60. barrier.triggerDetails.triggerType
+    must be one of: European (observed only at maturity), American (observed continuously
+    intraday), Closing (observed at each scheduled close). downsideRisk.strikeDetails
+    contains the strike for principal repayment purposes. If the product has a buffer
+    (e.g. ''20% buffer absorbs first 20% of losses''), capture the buffer level in
+    downsideRisk.strikeDetails — there is no separate barrier object for buffer-only
+    products. Some filings call the barrier: Trigger Level, Knock-In Level, Protection
+    Level, or Downside Threshold — these are synonymous. Do NOT confuse with the coupon
+    barrier (which triggers coupon non-payment) or the autocall trigger level.
+
+    '
+  required_for:
+  - yieldEnhancementCoupon
+  - yieldEnhancementBarrierCoupon
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+  - yieldEnhancementAutocall
+autocall:
+  schema_keys:
+  - autocall
+  search_headers:
+  - AUTOCALL
+  - AUTO CALL
+  - AUTOMATIC REDEMPTION
+  - AUTOMATIC CALL
+  - EARLY REDEMPTION
+  - CALL DATE
+  - CALL LEVEL
+  - OBSERVATION DATE
+  - MEMORY COUPON
+  - ISSUER CALL
+  - OPTIONAL REDEMPTION
+  - OPTIONAL REDEMPTION DATES
+  - ISSUER'S OPTION
+  - REDEMPTION AT THE OPTION
+  - AUTOCALLABLE
+  max_chars: 10000
+  system_note: 'You are extracting autocall/early redemption terms from a structured
+    note prospectus. autocall.autocallPayments is a date-keyed map where each key
+    is an ISO-8601 UTC datetime string (e.g. "2024-06-15T00:00:00Z") and each value
+    is an AutocallSchedule object. callLevelRelative (inside triggerDetails): a decimal
+    where 1.00 means the call triggers when the underlying closes at or above 100%
+    of its initial level. autocall.autocallMemoryFlag: set true if missed autocall
+    opportunities are memorized. IMPORTANT — Unconditional issuer calls: If the filing
+    describes unconditional issuer call rights with no performance-based trigger condition
+    on the underlying (e.g. ''Optional Redemption Dates'' in a fixed-rate note), output
+    the call dates as keys in autocallPayments but set triggerDetails to null for
+    each entry. Do NOT fabricate trigger levels for unconditional issuer calls. Do
+    not confuse autocall observation dates with coupon payment dates.
+
+    '
+  required_for:
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+  - yieldEnhancementAutocall
+coupon:
+  schema_keys:
+  - coupon
+  search_headers:
+  - COUPON
+  - CONTINGENT INTEREST
+  - CONDITIONAL COUPON
+  - INTEREST RATE
+  - COUPON BARRIER
+  - INTEREST BARRIER
+  - PAYMENT DATE
+  - INTEREST PAYMENT
+  - CONTINGENT COUPON RATE
+  - COUPON OBSERVATION
+  - FIXED RATE
+  - COUPON FREQUENCY
+  - DAY COUNT
+  - ACCRUAL
+  max_chars: 10000
+  system_note: 'You are extracting coupon/interest terms from a structured note prospectus.
+    coupon.couponFrequency must be one of the Frequency enum values from the schema
+    (e.g. monthly, quarterly, semiAnnual, annual — check exact casing from schema).
+    coupon.couponPayments is a date-keyed map (ISO-8601 UTC datetime keys) of CouponSchedule
+    objects. Extract the full payment schedule if present. coupon.dayCountConvention
+    must be one of the exact enum values from the schema (e.g. ACT/360, 30/360-US,
+    ACT/ACT-ISDA etc.). JPMorgan filings often call the coupon barrier ''Interest
+    Barrier'' — this is the level below which the coupon is NOT paid, not the barrier
+    for principal loss. If the coupon is a fixed rate with no contingency condition,
+    do not output any coupon barrier level — leave those fields null. Memory coupon:
+    if missed coupons can be recovered in a subsequent period, note this in the schedule.
+
+    '
+  required_for:
+  - yieldEnhancementCoupon
+  - yieldEnhancementBarrierCoupon
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+parties:
+  schema_keys:
+  - parties
+  search_headers:
+  - ISSUER
+  - GUARANTOR
+  - CALCULATION AGENT
+  - MARKET MAKER
+  - SELLING AGENT
+  - PAYING AGENT
+  - LEGAL ENTITY IDENTIFIER
+  - LEI
+  - COUNTERPARTY
+  - TRUSTEE
+  max_chars: 8000
+  system_note: 'You are extracting party information from a structured note prospectus.
+    Provide the LEI (20-character alphanumeric code, e.g. E57ODZWZ7FF32TWEFA76) when
+    explicitly stated in the filing. If the LEI is not stated, provide the full legal
+    entity name exactly as printed. The issuer is the entity that issues the notes
+    (e.g. ''UBS AG'', ''Citigroup Global Markets Holdings Inc.''). The guarantor is
+    the parent entity guaranteeing the notes — only present if explicitly stated;
+    do not fabricate. Do not confuse the calculation agent with the market maker or
+    selling agent. Party information is usually on the cover page or in a dedicated
+    Summary section.
+
+    '
+  required_for:
+  - yieldEnhancementCoupon
+  - yieldEnhancementBarrierCoupon
+  - yieldEnhancementAutocallCoupon
+  - yieldEnhancementAutocallBarrierCoupon
+  - yieldEnhancementAutocall
+  - forwardKoStripEquity
+  - equityShare
+  - depositaryReceipt

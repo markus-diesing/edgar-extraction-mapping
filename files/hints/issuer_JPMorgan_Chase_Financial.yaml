@@ -1,0 +1,198 @@
+# issuer_JPMorgan_Chase_Financial.yaml
+#
+# Per-issuer extraction hints for: JPMorgan Chase Financial Company LLC
+#
+# Structure:
+#   aliases:           CIK patterns and name match strings used to detect this issuer
+#   section_headings:  Key section headings to locate in the filing HTML
+#   key_terms_position: Where to find the primary terms table in the document
+#   document_structure: Describes the overall layout of this issuer's filings
+#   field_hints:       Per PRISM field — synonyms, label text, format, location
+#   general_notes:     High-level notes about this issuer's filing conventions
+#
+# Sources: 000183988225055574 (jpm_424b2-31740.htm), 000183988225055748 (jpm_424b2-31788.htm)
+
+issuer_key: JPMorgan Chase Financial Company LLC
+
+aliases:
+  cik_patterns:
+    - "19617"
+  name_match_patterns:
+    - JPMorgan Chase Financial
+    - JPMORGAN CHASE
+    - JPMorgan Chase & Co
+  entity_names:
+    - JPMorgan Chase Financial Company LLC
+    - JPMorgan Chase & Co.
+    - JPMORGAN CHASE & CO
+
+section_headings:
+  - Key Terms
+  - Key Terms Relating to the Review Dates and Interest Payment Dates
+  - Supplemental Terms of the Notes
+  - Payments in Connection with the First Review Date
+  - Payments in Connection with Review Dates (Other than the First and Final Review Dates)
+
+key_terms_position: >
+  early — 'Key Terms' section appears within the first 200 lines of the pricing
+  supplement, formatted as a two-column table with brown/gold headers (#54301A color in HTML)
+
+document_structure: >
+  Two-page cover format: page 1 is the front cover with product name and key economic
+  terms summary; page 2 is 'Key Terms' table with full field details
+
+field_hints:
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Index
+      - Underlying
+      - Reference Asset
+      - Least Performing
+      - Lowest Performing
+      - Worst-of
+    label_in_doc: "Index:"
+    format: "Full index name, e.g. 'The MerQube US Small-Cap Vol Advantage Index'. For
+      multi-index products: 'the Least Performing of the [Index A], [Index B] and [Index C]'
+      — extract each index separately as U1, U2, U3."
+    typical_location: Key Terms table, first data row; or product title line for multi-index
+
+  underlyingTerms.underlyingAssets[*].bloombergTicker:
+    synonyms:
+      - Bloomberg ticker
+    label_in_doc: "Index: ... (Bloomberg ticker: MQUSSVA)"
+    format: "Bloomberg ticker in parentheses after index name, e.g. '(Bloomberg ticker: MQUSSVA)'"
+    typical_location: Key Terms table, Index row
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Initial Value
+      - Initial Level
+    label_in_doc: "Initial Value:"
+    format: "Absolute index level, e.g. '747.51' or 'The closing level of the Index on the Pricing Date, which was 747.51'"
+    typical_location: Key Terms table, right column
+
+  underlyingTerms.underlyingAssets[*].finalLevel:
+    synonyms:
+      - Final Value
+      - Final Level
+    label_in_doc: "Final Value:"
+    format: "'The closing level of the Index on the final Review Date'"
+    typical_location: Key Terms table, right column
+
+  coupon.rate:
+    synonyms:
+      - Contingent Interest Rate
+      - Contingent Interest Payment
+    label_in_doc: "Contingent Interest Rate:"
+    format: "Percentage per annum with quarterly payment split, e.g. '13.75% per annum, payable at a rate of 3.4375% per quarter'. Dollar amount also given: '$34.375 per $1,000'"
+    typical_location: Key Terms table, left column
+
+  coupon.barrierLevel:
+    synonyms:
+      - Interest Barrier
+      - Interest Barrier/Trigger Value
+      - Coupon Barrier
+    label_in_doc: "Interest Barrier/Trigger Value:"
+    format: "Percentage of Initial Value as both percentage and absolute level: '60.00% of the Initial Value, which is 448.506'"
+    typical_location: Key Terms table, left column
+    _note: >
+      JPMorgan often combines Interest Barrier and Trigger Value into a single field.
+      When they are the same value, both the coupon barrier and barrier trigger level are identical.
+
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Trigger Value
+      - Interest Barrier/Trigger Value
+    label_in_doc: "Interest Barrier/Trigger Value:"
+    format: "Percentage of Initial Value: '60.00% of the Initial Value, which is 448.506'. Extract the percentage (0.60)."
+    typical_location: Key Terms table
+
+  autocall.callLevel:
+    synonyms:
+      - Initial Value
+      - Automatic Call trigger
+    label_in_doc: "Automatic Call:"
+    format: "'If the closing level of the Index on any Review Date (other than the first and final Review Dates) is greater than or equal to the Initial Value' — i.e. call level = 100% of Initial Value unless stated otherwise"
+    typical_location: Key Terms table, right column
+    _note: >
+      JPMorgan autocall is typically at 100% of Initial Value (par call). The call level
+      is NOT given as a named 'Call Level' field but is implied as 'the Initial Value'.
+
+  autocall.callSchedule:
+    synonyms:
+      - Review Dates
+      - Call Settlement Date
+    label_in_doc: "Review Dates*:"
+    format: "List of dates with '(final Review Date)' marking the last one. Often quarterly or monthly. Call excludes first and final Review Dates."
+    typical_location: Key Terms table, left column
+
+  coupon.paymentDates:
+    synonyms:
+      - Interest Payment Dates
+    label_in_doc: "Interest Payment Dates*:"
+    format: List of dates, typically quarterly, last one is the Maturity Date
+    typical_location: Key Terms table, left column
+
+  structuredProductsGeneric.tradeDate:
+    synonyms:
+      - Pricing Date
+    label_in_doc: "Pricing Date:"
+    format: "Date string, e.g. 'September 30, 2025'"
+    typical_location: Key Terms table, left column
+
+  structuredProductsGeneric.issueDate:
+    synonyms:
+      - Original Issue Date (Settlement Date)
+      - Original Issue Date
+    label_in_doc: "Original Issue Date (Settlement Date):"
+    format: "'On or about October 3, 2025'"
+    typical_location: Key Terms table, left column
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Maturity Date
+    label_in_doc: "Maturity Date*:"
+    format: Date string
+    typical_location: Key Terms table
+
+  autocall.callSettlementDate:
+    synonyms:
+      - Call Settlement Date
+    label_in_doc: "Call Settlement Date*:"
+    format: "'the first Interest Payment Date immediately following that Review Date'"
+    typical_location: Key Terms table, left column
+
+  parties.issuer.name:
+    synonyms:
+      - Issuer
+    label_in_doc: "Issuer:"
+    format: "'JPMorgan Chase Financial Company LLC, a direct, wholly owned finance subsidiary of JPMorgan Chase & Co.'"
+    typical_location: Key Terms table, first row
+
+  parties.guarantor.name:
+    synonyms:
+      - Guarantor
+    label_in_doc: "Guarantor:"
+    format: "'JPMorgan Chase & Co.'"
+    typical_location: Key Terms table
+
+general_notes: >
+  JPMorgan 424B2 pricing supplements (jpm_424b2-XXXXX.htm) use a highly structured
+  two-column 'Key Terms' table near page top, with brown/gold section headers.
+
+  UNDERLYING BASKET: JPMorgan issues both single-index and multi-index (worst-of)
+  products. For worst-of products, the basket is described as "the Least Performing of
+  [Index A], [Index B] and [Index C]" — extract each constituent separately as U1, U2,
+  U3. "Least Performing" = worst-of basket; do NOT treat it as a single underlying.
+
+  PAYOUT FORMULA: Many JPMorgan filings contain an explicit "Payment at Maturity"
+  formula in the form "$1,000 + ($1,000 × greater of (a) [Digital Return] and
+  (b) [Index Return])". This formula authoritatively states participation structure,
+  digital coupon amount, and worst-of linkage — prioritise it over prose descriptions.
+
+  AUTOCALL/REVIEW DATES: Autocall trigger = Initial Value (100%) unless stated otherwise.
+  Interest Barrier and Trigger Value are often the same percentage, labeled together
+  as 'Interest Barrier/Trigger Value'. Review Dates serve as both coupon observation
+  and autocall observation dates. Memory coupon feature present in some filings.
+
+  COUPON: Quoted quarterly with a per-$1,000 dollar amount alongside the percentage rate.

@@ -1,0 +1,3 @@
+sectioned_extraction: true
+section_merge_confidence_delta: 0.1
+classification_gate_confidence: 0.85

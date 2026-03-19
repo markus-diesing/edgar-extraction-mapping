@@ -1,0 +1,469 @@
+# cross_issuer_field_hints.yaml
+#
+# Cross-issuer field-level extraction hints for the PRISM extractor.
+# These rules apply universally, regardless of which issuer is being extracted.
+#
+# Structure per field:
+#   description:      What this PRISM field represents
+#   common_synonyms:  List of label strings found in actual filings
+#   issuer_specific:  Per-issuer variant labels (optional)
+#   value_format:     How to normalise the raw value for PRISM
+#   caution:          Common mistakes to avoid (optional)
+#
+# Edit this file to add new synonyms, correct descriptions, or add cautions.
+# The hints_loader.py module watches for file changes and reloads automatically.
+
+_description: >
+  Cross-issuer field-level extraction hints, applied regardless of issuer.
+  These are grounded in actual terminology observed across all filings.
+
+barrier.triggerDetails.triggerLevel:
+  description: >
+    The barrier level expressed as a decimal (e.g. 0.70 for 70%). This is the
+    downside protection threshold — if the underlying falls below this level
+    on/before the relevant observation date, principal is at risk.
+  common_synonyms:
+    - Barrier Level
+    - Trigger Level
+    - Trigger Value
+    - Interest Barrier/Trigger Value
+    - Downside Threshold
+    - Threshold Value
+    - Knock-In Level
+    - trigger buffer level
+    - 70% of the Initial Level
+    - 60% of the initial underlier level
+  issuer_specific:
+    JPMorgan: Interest Barrier/Trigger Value (combined field)
+    Bank of Montreal: Trigger Level
+    UBS AG: Downside Thresholds
+    Goldman Sachs: trigger buffer level
+    BofA Finance: Threshold Value
+  value_format: >
+    Convert: '70%' → 0.70; '70% of the Initial Level' → 0.70;
+    absolute level like '5,350.77, 80.00% of its Initial Level' → 0.80
+  caution: >
+    Do NOT confuse with the coupon barrier (which triggers coupon non-payment)
+    or the autocall trigger (which triggers early redemption). The barrier
+    trigger level is specifically about PRINCIPAL LOSS at maturity.
+
+barrier.triggerDetails.triggerEffect:
+  description: >
+    What happens when barrier is breached. In these structured notes,
+    breach = investor loses principal proportional to index decline beyond barrier.
+  common_synonyms:
+    - Trigger Event
+    - Knock-In Event
+    - Barrier Event
+  value_format: >
+    Map to PRISM enum. Typically 'default' for standard barrier notes where
+    breach causes downside loss.
+
+barrier.triggerDetails.observationType:
+  description: >
+    How/when the barrier is observed — European (at maturity only), American
+    (continuous/daily), or periodic (at scheduled dates).
+  common_synonyms:
+    - Daily Monitoring
+    - European
+    - American
+    - observed on the Valuation Date
+    - observed on each Observation Date
+  issuer_specific:
+    JPMorgan: Trigger is observed at final Review Date only — European style
+    Bank of Montreal: Trigger Level assessed on Valuation Date (European style)
+    UBS AG: Downside Threshold assessed at Final Valuation Date (European style)
+    Goldman Sachs: trigger buffer level assessed at determination date (European style)
+    BofA Finance: Threshold Value assessed at Valuation Date (European style)
+  value_format: >
+    Most 424B2 barrier notes in this corpus use European observation (assessed
+    at maturity/valuation date only). Daily barrier monitoring is less common
+    but would be stated explicitly.
+
+coupon.rate:
+  description: The contingent or fixed coupon rate as a decimal per annum.
+  common_synonyms:
+    - Contingent Interest Rate
+    - Contingent Coupon Rate
+    - contingent coupon rate
+    - Interest Rate
+    - Coupon
+    - coupon
+    - Contingent Interest Payment
+  issuer_specific:
+    JPMorgan: "Contingent Interest Rate (e.g. '13.75% per annum, payable at a rate of 3.4375% per quarter')"
+    Bank of Montreal: "Contingent Interest Rate (e.g. '0.7083% per month (approximately 8.50% per annum)')"
+    UBS AG: "Contingent Coupon Rate (e.g. '7.15% per annum')"
+    Goldman Sachs: "Coupon stated as memory formula: '$11.459 per observation date' = 1.1459% monthly = 13.75% per annum"
+    BofA Finance: Contingent coupon rate of 9.00% per annum (0.75% per month)
+  value_format: >
+    Convert to annual decimal: '8.50% per annum' → 0.085; '0.7083% per month'
+    → annualize: 0.007083 × 12 = 0.085; '13.75% per annum' → 0.1375
+  caution: >
+    Goldman Sachs uses a memory coupon structure where the per-period amount is
+    stated as a dollar figure ($11.459 per $1,000) × cumulative count minus
+    previous payments. Extract the per-annum equivalent rate.
+
+coupon.barrierLevel:
+  description: >
+    The level below which the coupon is NOT paid on an observation date.
+    Expressed as a decimal (e.g. 0.70 for 70%).
+  common_synonyms:
+    - Coupon Barrier Level
+    - Coupon Barrier
+    - Interest Barrier
+    - coupon barrier
+    - Coupon Barrier Level*
+    - Interest Barrier/Trigger Value
+    - coupon trigger level
+    - 70% of its Starting Value
+    - 80% of its Initial Level
+  issuer_specific:
+    JPMorgan: Interest Barrier (same value as Trigger Value in most filings)
+    Bank of Montreal: Coupon Barrier Level
+    UBS AG: Coupon Barriers (column header); Coupon Barrier (in Preliminary Terms)
+    Goldman Sachs: coupon trigger level
+    BofA Finance: Coupon Barrier
+  value_format: >
+    Convert percentage to decimal: '80.00% of its Initial Level' → 0.80;
+    absolute value '1,949.187, 80.00% of its Initial Level' → 0.80
+  caution: >
+    Do NOT confuse with the barrier trigger level (principal loss threshold).
+    The coupon barrier controls income payments; the trigger level/downside
+    threshold controls principal repayment at maturity.
+
+coupon.frequency:
+  description: How often the contingent coupon is observed and paid.
+  common_synonyms:
+    - monthly
+    - quarterly
+    - per month
+    - per quarter
+  value_format: >
+    Map to PRISM enum: 'monthly' (12 per year), 'quarterly' (4 per year),
+    'semi-annual' (2), 'annual' (1)
+  issuer_patterns:
+    JPMorgan: Quarterly (quarterly Review Dates → quarterly Interest Payment Dates)
+    Bank of Montreal: Monthly (3rd day of each month)
+    UBS AG: Monthly (monthly Observation Dates)
+    Goldman Sachs: Monthly (monthly observation dates, third business day after)
+    BofA Finance: Monthly (monthly Observation Dates)
+
+coupon.paymentDates:
+  description: >
+    Array of dates on which contingent coupons are paid if the coupon
+    condition is met.
+  common_synonyms:
+    - Interest Payment Dates
+    - Contingent Coupon Payment Dates
+    - Contingent Payment Dates
+    - coupon payment dates
+    - payment dates
+  value_format: "Array of ISO date strings: ['YYYY-MM-DD', ...]"
+
+coupon.observationDates:
+  description: >
+    Dates on which the underlying is observed to determine coupon eligibility.
+  common_synonyms:
+    - Observation Dates
+    - Review Dates
+    - Coupon Observation Dates
+    - coupon observation dates
+    - Contingent Coupon Payment Dates observation component
+  issuer_specific:
+    JPMorgan: Review Dates (serve as both coupon observation and autocall observation)
+    Bank of Montreal: Observation Dates (three trading days before each Contingent Coupon Payment Date)
+    UBS AG: Observation Dates
+    Goldman Sachs: coupon observation dates
+    BofA Finance: Observation Dates
+  value_format: >
+    Array of ISO date strings. Note: some issuers (BofA) use the same date
+    for both coupon observation and call evaluation.
+
+autocall.callLevel:
+  description: >
+    The index level (as fraction of initial) that triggers an automatic
+    call/redemption. Usually 100% of initial level.
+  common_synonyms:
+    - Call Level
+    - Call Threshold Levels
+    - Call Threshold Level
+    - Autocall Level
+    - Initial Value (autocall)
+    - initial underlier level (autocall)
+    - 100% of its Initial Level
+  issuer_specific:
+    JPMorgan: "Not labeled 'Call Level' — autocall triggers when closing level >= Initial Value. Implied call level = 1.00."
+    Bank of Montreal: No autocall in barrier coupon products (non-callable); autocall only in autocallable variants
+    UBS AG: "Call Threshold Levels column: '100.00% of its Initial Level' → 1.00"
+    Goldman Sachs: "Not labeled — stated in narrative as '≥ initial underlier level'"
+    BofA Finance: Issuer-option call (not level-triggered autocall) — callable at issuer's discretion
+  value_format: "Decimal: '100% of Initial Value' → 1.00; '105% of Initial Level' → 1.05"
+
+autocall.callSchedule:
+  description: The dates on which the autocall condition is evaluated.
+  common_synonyms:
+    - Review Dates
+    - Call Observation Dates
+    - call observation dates
+    - Observation Dates (callable)
+    - Call Settlement Date
+  issuer_specific:
+    JPMorgan: "Review Dates excluding first and final: 'other than the first and final Review Dates'"
+    UBS AG: "Observation Dates beginning after 12 months: 'Monthly (callable after 12 months)'"
+    Goldman Sachs: Call observation dates starting March 2026 through August 2030 (subset of coupon observation dates)
+  value_format: >
+    Array of {date: 'YYYY-MM-DD', level: 0.XX} objects, or array of ISO dates
+    if call level is uniform
+
+autocall.callFrequency:
+  description: How frequently the autocall condition is evaluated.
+  common_synonyms:
+    - monthly
+    - quarterly
+    - semi-annual
+  issuer_patterns:
+    JPMorgan: Quarterly
+    UBS AG: Monthly
+    Goldman Sachs: Monthly
+
+autocall.memory:
+  description: >
+    Whether the autocall structure has a memory coupon feature
+    (cumulative coupon catch-up).
+  common_synonyms:
+    - memory coupon
+    - Memory Coupon
+    - accumulated coupon
+    - coupons previously paid
+  value_format: "Boolean: true if coupon formula includes minus previously-paid amounts"
+  _note: >
+    Goldman Sachs filings explicitly use memory coupon: 'times the number of
+    observation dates that have occurred ... minus the sum of all coupons
+    previously paid'. Look for this formula structure to identify memory feature.
+
+structuredProductsGeneric.tradeDate:
+  description: The date on which the economic terms are set (pricing/trade date).
+  common_synonyms:
+    - Pricing Date
+    - Trade Date
+    - trade date
+    - pricing date
+  issuer_specific:
+    JPMorgan: Pricing Date
+    Bank of Montreal: Pricing Date
+    UBS AG: Trade Date
+    Goldman Sachs: trade date (set on the trade date)
+    BofA Finance: Pricing Date
+  value_format: ISO date string YYYY-MM-DD
+
+structuredProductsGeneric.issueDate:
+  description: The settlement/issue date when notes are delivered.
+  common_synonyms:
+    - Settlement Date
+    - Issue Date
+    - Original Issue Date
+    - Original Issue Date (Settlement Date)
+    - original issue date
+  issuer_specific:
+    JPMorgan: "Original Issue Date (Settlement Date): 'On or about October 3, 2025'"
+    Bank of Montreal: Settlement Date
+    UBS AG: Settlement Date
+    Goldman Sachs: original issue date
+    BofA Finance: Issue Date
+  value_format: ISO date string YYYY-MM-DD. Often T+2 or T+3 from trade/pricing date.
+
+structuredProductsGeneric.maturityDate:
+  description: The final date on which notes mature and principal/final payment is made.
+  common_synonyms:
+    - Maturity Date
+    - maturity date
+    - Stated Maturity Date
+    - stated maturity date
+  value_format: ISO date string YYYY-MM-DD. Typically a few days after the final valuation/determination date.
+
+structuredProductsGeneric.valuationDate:
+  description: The final observation date used to determine maturity payoff.
+  common_synonyms:
+    - Valuation Date
+    - Final Valuation Date
+    - Determination Date
+    - determination date
+    - final Review Date
+  issuer_specific:
+    JPMorgan: "Final Review Date (the last in the Review Dates list, marked '(final Review Date)')"
+    Bank of Montreal: Valuation Date
+    UBS AG: Final Valuation Date
+    Goldman Sachs: determination date
+    BofA Finance: Valuation Date
+  value_format: ISO date string YYYY-MM-DD. Typically 2-5 business days before maturity date.
+
+structuredProductsGeneric.currency:
+  description: Currency of the notes.
+  common_synonyms:
+    - USD
+    - US$
+    - U.S. dollars
+  value_format: "ISO 4217 code: 'USD'"
+  _note: >
+    All filings in this corpus are USD-denominated. Bank of Montreal notes are
+    stated in USD not CAD.
+
+structuredProductsGeneric.notional:
+  description: Total principal amount / face amount of the note offering.
+  common_synonyms:
+    - Principal Amount
+    - face amount
+    - Face Amount
+    - aggregate principal amount
+    - US$
+    - Proceeds to
+  value_format: "Numeric (no currency symbol). '$1,372,000.00' → 1372000"
+
+underlyingTerms.underlyingAssets[*].name:
+  description: Full name of each reference asset/underlying index or security.
+  common_synonyms:
+    - Reference Asset
+    - Reference Assets
+    - Underlying
+    - Underlyings
+    - underlying asset
+    - Index
+    - underlier
+  issuer_specific:
+    JPMorgan: Index (singular; one underlying per note typically)
+    Bank of Montreal: Reference Assets (plural; worst-of structure)
+    UBS AG: Underlying Assets (plural; worst-of structure)
+    Goldman Sachs: underlier (singular)
+    BofA Finance: Underlyings (plural; worst-of structure)
+  common_indices:
+    S&P 500:
+      ticker_exchange: SPX
+      bloomberg: SPX Index
+    Russell 2000:
+      ticker_exchange: RTY
+      bloomberg: RTY Index
+    Nasdaq-100:
+      ticker_exchange: NDX
+      bloomberg: NDX Index
+    MerQube US Small-Cap Vol Advantage:
+      bloomberg: MQUSSVA
+    MerQube US Tech+ Vol Advantage:
+      bloomberg: MQUSTCVA
+    S&P 500 Futures 40% VT Adaptive Response 6% Decrement Index:
+      description: GS proprietary index
+
+underlyingTerms.underlyingAssets[*].bloombergTicker:
+  description: Bloomberg ticker symbol for the underlying index or security.
+  common_synonyms:
+    - Bloomberg ticker
+    - Bloomberg symbol
+    - Bloomberg Tickers
+    - ticker symbol
+    - Ticker Symbol
+  issuer_specific:
+    JPMorgan: "Bloomberg ticker in parentheses: '(Bloomberg ticker: MQUSSVA)'"
+    Bank of Montreal: Ticker Symbol column (exchange ticker, e.g. RTY, SPX — NOT Bloomberg format)
+    UBS AG: Bloomberg Tickers column explicitly labeled
+    BofA Finance: "Bloomberg symbol in parentheses: '(Bloomberg symbol: \"NDX\")'"
+    _note: Bank of Montreal uses exchange tickers (RTY, SPX) not full Bloomberg tickers. Other issuers use Bloomberg format.
+
+underlyingTerms.underlyingAssets[*].initialLevel:
+  description: >
+    The starting reference level of each underlying asset, typically the
+    closing level on the pricing/trade date.
+  common_synonyms:
+    - Initial Level
+    - Initial Value
+    - initial underlier level
+    - Starting Value
+    - Initial Levels
+  issuer_specific:
+    JPMorgan: "Initial Value: 'The closing level of the Index on the Pricing Date, which was 747.51'"
+    Bank of Montreal: "Initial Level column in Specific Terms table (e.g. '2,436.484')"
+    UBS AG: Initial Levels column (placeholder bullet '•' on cover; actual value set on Trade Date)
+    Goldman Sachs: initial underlier level (set on the trade date)
+    BofA Finance: "Starting Value: 'NDX: 24,679.99'"
+  value_format: >
+    Absolute index level as number (no conversion). For multi-underlying notes,
+    values are given per underlying.
+
+underlyingTerms.underlyingAssets[*].finalLevel:
+  description: >
+    The closing level of each underlying on the final valuation date, used to
+    compute maturity payoff.
+  common_synonyms:
+    - Final Level
+    - Final Value
+    - Ending Value
+    - final underlier level
+  issuer_specific:
+    JPMorgan: "Final Value: 'The closing level of the Index on the final Review Date'"
+    Bank of Montreal: "Final Level: 'the closing level of that Reference Asset on the Valuation Date'"
+    UBS AG: Final Level
+    BofA Finance: Ending Value
+  value_format: Not known until maturity. If present in document, it is a hypothetical example value.
+
+settlement.type:
+  description: Whether settlement is cash or physical delivery.
+  common_synonyms:
+    - cash payment
+    - cash settlement
+    - physical delivery
+  value_format: Map to PRISM enum. All filings in this corpus are cash-settled.
+  _note: All observed 424B2 notes settle in cash. Physical delivery would require explicit statement.
+
+settlement.settlementDate:
+  description: The date on which cash payments are made at maturity.
+  common_synonyms:
+    - Maturity Date
+    - payment date at maturity
+  value_format: ISO date string. For these notes, settlement date at maturity = maturity date.
+
+parties.issuer.name:
+  description: Legal entity that issues the notes.
+  common_synonyms:
+    - "Issuer:"
+    - issued by
+  known_issuers:
+    JPMorgan: JPMorgan Chase Financial Company LLC (wholly owned subsidiary of JPMorgan Chase & Co.)
+    Bank of Montreal: Bank of Montreal
+    UBS: UBS AG
+    Goldman Sachs: GS Finance Corp. (guaranteed by The Goldman Sachs Group, Inc.)
+    BofA: BofA Finance LLC (guaranteed by Bank of America Corporation)
+
+parties.guarantor.name:
+  description: Legal entity guaranteeing the notes, if any.
+  common_synonyms:
+    - "Guarantor:"
+    - guaranteed by
+  known_guarantors:
+    JPMorgan Chase Financial Company LLC: JPMorgan Chase & Co.
+    GS Finance Corp.: The Goldman Sachs Group, Inc.
+    BofA Finance LLC: Bank of America Corporation
+
+parties.calculationAgent.name:
+  description: Entity responsible for calculating payments and making determinations.
+  common_synonyms:
+    - "Calculation Agent:"
+    - Calculation Agent
+  known_agents:
+    JPMorgan: J.P. Morgan Securities LLC (JPMS)
+    Bank of Montreal: BMOCM (BMO Capital Markets Corp.)
+    UBS: UBS AG or UBS Securities LLC
+
+identifiers.cusip:
+  description: CUSIP identifier for the notes.
+  common_synonyms:
+    - CUSIP
+    - CUSIP No.
+    - "CUSIP:"
+  value_format: "9-character alphanumeric string, e.g. '48136GPC8'"
+
+identifiers.isin:
+  description: ISIN identifier for the notes.
+  common_synonyms:
+    - ISIN
+    - "ISIN:"
+  value_format: "12-character alphanumeric string starting with country code, e.g. 'US90310EGG44'"
+  _note: UBS filings include ISIN in the Note Offering table. Other issuers may not.

@@ -1,0 +1,170 @@
+# issuer_GS_Finance_Corp.yaml
+#
+# Per-issuer extraction hints for: GS Finance Corp. / Goldman Sachs Group Inc.
+#
+# Structure:
+#   aliases:           CIK patterns and name match strings used to detect this issuer
+#   section_headings:  Key section headings to locate in the filing HTML
+#   key_terms_position: Where to find the primary terms table in the document
+#   document_structure: Describes the overall layout of this issuer's filings
+#   field_hints:       Per PRISM field — synonyms, label text, format, location
+#   general_notes:     High-level notes about this issuer's filing conventions
+#
+# Sources: 000095010325011335
+
+issuer_key: "GS Finance Corp. / Goldman Sachs Group Inc."
+
+aliases:
+  cik_patterns:
+    - "886982"
+  name_match_patterns:
+    - Goldman Sachs
+    - GS Finance Corp
+    - GOLDMAN SACHS GROUP
+  entity_names:
+    - GS Finance Corp.
+    - The Goldman Sachs Group, Inc.
+    - GOLDMAN SACHS GROUP INC
+
+section_headings:
+  - Key Terms and Assumptions
+  - Summary
+  - Hypothetical Coupon Payments
+  - Terms of Your Notes
+
+key_terms_position: >
+  early — product description on cover page (page 1); 'Key Terms and Assumptions' box
+  appears around line 870 in the body, on approximately page 10 of the supplement
+
+document_structure: >
+  Goldman Sachs supplements begin with a dense cover page narrative describing coupon
+  mechanics and maturity payoff. A 'Key Terms and Assumptions' bordered box appears in
+  the examples section. Formal term definitions appear in a 'Terms of Your Notes' section
+  later in the document.
+
+field_hints:
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - underlier
+      - the underlier
+      - index
+      - the index
+    label_in_doc: "Not a table field — embedded in product title and cover narrative. 'underlier' used throughout body text."
+    format: "Full index name in product title, e.g. 'S&P 500® Futures 40% VT Adaptive Response 6% Decrement Index (USD) ER'"
+    typical_location: "Product title on cover; 'The Underlier' section heading"
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - initial underlier level
+      - Initial underlier level
+    label_in_doc: "Initial underlier level (set on the trade date):"
+    format: "'the closing level of the underlier on the trade date'"
+    typical_location: Terms of Your Notes section; Key Terms and Assumptions table
+
+  coupon.rate:
+    synonyms:
+      - coupon
+      - Coupon
+    label_in_doc: Coupon in Key Terms and Assumptions table
+    format: "Memory coupon formula: '(i) the product of $11.459 (1.1459% monthly, or the potential for up to approximately 13.75% per annum) times the number of observation dates that have occurred ... minus (ii) the sum of all coupons previously paid'. Extract annual rate = 13.75%."
+    typical_location: Key Terms and Assumptions box; cover narrative
+    _note: >
+      Goldman Sachs frequently uses a MEMORY COUPON structure where coupon =
+      (cumulative rate × count of observation dates) minus previously paid. This is NOT
+      a simple periodic coupon — it catches up missed coupons. Total potential annual
+      rate = 13.75% in this example.
+
+  coupon.barrierLevel:
+    synonyms:
+      - coupon trigger level
+      - Coupon trigger level
+      - 70% of the initial underlier level
+    label_in_doc: Coupon trigger level in Key Terms and Assumptions table
+    format: "Percentage of initial underlier level: '70% of the initial underlier level'"
+    typical_location: Key Terms and Assumptions box
+
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - trigger buffer level
+      - Trigger buffer level
+    label_in_doc: "Trigger buffer level:"
+    format: "'60% of the initial underlier level'"
+    typical_location: Key Terms and Assumptions box; Terms of Your Notes
+
+  autocall.callLevel:
+    synonyms:
+      - initial underlier level (autocall)
+      - call observation date trigger
+    label_in_doc: "No explicit 'Call Level' label — stated in autocall condition: 'greater than or equal to the initial underlier level'"
+    format: "Autocall trigger = initial underlier level (100%). Stated in narrative: 'automatically called if the closing level of the index on any such observation date is greater than or equal to the initial underlier level'"
+    typical_location: Cover page narrative; Terms of Your Notes section
+
+  autocall.callSchedule:
+    synonyms:
+      - call observation dates
+      - Call observation dates
+    label_in_doc: "Call observation dates (set on the trade date):"
+    format: "Date range: 'expected to be each coupon observation date commencing in March 2026 and ending in August 2030'"
+    typical_location: Terms of Your Notes section
+
+  coupon.observationDates:
+    synonyms:
+      - observation dates
+      - coupon observation dates
+      - Coupon observation dates
+    label_in_doc: "Coupon observation dates (set on the trade date):"
+    format: "'expected to be the 30th day of each month, commencing in October 2025 and ending in September 2030'"
+    typical_location: Terms of Your Notes section
+
+  coupon.paymentDates:
+    synonyms:
+      - coupon payment dates
+      - Coupon payment dates
+      - payment date
+    label_in_doc: "Coupon payment dates (set on the trade date):"
+    format: "'expected to be the third business day after each coupon observation date'"
+    typical_location: Terms of Your Notes section
+
+  structuredProductsGeneric.tradeDate:
+    synonyms:
+      - trade date
+      - Trade date
+    label_in_doc: "Original issue date (set on the trade date):"
+    format: "Trade date is when terms are set. 'expected to be September 30, 2025'"
+    typical_location: Cover page; Terms of Your Notes
+
+  structuredProductsGeneric.issueDate:
+    synonyms:
+      - original issue date
+      - Original issue date
+    label_in_doc: "Original issue date:"
+    format: "'expected to be October 3, 2025'"
+    typical_location: Cover page table header
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - stated maturity date
+      - Stated maturity date
+    label_in_doc: "Stated maturity date (set on the trade date):"
+    format: Date string
+    typical_location: Terms of Your Notes section
+
+  structuredProductsGeneric.valuationDate:
+    synonyms:
+      - determination date
+      - Determination date
+    label_in_doc: "Determination date (set on the trade date):"
+    format: "'the last coupon observation date, expected to be September 30, 2030'"
+    typical_location: Terms of Your Notes section
+
+general_notes: >
+  Goldman Sachs (GS Finance Corp.) supplements use dense cover-page narrative text rather
+  than a term table. Key terminology differs significantly: 'underlier' instead of
+  'underlying'/'reference asset'; 'coupon trigger level' for coupon barrier; 'trigger
+  buffer level' for principal barrier. GS uses a MEMORY COUPON structure where each
+  coupon payment equals accumulated coupon amount minus previously paid amounts — this
+  means a coupon can be very large after multiple missed periods. 'Call observation dates'
+  are a subset of 'coupon observation dates'. The 'determination date' is the final
+  observation date (equivalent to valuation date). Goldman uses 'trade date' consistently
+  while other issuers use 'pricing date'. GS Finance Corp. is the issuer; Goldman Sachs
+  Group Inc. is the guarantor.

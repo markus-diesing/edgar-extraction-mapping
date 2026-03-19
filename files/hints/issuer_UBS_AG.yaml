@@ -1,0 +1,171 @@
+# issuer_UBS_AG.yaml
+#
+# Per-issuer extraction hints for: UBS AG
+#
+# Structure:
+#   aliases:           CIK patterns and name match strings used to detect this issuer
+#   section_headings:  Key section headings to locate in the filing HTML
+#   key_terms_position: Where to find the primary terms table in the document
+#   document_structure: Describes the overall layout of this issuer's filings
+#   field_hints:       Per PRISM field — synonyms, label text, format, location
+#   general_notes:     High-level notes about this issuer's filing conventions
+#
+# Sources: 000183988226015939 (ubs_424b2-10182.htm)
+
+issuer_key: UBS AG
+
+aliases:
+  cik_patterns:
+    - "1114446"
+  name_match_patterns:
+    - UBS AG
+    - UBS Securities
+  entity_names:
+    - UBS AG
+
+section_headings:
+  - Investment Description
+  - Features
+  - Key Dates
+  - Note Offering
+  - Preliminary Terms
+  - Key Risks
+  - Investor Suitability
+
+key_terms_position: >
+  early — product summary and key economic terms appear on cover page within first 300
+  lines. A structured table ('Note Offering' section) shows all key parameters in a
+  multi-column grid.
+
+document_structure: >
+  UBS uses a distinctive two-column front page layout: left column has 'Investment
+  Description' narrative + 'Features' bullet points; right column has 'Key Dates' table.
+  Below is 'Note Offering' table with per-underlying rows showing: Underlying Assets,
+  Bloomberg Tickers, Contingent Coupon Rate, Initial Levels, Call Threshold Levels,
+  Coupon Barriers, Downside Thresholds, Buffer, CUSIP, ISIN.
+
+field_hints:
+  underlyingTerms.underlyingAssets[*].name:
+    synonyms:
+      - Underlying Assets
+      - underlying asset
+      - underlying assets
+    label_in_doc: Underlying Assets column in Note Offering table
+    format: "Full index name, e.g. 'Russell 2000® Index', 'S&P 500® Index'"
+    typical_location: "Note Offering table, 'Underlying Assets' column"
+
+  underlyingTerms.underlyingAssets[*].bloombergTicker:
+    synonyms:
+      - Bloomberg Tickers
+    label_in_doc: Bloomberg Tickers column
+    format: "Bloomberg ticker, e.g. 'RTY', 'SPX'. Column header explicitly says 'Bloomberg Tickers'."
+    typical_location: "Note Offering table, 'Bloomberg Tickers' column"
+
+  underlyingTerms.underlyingAssets[*].initialLevel:
+    synonyms:
+      - Initial Levels
+      - Initial Level
+      - initial level
+    label_in_doc: "Initial Levels column; also 'Initial Level' in payoff section"
+    format: "Absolute index level shown in Note Offering table. In hypothetical examples: '2,500.00 (which is equal to 100.00% of the Initial Level)'"
+    typical_location: "Note Offering table, 'Initial Levels' column"
+
+  coupon.rate:
+    synonyms:
+      - Contingent Coupon Rate
+    label_in_doc: "Contingent Coupon Rate column in Note Offering table; also 'Contingent Coupon Rate:' in Preliminary Terms"
+    format: "Percentage per annum, e.g. '7.15% per annum'. Monthly equivalent may be shown in Preliminary Terms section: '6.00% per annum (or 0.50% per month)'"
+    typical_location: Note Offering table; Preliminary Terms section
+
+  autocall.callLevel:
+    synonyms:
+      - Call Threshold Levels
+      - Call Threshold Level
+      - call threshold level
+    label_in_doc: Call Threshold Levels column in Note Offering table
+    format: "Percentage of Initial Level: '100.00% of its Initial Level'"
+    typical_location: "Note Offering table, 'Call Threshold Levels' column"
+
+  coupon.barrierLevel:
+    synonyms:
+      - Coupon Barriers
+      - Coupon Barrier
+      - coupon barrier
+    label_in_doc: "Coupon Barriers column in Note Offering table; 'Coupon Barrier:' in Preliminary Terms"
+    format: "Percentage of Initial Level: '80.00% of its Initial Level'. Absolute values also shown: '2,000.00 (which is equal to 80.00% of the Initial Level)'"
+    typical_location: "Note Offering table, 'Coupon Barriers' column"
+
+  barrier.triggerDetails.triggerLevel:
+    synonyms:
+      - Downside Thresholds
+      - Downside Threshold
+      - downside threshold
+    label_in_doc: Downside Thresholds column in Note Offering table
+    format: "Percentage of Initial Level: '85.00% of its Initial Level'. Note: UBS uses 'Downside Threshold' for barrier (principal loss trigger), which may differ from Coupon Barrier."
+    typical_location: "Note Offering table, 'Downside Thresholds' column"
+
+  barrier.buffer:
+    synonyms:
+      - Buffer
+    label_in_doc: "Buffer column in Note Offering table; 'buffer' in narrative"
+    format: "Percentage, e.g. '15.00%'. This means losses below Downside Threshold are absorbed up to Buffer amount before principal is affected."
+    typical_location: "Note Offering table, 'Buffer' column"
+    _note: >
+      UBS Buffer Autocallable product has a buffer feature: principal loss = (decline
+      beyond buffer). If buffer = 15%, downside threshold = 85%, loss only occurs below
+      85% and is multiplied by 1/(1-buffer). Verify against PRISM schema buffer field.
+
+  structuredProductsGeneric.tradeDate:
+    synonyms:
+      - Trade Date
+    label_in_doc: "Trade Date** in Key Dates table"
+    format: "Date string, e.g. 'March 27, 2026'"
+    typical_location: Key Dates table on front cover
+
+  structuredProductsGeneric.issueDate:
+    synonyms:
+      - Settlement Date
+    label_in_doc: "Settlement Date** in Key Dates table"
+    format: "Date string, e.g. 'March 31, 2026'"
+    typical_location: Key Dates table on front cover
+
+  structuredProductsGeneric.maturityDate:
+    synonyms:
+      - Maturity Date
+    label_in_doc: Maturity Date in Key Dates table
+    format: Date string
+    typical_location: Key Dates table
+
+  structuredProductsGeneric.valuationDate:
+    synonyms:
+      - Final Valuation Date
+    label_in_doc: Final Valuation Date in Key Dates table
+    format: "Date string, e.g. 'March 27, 2031'"
+    typical_location: Key Dates table
+
+  autocall.callSchedule:
+    synonyms:
+      - Observation Dates
+    label_in_doc: Observation Dates in Key Dates table
+    format: "'Monthly (callable after 12 months) (see page 4)'"
+    typical_location: Key Dates table; detailed schedule on later page
+
+  underlyingTerms.underlyingAssets[*].finalLevel:
+    synonyms:
+      - Final Level
+      - final level
+    label_in_doc: Final Level in payoff formula tables
+    format: Absolute level on Final Valuation Date
+    typical_location: Payoff description section (Preliminary Terms)
+
+general_notes: >
+  UBS 424B2 supplements (ubs_424b2-XXXXX.htm) have a distinctive two-panel front page
+  with olive/green section headers (#788D41 background). The 'Note Offering' table is
+  the primary structured data source and contains all key economic parameters per
+  underlying asset. UBS uses 'Downside Threshold' as the principal loss barrier (not
+  'Trigger Level') and has a separate 'Buffer' parameter. 'Call Threshold Levels' is the
+  autocall trigger. This is a 'Buffer Autocallable Contingent Yield Notes' product
+  structure. Initial Levels are shown as bullet points in the Note Offering table. UBS
+  uses Bloomberg tickers explicitly labeled 'Bloomberg Tickers' (not 'Ticker Symbol').
+  The 'Contingent Coupon Rate' applies to all underlying assets collectively (one rate
+  for the worst-of basket).

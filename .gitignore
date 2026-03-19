@@ -1,0 +1,52 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+backend/.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Node / React ──────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── Data: regenerable / binary / large ───────────────────────────────────────
+# SQLite database — binary, changes constantly; use manual snapshots instead
+data/db/
+# Raw 424B2 HTML + images — re-downloadable from SEC EDGAR
+data/filings/
+# Generated export JSON/CSV — reproducible by re-running export
+data/exports/
+logs/
+
+# ── Credentials ───────────────────────────────────────────────────────────────
+.env
+.env.*
+*.key
+secrets/
+
+# ── Large reference material ──────────────────────────────────────────────────
+files/video_on_extraction/
+
+# ── OS noise ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
+# macOS resource forks / backup files
+._*
+.*.bkp
+# Browser partial downloads
+*.crdownload
+*.part
+
+# ── Claude Code internal ──────────────────────────────────────────────────────
+.claude/
