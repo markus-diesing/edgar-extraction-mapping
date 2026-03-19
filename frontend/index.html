@@ -4,20 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EDGAR Extraction & Mapping</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              lpa: { blue: '#1e3a5f', accent: '#2563eb' }
+              lpa: {
+                navy:    '#011151',
+                blue:    '#0F3AF0',
+                cyan:    '#0FB4F0',
+                magenta: '#DB3097',
+                green:   '#83D40A',
+                amber:   '#F3B61A',
+                danger:  '#DF4830',
+              }
+            },
+            fontFamily: {
+              sans: ['Lato', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
+              mono: ['Roboto Mono', 'ui-monospace', 'monospace'],
             }
           }
         }
       }
     </script>
     <style>
-      body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; }
+      body { font-family: 'Lato', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; }
       .scrollbar-thin::-webkit-scrollbar { width: 4px; }
       .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
       .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }

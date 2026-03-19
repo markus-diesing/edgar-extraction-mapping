@@ -6,7 +6,7 @@ import ExpertReview from './ExpertReview.jsx'
 
 function ActionButton({ label, onClick, disabled, variant = 'primary', small }) {
   const variants = {
-    primary:  'bg-blue-600 hover:bg-blue-700 text-white',
+    primary:  'bg-lpa-blue hover:bg-[#0c2fd4] text-white',
     success:  'bg-green-600 hover:bg-green-700 text-white',
     warning:  'bg-amber-500 hover:bg-amber-600 text-white',
     danger:   'bg-red-500 hover:bg-red-600 text-white',

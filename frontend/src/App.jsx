@@ -68,8 +68,8 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen bg-slate-100">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-5 py-3 bg-lpa-blue shadow-sm shrink-0"
-        style={{ background: '#1e3a5f' }}>
+      <header className="flex items-center justify-between px-5 py-3 shadow-sm shrink-0"
+        style={{ background: '#011151' }}>
         <div className="flex items-center gap-3">
           <span className="text-white font-bold text-base tracking-tight">EDGAR Extraction</span>
           <span className="text-slate-400 text-sm hidden sm:inline">& PRISM Mapping</span>
@@ -123,7 +123,7 @@ export default function App() {
                   onClick={() => setExpertTab(tab)}
                   className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${
                     expertTab === tab
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'border-lpa-cyan text-lpa-cyan'
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -155,7 +155,7 @@ export default function App() {
                   onClick={() => setSideTab(tab)}
                   className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${
                     sideTab === tab
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                      ? 'text-lpa-cyan border-b-2 border-lpa-cyan bg-white'
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                   }`}
                 >

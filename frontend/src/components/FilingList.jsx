@@ -37,7 +37,7 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
         {/* CUSIP search + refresh */}
         <div className="flex gap-1.5 items-center">
           <input
-            className="flex-1 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="flex-1 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-lpa-cyan"
             placeholder="Filter by CUSIP…"
             value={cusipFilter}
             onChange={e => setCusipFilter(e.target.value)}
@@ -53,7 +53,7 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
 
         {/* Status filter */}
         <select
-          className="w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-lpa-cyan"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
         >
@@ -64,7 +64,7 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
 
         {/* Issuer filter */}
         <select
-          className="w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-lpa-cyan"
           value={issuerFilter}
           onChange={e => setIssuerFilter(e.target.value)}
         >
@@ -76,7 +76,7 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
 
         {/* PRISM model filter */}
         <select
-          className="w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-lpa-cyan"
           value={modelFilter}
           onChange={e => setModelFilter(e.target.value)}
         >
@@ -90,7 +90,7 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
         {hasActiveFilter && (
           <button
             onClick={() => { setStatusFilter(''); setIssuerFilter(''); setModelFilter(''); setCusipFilter('') }}
-            className="w-full text-xs text-blue-500 hover:text-blue-700 py-0.5 hover:underline"
+            className="w-full text-xs text-lpa-cyan hover:text-lpa-blue py-0.5 hover:underline"
           >
             ✕ Clear all filters
           </button>
@@ -106,8 +106,10 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
           <button
             key={f.id}
             onClick={() => onSelect(f.id)}
-            className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${
-              f.id === selectedId ? 'bg-blue-50 border-l-2 border-blue-500' : ''
+            className={`w-full text-left px-4 py-3 transition-colors ${
+              f.id === selectedId
+                ? 'bg-[#e8f8fe] border-l-2 border-lpa-cyan'
+                : 'hover:bg-[#f4fbfe]'
             }`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -119,7 +121,7 @@ export default function FilingList({ filings, selectedId, onSelect, onRefresh })
                   {f.issuer_name || f.accession_number}
                 </p>
                 {f.payout_type_id && (
-                  <p className="text-xs text-blue-600 truncate mt-0.5">
+                  <p className="text-xs text-lpa-cyan truncate mt-0.5">
                     {f.payout_type_id}
                   </p>
                 )}
