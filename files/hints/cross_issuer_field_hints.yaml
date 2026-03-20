@@ -194,7 +194,11 @@ autocall.callLevel:
     - 100% of its Initial Level
   issuer_specific:
     JPMorgan: "Not labeled 'Call Level' — autocall triggers when closing level >= Initial Value. Implied call level = 1.00."
-    Bank of Montreal: No autocall in barrier coupon products (non-callable); autocall only in autocallable variants
+    Bank of Montreal: >
+      yieldEnhancementAutocallBarrierCoupon products: "Optional Early Redemption"
+      triggers if closing level of EACH Reference Asset ≥ its Initial Level on any
+      Call Payment Date. Implied level = 1.00 (par call, worst-of condition).
+      yieldEnhancementBarrierCoupon products: no autocall — leave this field null.
     UBS AG: "Call Threshold Levels column: '100.00% of its Initial Level' → 1.00"
     Goldman Sachs: "Not labeled — stated in narrative as '≥ initial underlier level'"
     BofA Finance: Issuer-option call (not level-triggered autocall) — callable at issuer's discretion
@@ -208,8 +212,13 @@ autocall.callSchedule:
     - call observation dates
     - Observation Dates (callable)
     - Call Settlement Date
+    - Call Payment Date
+    - Call Payment Dates
   issuer_specific:
     JPMorgan: "Review Dates excluding first and final: 'other than the first and final Review Dates'"
+    Bank of Montreal: >
+      "Call Payment Dates" — each monthly date on which the Optional Early Redemption
+      condition is evaluated. Listed in the Key Terms table under "Call Payment Dates".
     UBS AG: "Observation Dates beginning after 12 months: 'Monthly (callable after 12 months)'"
     Goldman Sachs: Call observation dates starting March 2026 through August 2030 (subset of coupon observation dates)
   value_format: >
@@ -224,8 +233,42 @@ autocall.callFrequency:
     - semi-annual
   issuer_patterns:
     JPMorgan: Quarterly
+    Bank of Montreal: Monthly (stated as "monthly Call Payment Date")
     UBS AG: Monthly
     Goldman Sachs: Monthly
+
+autocall.observationFrequency.$type:
+  description: >
+    Discriminated-union type discriminator for the autocall observation frequency.
+    PRISM uses a oneOf/allOf/$type const pattern — you MUST output the $type field
+    explicitly as a JSON object, not as a bare string.
+  output_format: >
+    CRITICAL: Output exactly {"$type": "<value>"} — e.g. {"$type": "monthly"}.
+    Do NOT output the string "monthly" alone. The $type key is required by the
+    PRISM discriminated union schema. Omitting it will cause a schema validation
+    error and the field will be rejected.
+  valid_values:
+    monthly:       "monthly Call Payment Date / monthly Observation Date / per month"
+    quarterly:     "quarterly / each quarter / Review Dates (JPMorgan)"
+    semiAnnually:  "semi-annual / every six months / semi-annually"
+    annually:      "annual / once per year / annually"
+    weekly:        "weekly / each week"
+    daily:         "daily / each trading day"
+    biMonthly:     "every two months / bi-monthly"
+    biWeekly:      "every two weeks / bi-weekly / fortnightly"
+    once:          "one-time / single call date / European autocall"
+    other:         "other / custom schedule not covered above"
+  issuer_patterns:
+    JPMorgan: '{"$type": "quarterly"}  — quarterly Review Dates'
+    Bank of Montreal: '{"$type": "monthly"}  — monthly Call Payment Dates'
+    UBS AG: '{"$type": "monthly"}  — monthly Observation Dates'
+    Goldman Sachs: '{"$type": "monthly"}  — monthly call observation dates'
+  caution: >
+    "Optional Early Redemption" in Bank of Montreal filings is an INDEX-TRIGGERED
+    autocall, NOT a discretionary issuer call. The sentence "we have the right to
+    redeem" describes the contractual mechanism — redemption occurs AUTOMATICALLY
+    when each Reference Asset closes at or above its Initial Level on a Call
+    Payment Date. Map this to {"$type": "monthly"}, not to an issuer-option call.
 
 autocall.memory:
   description: >

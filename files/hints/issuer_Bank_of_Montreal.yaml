@@ -153,6 +153,43 @@ field_hints:
     format: "Dollar amount, e.g. '$1,372,000.00'"
     typical_location: Specific Terms table
 
+  autocall.observationFrequency:
+    synonyms:
+      - Call Payment Date
+      - Call Payment Dates
+      - monthly Call Payment Date
+      - Optional Early Redemption Date
+    label_in_doc: 'Call Payment Dates: (Key Terms table row)'
+    format: >
+      "monthly" — Call Payment Dates occur on the 3rd day of each calendar month
+      (or next business day). Map to {"$type": "monthly"} in PRISM. IMPORTANT:
+      The phrase "we have the right to redeem" describes the contractual mechanism
+      for an INDEX-TRIGGERED autocall, not a discretionary issuer call. Redemption
+      occurs automatically when EACH Reference Asset closes at or above its Initial
+      Level on a Call Payment Date (worst-of condition, call level = 1.00).
+    typical_location: Key Terms table "Call Payment Dates" row
+
+  autocall.callLevel:
+    synonyms:
+      - Optional Early Redemption
+      - Call Level
+      - Initial Level (autocall trigger)
+    label_in_doc: '"Optional Early Redemption" section in Key Terms table'
+    format: >
+      Implied level = 1.00 (par call). The filing states the trigger as
+      "closing level of each Reference Asset is greater than or equal to its
+      Initial Level". No explicit percentage label — derive 1.00.
+      For yieldEnhancementBarrierCoupon products (no autocall clause): leave null.
+    typical_location: Key Terms table "Optional Early Redemption" row
+
+  autocall.callSchedule:
+    synonyms:
+      - Call Payment Dates
+      - Call Payment Date
+    label_in_doc: 'Call Payment Dates: (Key Terms table row)'
+    format: Array of monthly dates (ISO YYYY-MM-DD), listed in Key Terms table.
+    typical_location: Key Terms table "Call Payment Dates" row
+
   parties.calculationAgent.name:
     synonyms:
       - Calculation Agent
@@ -169,3 +206,12 @@ general_notes: >
   Calculation agent is BMOCM (BMO Capital Markets Corp.). Issuer entity name: Bank of
   Montreal (CIK 927971). Note the 'Contingent Coupons' heading in Key Terms describes
   contingent payment mechanics.
+
+  AUTOCALL SEMANTICS (important): BMO uses the phrase "Optional Early Redemption"
+  for its index-triggered autocall feature. Despite the word "we have the right to
+  redeem", this is NOT a discretionary issuer call — it is a level-triggered autocall
+  that fires automatically when EACH Reference Asset closes at or above its Initial
+  Level on any monthly Call Payment Date (worst-of condition). Map to PRISM autocall
+  fields with callLevel = 1.00 and observationFrequency = {"$type": "monthly"}.
+  Products labelled yieldEnhancementBarrierCoupon (no autocall clause in Key Terms)
+  have no autocall — leave all autocall fields null for those.
