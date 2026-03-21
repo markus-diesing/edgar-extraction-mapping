@@ -9,6 +9,7 @@ const STATUS_STYLES = {
   accepted:     'bg-[#f0fbd3] text-[#4a7c00] border-[#83D40A]',
   corrected:    'bg-[#e8eefe] text-[#0c2fd4] border-[#0F3AF0]',
   rejected:     'bg-[#fdf0ed] text-[#8b2616] border-[#DF4830]',
+  schema_error: 'bg-[#fdf0ed] text-[#8b2616] border-[#DF4830]',
 }
 
 export default function StatusBadge({ status, small }) {

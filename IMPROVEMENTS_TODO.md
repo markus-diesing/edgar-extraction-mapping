@@ -1,6 +1,6 @@
 # EDGAR Extraction — Improvements Backlog
 
-*Last updated: 2026-03-19*
+*Last updated: 2026-03-21*
 
 Items are roughly ordered by priority within each group.
 Completed items are moved to the bottom section for reference.
@@ -30,14 +30,37 @@ Completed items are moved to the bottom section for reference.
 
 - [ ] **Date grids and coupon schedules** — complete topic, see dedicated section below.
 
-- [ ] **Scope decision: plain-rate debt instruments** — Wells Fargo batch (3/3 CUSIPs) returned
-  `unknown` (conf 0.90–0.95), correctly, because all three are plain-rate instruments:
-  "Floating Rate Notes Linked to Compounded SOFR" and "Fixed Rate Callable Notes".  These
-  are not structured products; they carry no optionality captured by the PRISM schema.
-  *Decision needed*: should the pipeline explicitly reject / route these to a separate
-  "plain debt" classification rather than `unknown`?  If yes, add a lightweight plain-rate
-  classifier gate before the PRISM model list.  If no, `unknown` is the correct terminal
-  state and no action is required.  *Owner: Markus / product owner decision.*
+- [ ] **Scope decision: plain-rate debt instruments** — Wells Fargo full batch (10/10 CUSIPs)
+  returned `unknown` (conf 0.90–0.95), correctly — all are plain-rate instruments:
+  "Floating Rate Notes Linked to Compounded SOFR", "Fixed Rate Callable Notes". These are
+  not structured products and carry no PRISM optionality.
+  *Decision needed*: route to explicit "plain debt" terminal state, or leave as `unknown`?
+  If yes, add a lightweight plain-rate gate before the PRISM model list.
+  **HSBC (4/4 CUSIPs)** similarly needs investigation — all `needs_review` with conf 0.45–0.55.
+  HSBC has no issuer hint file; product types are currently unknown.
+  *Owner: Markus / product owner decision.*
+
+**Batch run results (2026-03-21, 84 filings):**
+
+| Issuer | Total | Extracted | Classified | Needs Review | Avg Fill% |
+|---|---|---|---|---|---|
+| BANK OF MONTREAL /CAN/ | 9 | 3 | 1 | 5 | 48.6% |
+| Bank of Montreal | 2 | 2 | 0 | 0 | 47.0% |
+| BARCLAYS BANK PLC | 10 | 6 | 1 | 3 | 52.1% |
+| BofA Finance LLC | 2 | 2 | 0 | 0 | 57.6% |
+| CITIGROUP INC | 11 | 4 | 5 | 2 | 45.1% |
+| GOLDMAN SACHS GROUP INC | 4 | 2 | 0 | 2 | 46.4% |
+| HSBC USA INC /MD/ | 4 | 0 | 0 | 4 | — |
+| JPMORGAN CHASE & CO | 20 | 9 | 5 | 6 | 45.4% |
+| JPMorgan Chase Financial | 2 | 2 | 0 | 0 | 51.7% |
+| UBS AG | 10 | 6 | 3 | 1 | 48.9% |
+| WELLS FARGO & CO | 10 | 0 | 0 | 10 | — |
+
+Key observations:
+- Overall extraction fill rate: ~49% average (target: >65%)
+- 15 `classified` filings are queued but not yet extracted (Citigroup 5, JPMorgan 5, UBS 3, Barclays 1, BMO 1)
+- JPMorgan has 1 filing at **0% fill** — confirmed digitalBarrierNote mis-mapped to yieldEnhancementBarrierCoupon (see P1 schema gap above)
+- Wells Fargo 10/10 and HSBC 4/4 are structural `needs_review` — not extraction failures
 
 ---
 
@@ -55,7 +78,7 @@ Completed items are moved to the bottom section for reference.
   when available; falls back to full discovery when `fields_found / field_count < 0.5`.
   Estimated effort: 1 day for UBS + Citigroup templates.
 
-- [ ] **Frontend: display `title_excerpt` and `product_features`** on the classification
+- [x] **Frontend: display `title_excerpt` and `product_features`** on the classification
   result card so reviewers can immediately see what Claude quoted as the product name
   and which features it detected (autocall, barrier, etc.).
 
@@ -66,14 +89,14 @@ Completed items are moved to the bottom section for reference.
   `classified` / `needs_review` states — reverts to `ingested` via
   `POST /api/filings/{id}/reset-classification`.
 
-- [ ] **Frontend: flag `schema_error` fields** in the expert review view.
-  Fields with `review_status = "schema_error"` should be shown in red with the
-  `validation_error` message visible on hover / expand.
+- [x] **Frontend: flag `schema_error` fields** in the field table and expert review view.
+  Fields with a `validation_error` are shown with a red left-border row, red "schema error"
+  badge, and the error message visible on hover.
 
-- [ ] **Feed approved `ClassificationFeedback` rows as few-shot examples** into the
-  classification prompt.  Logic: query `classification_feedback` for
-  `used_as_example = False`, include up to 3 in the prompt, then mark them
-  `used_as_example = True`.  Add to `classifier.py`.
+- [x] **Feed approved `ClassificationFeedback` rows as few-shot examples** into the
+  classification prompt.  `_get_few_shot_examples()` queries up to 3 recent rows and
+  injects them into the Stage 1 prompt; `_mark_examples_used()` marks them afterward.
+  Implemented in `classify/classifier.py`.
 
 - [ ] **`_confidence` per-field scoring — explicit scale**.  Update the extraction
   prompt to request a three-level confidence: 1.0 = verbatim quoted, 0.7 = inferred
@@ -159,6 +182,18 @@ that apply directly to structured product coupons.
 ---
 
 ## ✅ Completed
+
+- [x] **Section pre-filtering (A2)** — `_trim_to_key_terms_section()` in `extract/extractor.py`
+  trims filing text to a window anchored at the earliest Key Terms section heading before
+  passing to Claude. Uses issuer YAML `section_headings` → cross-issuer fallbacks → head.
+- [x] **Batch classify+extract script (A1)** — `scripts/batch_classify_extract.py` classifies all
+  `ingested` filings and extracts all `classified` filings via live REST API.  Supports
+  `--dry-run`, `--classify-only`, `--reextract`, configurable delays.
+- [x] **BMO autocall hints** — `files/hints/issuer_Bank_of_Montreal.yaml` and
+  `files/hints/cross_issuer_field_hints.yaml` updated with `autocall.observationFrequency`,
+  `autocall.callSchedule`, `autocall.callFrequency`, `autocall.observationFrequency.$type`
+  (discriminated union documentation), and clarification that BMO "Optional Early Redemption"
+  is an index-triggered autocall, not a discretionary issuer call.
 
 - [x] EDGAR search + ingest pipeline (FastAPI + SQLite)
 - [x] Claude-based classification with PRISM schema

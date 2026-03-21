@@ -158,6 +158,134 @@ field_hints:
     format: Absolute level on Final Valuation Date
     typical_location: Payoff description section (Preliminary Terms)
 
+  underlyingTerms.underlyingObservation:
+    synonyms:
+      - worst of
+      - worst-of
+      - Least Performing
+    label_in_doc: '"worst of" stated in the payoff narrative (Preliminary Terms)'
+    format: >
+      Multi-asset UBS products are worst-of baskets. Map to PRISM enum: "worstOf".
+      Single-underlying products: "single".
+    typical_location: Preliminary Terms payoff description
+
+  coupon.couponFrequency:
+    synonyms:
+      - monthly
+      - per month
+    label_in_doc: >
+      Implied from "Contingent Coupon Rate: X% per annum (or Y% per month)";
+      also from the Observation Dates cadence "Monthly (callable after 12 months)"
+    format: >
+      UBS products in this corpus use monthly coupons. Output {"$type": "monthly"}.
+      CRITICAL: this is a Frequency discriminated union — output {"$type": "monthly"},
+      not the string "monthly". See prism_schema_guide.yaml for the full pattern.
+    typical_location: Key Dates table; Contingent Coupon Rate line in Preliminary Terms
+
+  autocall.observationFrequency:
+    synonyms:
+      - Monthly (callable after 12 months)
+      - Observation Dates
+      - monthly
+    label_in_doc: 'Observation Dates: Monthly (callable after 12 months)'
+    format: >
+      Output {"$type": "monthly"}. Note: autocall is only active after the 12-month
+      non-call period (i.e., callable from month 13 onward). The observation frequency
+      itself is still monthly.
+    typical_location: Key Dates table
+
+  identifiers.cusip:
+    synonyms:
+      - CUSIP
+    label_in_doc: CUSIP in Note Offering table (rightmost column per underlying row)
+    format: "9-character alphanumeric, e.g. '91282CAB3'"
+    typical_location: Note Offering table; cover page top right
+
+  identifiers.isin:
+    synonyms:
+      - ISIN
+    label_in_doc: ISIN in Note Offering table (adjacent to CUSIP)
+    format: "12-character alphanumeric, e.g. 'US91282CAB30'"
+    typical_location: Note Offering table; cover page top right
+    _note: UBS explicitly labels both CUSIP and ISIN columns in the Note Offering table.
+
+  parties.issuer.name:
+    synonyms:
+      - Issuer
+      - issued by
+    label_in_doc: "Issuer: UBS AG (or UBS AG, London Branch)"
+    format: "Full legal name: 'UBS AG' or 'UBS AG, London Branch'"
+    typical_location: Cover page; Preliminary Terms
+
+  parties.guarantor.name:
+    synonyms:
+      - Guarantor
+    label_in_doc: N/A — UBS AG issues directly with no separate guarantor entity
+    format: null — UBS AG is the issuer; there is no separate guarantor.
+    typical_location: Not applicable
+
+  parties.calculationAgent.name:
+    synonyms:
+      - Calculation Agent
+    label_in_doc: Calculation Agent row in Key Dates table or Preliminary Terms
+    format: "UBS AG or UBS Securities LLC"
+    typical_location: Key Dates table; Preliminary Terms
+
+  funding.denomination:
+    synonyms:
+      - principal amount
+      - Stated Principal Amount
+      - $1,000
+    label_in_doc: '"Stated Principal Amount" or "$1,000 per note"'
+    format: "Numeric: 1000"
+    typical_location: Investment Description section; Preliminary Terms
+
+  funding.aggregateDenomination:
+    synonyms:
+      - Total principal amount
+      - Aggregate principal amount
+      - Proceeds to issuer
+    label_in_doc: Total notional in the Note Offering table or cover page
+    format: Numeric (no currency symbol)
+    typical_location: Note Offering table; cover page
+
+  funding.issuePricePercent:
+    synonyms:
+      - Issue Price
+      - Price to Public
+    label_in_doc: Issue Price row
+    format: >
+      Typically 100% of principal. Express as decimal: 100% → 1.00.
+      May include selling concession footnote; use the headline price.
+    typical_location: Note Offering table; cover page
+
+  structuredProductsGeneric.instrumentCurrency:
+    synonyms:
+      - USD
+      - U.S. dollars
+    label_in_doc: Implied — all UBS notes in this corpus are USD-denominated
+    format: '"USD"'
+    typical_location: Throughout the document; not labeled as a field
+
+  structuredProductsGeneric.settlement:
+    synonyms:
+      - cash settlement
+      - cash payment
+    label_in_doc: Implied — all notes are cash-settled
+    format: '"cash"'
+    typical_location: Payoff description section
+
+  barrier.triggerDetails.observationType:
+    synonyms:
+      - Final Valuation Date
+      - at maturity
+    label_in_doc: >
+      'closing level of each Underlying on the Final Valuation Date' —
+      UBS barrier is European (assessed only at Final Valuation Date)
+    format: >
+      European — assessed at maturity only (Final Valuation Date), not during the term.
+    typical_location: Preliminary Terms payoff description
+
 general_notes: >
   UBS 424B2 supplements (ubs_424b2-XXXXX.htm) have a distinctive two-panel front page
   with olive/green section headers (#788D41 background). The 'Note Offering' table is

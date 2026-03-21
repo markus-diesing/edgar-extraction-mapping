@@ -19,6 +19,7 @@ Usage
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -33,8 +34,9 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 HINTS_DIR = config.PROJECT_ROOT / "files" / "hints"
 
-# Map from YAML filename prefix to the role of the file
-_CROSS_ISSUER_FILE = "cross_issuer_field_hints.yaml"
+# Well-known YAML file names and their roles in the hints structure
+_CROSS_ISSUER_FILE  = "cross_issuer_field_hints.yaml"  # → field_level_hints
+_SCHEMA_GUIDE_FILE  = "prism_schema_guide.yaml"         # → schema_guide (injected as context)
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +89,7 @@ def _build_hints() -> dict:
         ),
         "issuers": {},
         "field_level_hints": {},
+        "schema_guide": {},     # loaded from prism_schema_guide.yaml — structural patterns
     }
 
     files = _yaml_files()
@@ -102,12 +105,17 @@ def _build_hints() -> dict:
         name = path.name
 
         if name == _CROSS_ISSUER_FILE:
-            # Cross-issuer file: everything except _description becomes field_level_hints
+            # Cross-issuer field rules — everything except _description becomes field_level_hints
             for k, v in data.items():
                 if k == "_description":
                     result["field_level_hints"]["_description"] = v
                 else:
                     result["field_level_hints"][k] = v
+
+        elif name == _SCHEMA_GUIDE_FILE:
+            # PRISM schema structural guide — loaded as schema_guide for use in prompts
+            result["schema_guide"] = data
+            log.debug("Loaded PRISM schema guide from %s", path.name)
 
         elif name.startswith("issuer_"):
             # Per-issuer file: the 'issuer_key' field names the dict key
@@ -127,10 +135,11 @@ def _build_hints() -> dict:
             log.debug("Loaded issuer hints: %s → %s", name, issuer_key)
 
     log.info(
-        "Loaded hints from %d YAML files — %d issuers, %d cross-issuer fields",
+        "Loaded hints from %d YAML files — %d issuers, %d cross-issuer fields, schema_guide=%s",
         len(files),
         len(result["issuers"]),
         len([k for k in result["field_level_hints"] if not k.startswith("_")]),
+        "loaded" if result["schema_guide"] else "missing",
     )
     return result
 
@@ -170,7 +179,6 @@ def reload_hints() -> dict:
 
 def _slugify(name: str) -> str:
     """Convert an issuer key (e.g. 'JPMorgan Chase Financial Company LLC') to a URL slug."""
-    import re
     slug = name.lower()
     # Replace non-alphanumeric sequences with underscore
     slug = re.sub(r"[^a-z0-9]+", "_", slug)

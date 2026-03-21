@@ -207,9 +207,17 @@ def _migrate() -> None:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 conn.commit()
             except Exception:
-                pass  # column already exists — safe to ignore
+                pass  # column already exists — SQLite raises OperationalError; safe to ignore
 
 
 def get_session() -> Session:
-    """Return a new SQLAlchemy Session. Caller is responsible for closing it."""
+    """
+    Return a new SQLAlchemy Session.
+
+    Use as a context manager so the session is automatically closed on exit:
+
+        with database.get_session() as session:
+            obj = session.get(Model, pk)
+            session.commit()
+    """
     return Session(engine)

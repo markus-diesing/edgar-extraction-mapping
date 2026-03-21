@@ -157,6 +157,150 @@ field_hints:
     format: "100.00% of principal or $1,000 per security; footnoted with cost breakdown"
     typical_location: KEY TERMS table
 
+  structuredProductsGeneric.tradeDate:
+    synonyms:
+      - Pricing Date
+      - Pricing date
+      - Trade date
+    label_in_doc: '"Pricing date" in KEY TERMS table'
+    format: ISO date string YYYY-MM-DD
+    typical_location: KEY TERMS table; cover page
+
+  structuredProductsGeneric.issueDate:
+    synonyms:
+      - Settlement date
+      - Issue date
+      - Original issue date
+    label_in_doc: '"Settlement date" or "Issue date" in KEY TERMS table'
+    format: ISO date string YYYY-MM-DD. Typically T+3 from Pricing date.
+    typical_location: KEY TERMS table
+
+  structuredProductsGeneric.valuationDate:
+    synonyms:
+      - Final valuation date
+      - Final observation date
+      - Determination date
+    label_in_doc: >
+      The last date in the "Contingent coupon payment dates" / "Potential redemption dates"
+      list, or a separately labeled "Final valuation date" row.
+    format: ISO date string YYYY-MM-DD
+    typical_location: KEY TERMS table; last element of payment date list
+
+  coupon.couponFrequency:
+    synonyms:
+      - monthly
+      - per month
+      - Contingent coupon payment dates
+    label_in_doc: Implied from explicit monthly listing of "Contingent coupon payment dates"
+    format: >
+      Citigroup notes in this corpus use quarterly or monthly coupons depending on
+      the specific product. Check "Contingent coupon payment dates" cadence.
+      Output {"$type": "monthly"} or {"$type": "quarterly"} accordingly.
+      CRITICAL: Frequency is a discriminated union — output {"$type": "<value>"},
+      not the bare string. See prism_schema_guide.yaml.
+    typical_location: KEY TERMS table "Contingent coupon payment dates" row
+
+  autocall.observationFrequency:
+    synonyms:
+      - Potential redemption dates
+      - quarterly
+      - monthly
+    label_in_doc: Implied from cadence of "Potential redemption dates" list
+    format: >
+      Derive from the spacing of the Potential redemption dates list.
+      Typically quarterly (every ~3 months). Output {"$type": "quarterly"} or
+      {"$type": "monthly"} as appropriate. Discriminated union — see prism_schema_guide.yaml.
+    typical_location: KEY TERMS table "Potential redemption dates" row
+
+  autocall.callLevel:
+    synonyms:
+      - Potential redemption dates
+      - Automatic early redemption
+      - 100% of initial underlying value
+    label_in_doc: >
+      "Potential redemption dates" row — trigger condition stated in payout formula:
+      "if the closing level of each underlying on [date] is greater than or equal to
+      its initial underlying value". Implied call level = 1.00 (100%).
+    format: Implied 1.00 — extract from payout formula sub-section
+    typical_location: KEY TERMS payout formula section (below Potential redemption dates)
+
+  underlyingTerms.underlyingObservation:
+    synonyms:
+      - worst performing underlying
+      - Worst Performing Underlying
+      - worst of
+    label_in_doc: '"worst performing underlying" in payout formula'
+    format: >
+      Multi-asset Citigroup products use worst-of. Map to "worstOf".
+      Single-underlying products: "single".
+    typical_location: KEY TERMS payout formula section
+
+  parties.issuer.name:
+    synonyms:
+      - Issuer
+      - issued by
+    label_in_doc: '"Issuer:" row in KEY TERMS or cover page'
+    format: "Full legal name: 'Citigroup Global Markets Holdings Inc.' or similar Citi entity"
+    typical_location: KEY TERMS table; cover page
+
+  parties.guarantor.name:
+    synonyms:
+      - Guarantor
+      - guaranteed by
+    label_in_doc: '"Guarantor:" or "guaranteed by" in KEY TERMS / cover page'
+    format: "Typically 'Citigroup Inc.' as guarantor of the issuing subsidiary"
+    typical_location: KEY TERMS table; cover page
+
+  parties.calculationAgent.name:
+    synonyms:
+      - Calculation Agent
+    label_in_doc: '"Calculation Agent:" in KEY TERMS'
+    format: "Citibank, N.A. or Citigroup Global Markets Inc."
+    typical_location: KEY TERMS table
+
+  funding.denomination:
+    synonyms:
+      - Stated principal amount
+      - Principal amount
+      - denomination
+    label_in_doc: '"Stated principal amount: $1,000 per security"'
+    format: "Numeric: 1000"
+    typical_location: KEY TERMS table
+
+  funding.issuePricePercent:
+    synonyms:
+      - Issue price
+      - Price to public
+    label_in_doc: '"Issue price:" in KEY TERMS'
+    format: "100% of principal → 1.00. Footnoted with underwriting discounts."
+    typical_location: KEY TERMS table
+
+  structuredProductsGeneric.instrumentCurrency:
+    synonyms:
+      - USD
+      - U.S. dollars
+    label_in_doc: Implied — all Citigroup notes in this corpus are USD-denominated
+    format: '"USD"'
+    typical_location: Throughout the document
+
+  structuredProductsGeneric.settlement:
+    synonyms:
+      - cash payment
+      - cash settlement
+    label_in_doc: Implied by payout formula paying "$1,000" or formula amount
+    format: '"cash"'
+    typical_location: Payout formula in KEY TERMS
+
+  barrier.triggerDetails.observationType:
+    synonyms:
+      - Final valuation date
+      - at maturity
+    label_in_doc: >
+      "Final barrier value" is assessed on the final valuation date only —
+      Citigroup uses European barrier observation.
+    format: European — assessed at maturity only (Final Valuation Date)
+    typical_location: KEY TERMS payout formula
+
 general_notes: >
   BARRIER vs COUPON BARRIER: Citigroup uses two separate barrier levels.
   "Final barrier value" = principal loss trigger at maturity (e.g. 60%).

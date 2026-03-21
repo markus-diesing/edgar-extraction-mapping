@@ -10,6 +10,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+import config
 import database
 import schema_loader
 from classify.classifier import classify_filing
@@ -81,7 +82,6 @@ def classify(filing_id: str):
         filing = session.get(database.Filing, filing_id)
         status = filing.status if filing else "unknown"
 
-    import config
     return ClassifyResponse(
         filing_id=filing_id,
         payout_type_id=result.payout_type_id,

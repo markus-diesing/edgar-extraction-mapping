@@ -14,14 +14,16 @@ the file is updated.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
-from functools import lru_cache
 from typing import Any
 
 import openpyxl
 
 import config
+
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -267,8 +269,8 @@ def load_cusip_mapping() -> dict[str, CusipMapping]:
             source = str(row[i_source]).strip() if i_source >= 0 and row[i_source] else ""
             if cusip and model:
                 result[cusip] = CusipMapping(cusip=cusip, payout_type_id=model, source_url=source)
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("Failed to read CUSIP mapping from %s: %s", path, exc)
 
     _CUSIP_CACHE = result
     return result

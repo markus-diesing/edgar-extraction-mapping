@@ -31,7 +31,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import anthropic
 
@@ -74,13 +74,38 @@ def _match_issuer_hints(issuer_name: str | None) -> dict | None:
 
 def _build_hints_block(issuer_hints: dict | None) -> str:
     """
-    Render a concise prompt prefix from issuer-specific and cross-issuer hints.
+    Render a concise prompt prefix from issuer-specific, cross-issuer, and schema-guide hints.
+
+    Structure of the returned string:
+      1. PRISM schema structural guide (discriminated unions, output format rules)
+      2. Cross-issuer field-level rules (synonyms, value formats, cautions)
+      3. Issuer-specific hints (section headings, field aliases, document layout)
+
     Returns an empty string when no hints are available.
     """
     lines: list[str] = []
+    all_hints = _get_extraction_hints()
+
+    # --- PRISM schema guide (structural patterns — always applied when present) ---
+    schema_guide = all_hints.get("schema_guide", {})
+    if schema_guide:
+        lines.append("## PRISM schema output rules")
+        du = schema_guide.get("discriminated_union_pattern", {})
+        if du:
+            rule = du.get("output_rule", "")
+            if rule:
+                lines.append(f"Discriminated unions: {rule.strip()}")
+        freq = schema_guide.get("Frequency", {})
+        if freq:
+            lines.append(
+                "Frequency $type values: "
+                + ", ".join(f"{k} → {{\"$type\": \"{k}\"}}"
+                            for k in (freq.get("valid_variants") or {}).keys())
+            )
+        lines.append("")
 
     # --- Cross-issuer field-level hints (always applied when hints file exists) ---
-    field_level = _get_extraction_hints().get("field_level_hints", {})
+    field_level = all_hints.get("field_level_hints", {})
     if field_level:
         lines.append("## Cross-issuer field extraction rules")
         for field_path, hint in field_level.items():
@@ -125,7 +150,8 @@ def _build_hints_block(issuer_hints: dict | None) -> str:
         if section_headings:
             lines.append(f"Key section headings to look for: {', '.join(section_headings[:6])}")
         if general_notes:
-            lines.append(f"Notes: {general_notes[:400]}")
+            # Limit to avoid prompt bloat; increase if notes contain critical disambiguation
+            lines.append(f"Notes: {general_notes[:800]}")
 
         if field_hints:
             lines.append("Field-specific aliases for this issuer:")
@@ -538,9 +564,6 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
 # Section-by-section extraction helpers
 # ---------------------------------------------------------------------------
 
-import re as _re
-from typing import NamedTuple
-
 
 def _slice_filing_text(full_text: str, section_spec: SectionSpec) -> str:
     """Return a slice of filing text anchored on section_spec.search_headers.
@@ -551,8 +574,8 @@ def _slice_filing_text(full_text: str, section_spec: SectionSpec) -> str:
 
     best_start = -1
     for header in section_spec.search_headers:
-        pattern = _re.compile(
-            r"(?i)\b" + _re.escape(header) + r"\b"
+        pattern = re.compile(
+            r"(?i)\b" + re.escape(header) + r"\b"
         )
         match = pattern.search(full_text)
         if match:

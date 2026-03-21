@@ -40,6 +40,7 @@ class FieldResultOut(BaseModel):
     reviewed_value: Any
     review_status: str
     low_confidence: bool
+    validation_error: str | None = None   # set when the extracted value violates a schema constraint
 
 
 class ExtractionSummary(BaseModel):
@@ -83,6 +84,7 @@ def _row_to_out(row: database.FieldResult) -> FieldResultOut:
         reviewed_value=_decode_value(row.reviewed_value),
         review_status=row.review_status or "pending",
         low_confidence=(row.confidence_score or 1.0) < config.EXTRACTION_CONFIDENCE_THRESHOLD,
+        validation_error=row.validation_error,
     )
 
 

@@ -1,0 +1,454 @@
+# prism_schema_guide.yaml
+#
+# PRISM v1 schema technical reference for the Claude extractor.
+#
+# This file documents the structural patterns that the JSON Schema itself does
+# not make obvious from reading alone — particularly the discriminated union
+# ($type) pattern and the mapping from filing vocabulary to schema const values.
+#
+# The extractor prompt includes this file alongside field hints so Claude
+# understands the output format requirements for complex types.
+#
+# Sources: schemas/prism/prism-v1.schema.json (analysed 2026-03-21)
+
+_description: >
+  PRISM v1 schema structural guide — discriminated unions, object shapes,
+  required vs. optional fields, and output format rules.
+
+
+# ===========================================================================
+# 1. DISCRIMINATED UNION PATTERN ($type)
+# ===========================================================================
+
+discriminated_union_pattern:
+  description: >
+    PRISM uses JSON Schema oneOf/allOf/$type const to distinguish between
+    variants of a shared type. Every field that references a discriminated
+    union MUST include a "$type" key in the output JSON object.
+
+  how_it_works: >
+    Each variant is a `oneOf` branch structured as:
+      allOf:
+        - $ref: "#/$defs/<ConcreteType>"          ← the fields
+        - type: object
+          properties:
+            $type: { const: "<variant_name>" }    ← the discriminator
+          required: [$type]
+
+    If you omit $type, the validator cannot determine which branch was intended
+    and the field will FAIL schema validation regardless of the values.
+
+  output_rule: >
+    ALWAYS output discriminated union values as a JSON object:
+      {"$type": "<variant_name>"}
+    or with additional fields if the concrete type has them:
+      {"$type": "monthly"}
+    NOT as a bare string: "monthly"   ← WRONG — will fail validation
+
+
+# ===========================================================================
+# 2. Frequency DISCRIMINATED UNION
+# ===========================================================================
+
+Frequency:
+  description: >
+    Used for: coupon.couponFrequency, autocall.observationFrequency,
+    equityForward.settlementFrequency.
+    All three fields share the same $defs/Frequency definition.
+  schema_pattern: >
+    oneOf: [semiAnnually, other, once, daily, monthly, biMonthly, quarterly,
+            biWeekly, weekly, annually]
+    Each variant: allOf [$ref: #/$defs/<Name>, {$type: {const: "<name>"}}]
+
+  valid_variants:
+    monthly:
+      const: monthly
+      output: '{"$type": "monthly"}'
+      filing_vocabulary:
+        - monthly
+        - per month
+        - monthly Call Payment Date
+        - monthly Observation Date
+        - 12 per year
+        - 0.X% per month
+    quarterly:
+      const: quarterly
+      output: '{"$type": "quarterly"}'
+      filing_vocabulary:
+        - quarterly
+        - per quarter
+        - quarterly Review Dates
+        - 4 per year
+        - 3.XXXX% per quarter
+    semiAnnually:
+      const: semiAnnually
+      output: '{"$type": "semiAnnually"}'
+      filing_vocabulary:
+        - semi-annual
+        - semi-annually
+        - every six months
+        - twice per year
+    annually:
+      const: annually
+      output: '{"$type": "annually"}'
+      filing_vocabulary:
+        - annual
+        - annually
+        - once per year
+        - yearly
+    daily:
+      const: daily
+      output: '{"$type": "daily"}'
+      filing_vocabulary:
+        - daily
+        - each trading day
+        - every business day
+    weekly:
+      const: weekly
+      output: '{"$type": "weekly"}'
+      filing_vocabulary:
+        - weekly
+        - each week
+    biMonthly:
+      const: biMonthly
+      output: '{"$type": "biMonthly"}'
+      filing_vocabulary:
+        - bi-monthly
+        - every two months
+        - bimonthly
+    biWeekly:
+      const: biWeekly
+      output: '{"$type": "biWeekly"}'
+      filing_vocabulary:
+        - bi-weekly
+        - every two weeks
+        - fortnightly
+    once:
+      const: once
+      output: '{"$type": "once"}'
+      filing_vocabulary:
+        - one-time
+        - single call date
+        - European autocall (one observation at maturity)
+    other:
+      const: other
+      output: '{"$type": "other"}'
+      filing_vocabulary:
+        - custom schedule
+        - irregular
+        - not covered by standard frequencies
+
+  issuer_defaults:
+    JPMorgan Chase: quarterly (coupon + autocall — quarterly Review Dates)
+    Bank of Montreal: monthly (coupon + autocall — monthly Call Payment Dates)
+    UBS AG: monthly (coupon + autocall — monthly Observation Dates)
+    Goldman Sachs: monthly (coupon + autocall — monthly observation dates)
+    BofA Finance: monthly (coupon + autocall — monthly Observation Dates)
+    Citigroup: quarterly for autocall; check Contingent coupon payment dates cadence
+
+
+# ===========================================================================
+# 3. CouponSchedule DISCRIMINATED UNION
+# ===========================================================================
+
+CouponSchedule:
+  description: >
+    Each entry in coupon.couponPayments is keyed by ISO-8601 datetime
+    (YYYY-MM-DDTHH:MM:SSZ) and must be a CouponSchedule discriminated union.
+    Three variants are supported.
+  schema_pattern: >
+    coupon.couponPayments is an object whose keys match
+    ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$ and whose values are CouponSchedule.
+
+  valid_variants:
+    conditionalFixCouponSchedule:
+      const: conditionalFixCouponSchedule
+      description: >
+        Standard contingent coupon — paid only when the underlying(s) close
+        at or above the coupon barrier on the observation date. Use this for
+        all 424B2 contingent interest notes (barrier reverse convertibles).
+      output_example: >
+        {
+          "$type": "conditionalFixCouponSchedule",
+          "paymentDate": "2026-04-03",
+          "periodStartDate": "2026-03-03",
+          "periodEndDate": "2026-04-01",
+          "triggerDetails": { ... },
+          "paymentValueDetails": { ... }
+        }
+      key_fields:
+        - paymentDate: ISO date — date cash is paid to holder
+        - periodStartDate: ISO date — start of the earning/observation period
+        - periodEndDate: ISO date — end of the earning/observation period
+        - triggerDetails: TriggerDetailsType — the coupon barrier condition
+        - paymentValueDetails: PaymentValues — the coupon amount
+
+    fixCouponSchedule:
+      const: fixCouponSchedule
+      description: Fixed coupon paid unconditionally on paymentDate.
+      output_example: >
+        {"$type": "fixCouponSchedule", "paymentDate": "2026-04-03",
+         "paymentValueDetails": {...}}
+
+    floatingCouponSchedule:
+      const: floatingCouponSchedule
+      description: Floating-rate coupon linked to a reference rate (SOFR, LIBOR, etc.).
+      output_example: >
+        {"$type": "floatingCouponSchedule", "paymentDate": "2026-04-03",
+         "determinationDate": "2026-03-28", "offsetPa": {"USD": 0.002}}
+
+  usage_in_corpus: >
+    All 424B2 contingent yield notes (yieldEnhancementBarrierCoupon,
+    yieldEnhancementAutocallBarrierCoupon) use conditionalFixCouponSchedule.
+    Fixed-coupon or floating-rate notes (rare in corpus) use the other variants.
+
+
+# ===========================================================================
+# 4. AutocallSchedule
+# ===========================================================================
+
+AutocallSchedule:
+  description: >
+    Each entry in autocall.autocallPayments is keyed by ISO-8601 datetime and
+    contains one AutocallSchedule object. AutocallSchedule is NOT a discriminated
+    union — it has additionalProperties: true and no $type requirement.
+  key_fields:
+    paymentDate:
+      description: Date on which payment is made if autocall is triggered.
+      type: ISO date string (Date $ref)
+    repaymentPercent:
+      description: >
+        Repayment as percentage of denomination. Par call = 100 (not 1.00).
+        Note: percent here, not decimal.
+      type: number
+    repaymentAmount:
+      description: Absolute currency amount per note denomination.
+      type: number
+    triggerDetails:
+      description: >
+        The autocall trigger condition. Uses TriggerDetailsType (see below).
+        Typically triggerLevelRelative = 1.00 (100% of initial level) with
+        triggerComparator = "greaterOrEqual".
+      type: TriggerDetailsType
+
+
+# ===========================================================================
+# 5. TriggerDetailsType
+# ===========================================================================
+
+TriggerDetailsType:
+  description: >
+    Shared type used in barrier.triggerDetails, autocall.autocallPayments[*].triggerDetails,
+    and coupon payment triggerDetails. Not a discriminated union — one flat object.
+  key_fields:
+    triggerLevelRelative:
+      description: >
+        Relative trigger level as fraction of initial fixing level.
+        1.00 = par call / at-the-money barrier; 0.70 = 70% barrier.
+      type: number
+      examples:
+        - 1.00 for autocall (trigger when underlying ≥ initial level)
+        - 0.70 for barrier (principal at risk below 70% of initial)
+        - 0.80 for coupon barrier (coupon paid when underlying ≥ 80%)
+    triggerLevelAbsolute:
+      description: >
+        Absolute level in underlying units. A map keyed by underlying ID (U1, U2, …).
+        Populated when the filing states the actual index level (not just the percentage).
+      type: '{U1: number, U2: number, ...}'
+    triggerComparator:
+      description: Direction of the trigger condition.
+      enum:
+        - greaterOrEqual: ">= threshold (standard autocall and barrier at maturity)"
+        - lessOrEqual: "<= threshold (barrier breach — value falls below)"
+        - less: "< threshold"
+        - greater: "> threshold"
+    triggerEffect:
+      description: What happens when the trigger fires.
+      type: TriggerEffectType (see below)
+    triggerObservationTime:
+      description: When intraday the trigger is checked.
+      enum:
+        - close: "official closing level (most common in 424B2 notes)"
+        - fixedTime: "at a specific time of day"
+        - continuous: "throughout the trading day (rare; American barrier)"
+
+
+# ===========================================================================
+# 6. underlyingTerms.underlyingObservation
+# ===========================================================================
+
+underlyingObservation:
+  description: >
+    Specifies how multiple underlying observations are combined to a single
+    effective underlying value used in payoff formulas.
+  enum:
+    - single: One underlying only — use for single-index products
+    - worstOf: >
+        The worst-performing underlying determines the payoff.
+        All 424B2 multi-asset barrier notes in this corpus are worst-of.
+        Filing language: "worst of", "worst-of", "least performing",
+        "lowest performing", "Worst Performing Underlying".
+    - bestOf: Best-performing underlying. Rare in 424B2 context.
+    - sumOf: Sum of all underlying observations. Very rare.
+  default_for_corpus: >
+    Single-underlying: "single". Multi-asset (2+ underlyings): "worstOf".
+    Check "worst of" language in the payout formula section to confirm.
+
+
+# ===========================================================================
+# 7. structuredProductsGeneric fields — filing vocabulary mapping
+# ===========================================================================
+
+structuredProductsGeneric_field_map:
+  description: >
+    Key fields in structuredProductsGeneric and how they map to common
+    filing label vocabulary across all issuers.
+
+  fields:
+    initialFixingDate:
+      description: Date initial levels are set (= Pricing/Trade Date in most filings)
+      filing_labels:
+        - Pricing Date (JPMorgan, BMO, BofA, Citigroup)
+        - Trade Date (UBS)
+        - trade date (Goldman Sachs)
+
+    initialPaymentDate:
+      description: Date investor pays for the note (= Issue/Settlement Date)
+      filing_labels:
+        - Original Issue Date / Settlement Date (JPMorgan)
+        - Settlement Date (BMO, UBS)
+        - Issue Date (BofA, Citigroup)
+        - original issue date (Goldman Sachs)
+
+    maturityDate:
+      description: Final payment date (= Maturity Date in all filings)
+      filing_labels:
+        - Maturity Date
+        - Stated Maturity Date
+
+    finalFixingDate:
+      description: Last observation date used to calculate final payoff
+      filing_labels:
+        - Valuation Date (BMO, BofA, Citigroup, UBS)
+        - Final Valuation Date (UBS)
+        - Determination Date (Goldman Sachs)
+        - final Review Date (JPMorgan — last entry in Review Dates list)
+
+    settlement:
+      description: Repayment mechanism
+      enum: [cash, physical, cashOrPhysical]
+      value_for_corpus: cash — all 424B2 notes in corpus are cash-settled
+
+    instrumentCurrency:
+      description: Denomination currency
+      value_for_corpus: USD — all notes are USD-denominated
+
+    instrumentDataStatus:
+      description: Whether terms are final or indicative
+      enum: [final, indicative]
+      value_for_corpus: >
+        "final" for filed 424B2 supplements (terms are set).
+        "indicative" only for preliminary/draft supplements.
+
+
+# ===========================================================================
+# 8. funding fields
+# ===========================================================================
+
+funding_field_map:
+  fields:
+    denomination:
+      description: Per-note face value (basis for payoff calculations)
+      filing_labels:
+        - Stated principal amount
+        - Principal amount
+        - $1,000 per note / per security
+      typical_value: 1000
+
+    aggregateDenomination:
+      description: Total notional of the offering
+      filing_labels:
+        - Total principal amount
+        - Aggregate principal amount
+        - Face Amount
+        - Proceeds to issuer
+
+    issuePricePercent:
+      description: Issue price as fraction (not percent) of denomination
+      filing_labels:
+        - Issue Price
+        - Price to Public
+      value_format: >
+        Convert to decimal: "100.00%" → 1.00; "$1,000 per $1,000 principal" → 1.00.
+        Note: PRISM issuePricePercent is a fraction (1.00 = par), not a percent (100.0).
+
+
+# ===========================================================================
+# 9. parties structure
+# ===========================================================================
+
+parties_structure:
+  description: >
+    The `parties` object is a free-form nested object with named sub-objects.
+    Each sub-object is a Party type with `name` (string) and optionally `lei`
+    (Legal Entity Identifier, 20-char alphanumeric).
+  Party_fields:
+    name:
+      type: string
+      description: Full legal entity name
+    lei:
+      type: string
+      description: >
+        LEI (Legal Entity Identifier) — 20-character alphanumeric code.
+        Include if present in the filing; otherwise omit.
+  known_parties:
+    JPMorgan Chase Financial Company LLC:
+      role: issuer
+      lei: 549300TK1FMDF4BFBM58
+    JPMorgan Chase & Co.:
+      role: guarantor
+      lei: 8I5DZWZKVSZI1NUHU748
+    GS Finance Corp.:
+      role: issuer
+    The Goldman Sachs Group Inc.:
+      role: guarantor
+    BofA Finance LLC:
+      role: issuer
+    Bank of America Corporation:
+      role: guarantor
+    Bank of Montreal:
+      role: issuer
+    UBS AG:
+      role: issuer
+    Citigroup Global Markets Holdings Inc.:
+      role: issuer
+    Citigroup Inc.:
+      role: guarantor
+
+
+# ===========================================================================
+# 10. underlyings object and underlyingTerms.initialFixingLevel
+# ===========================================================================
+
+underlyings_pattern:
+  description: >
+    The `underlyings` object maps short keys (U1, U2, …) to Reference objects
+    pointing to an external instrument record. The `underlyingTerms.initialFixingLevel`
+    object uses the same keys to store the initial level values.
+  key_pattern: >
+    Use "U1", "U2", "U3", … as keys — always start from U1.
+    Each key represents one underlying in a worst-of basket, or U1 for
+    single-underlying products.
+  example_output: >
+    "underlyings": {
+      "U1": {"$ref": "US78378X1072"},     ← ISIN or ticker as reference
+      "U2": {"$ref": "US8085246701"}
+    },
+    "underlyingTerms": {
+      "initialFixingLevel": {"U1": 5500.31, "U2": 2080.12},
+      "underlyingObservation": "worstOf"
+    }
+  Reference_type: >
+    A Reference is an object with a "$ref" key containing the identifier
+    (ISIN, CUSIP, Bloomberg ticker, or index code) of the underlying instrument.
+    Use the ISIN if available; otherwise use the Bloomberg ticker or exchange ticker.
