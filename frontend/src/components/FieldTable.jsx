@@ -2,6 +2,25 @@ import { useState } from 'react'
 import { api } from '../api.js'
 import StatusBadge from './StatusBadge.jsx'
 
+const SOURCE_BADGE = {
+  html_table: { label: 'TABLE',    cls: 'bg-teal-50 text-teal-700 border-teal-300',   title: 'Extracted from HTML Key Terms table (Tier 1)' },
+  registry:   { label: 'REG',      cls: 'bg-slate-100 text-slate-600 border-slate-300', title: 'From EDGAR registry metadata (Tier 0)' },
+  html_title: { label: 'TITLE',    cls: 'bg-indigo-50 text-indigo-700 border-indigo-300', title: 'Extracted from HTML title / cover page' },
+  llm:        { label: 'AI',       cls: 'bg-blue-50 text-blue-600 border-blue-200',   title: 'Extracted by Claude LLM (Tier 2)' },
+}
+
+function SourceBadge({ source }) {
+  const s = SOURCE_BADGE[source] || SOURCE_BADGE.llm
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${s.cls} shrink-0`}
+      title={s.title}
+    >
+      {s.label}
+    </span>
+  )
+}
+
 function ConfidenceBar({ score }) {
   const pct = Math.round((score ?? 0) * 100)
   const color = pct >= 80 ? 'bg-green-400' : pct >= 60 ? 'bg-yellow-400' : 'bg-red-400'
@@ -217,6 +236,7 @@ export default function FieldTable({ fields, filingId, onFieldUpdated, selectedI
                         {formatValue(f.reviewed_value !== null && f.reviewed_value !== undefined
                           ? f.reviewed_value
                           : f.extracted_value)}
+                        {!f.not_found && <SourceBadge source={f.source} />}
                         {isSchemaErr && (
                           <span
                             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-300 shrink-0"

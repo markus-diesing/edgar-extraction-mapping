@@ -168,3 +168,23 @@ general_notes: >
   observation date (equivalent to valuation date). Goldman uses 'trade date' consistently
   while other issuers use 'pricing date'. GS Finance Corp. is the issuer; Goldman Sachs
   Group Inc. is the guarantor.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+key_terms_table_heading: "Key Terms and Assumptions"
+
+table_labels:
+  # GS uses entirely different barrier terminology
+  "Trigger buffer level":             "barrier.triggerDetails.triggerLevel"
+  "Trigger Buffer Level":             "barrier.triggerDetails.triggerLevel"
+  "Coupon trigger level":             "coupon.barrierLevel"
+  "Coupon Trigger Level":             "coupon.barrierLevel"
+  # Date labels
+  "Trade date":                       "structuredProductsGeneric.tradeDate"
+  "Original issue date":              "structuredProductsGeneric.issueDate"
+  "Stated maturity date":             "structuredProductsGeneric.maturityDate"
+  "Determination date":               "structuredProductsGeneric.valuationDate"
+  # Underlier
+  "Initial underlier level":          "underlyingTerms.underlyingAssets[*].initialLevel"
+  "Underlier":                        "underlyingTerms.underlyingAssets[*].name"
+  # Coupon
+  "Coupon":                           "coupon.rate"

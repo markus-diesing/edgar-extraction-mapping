@@ -211,3 +211,27 @@ general_notes: >
   BUFFER AMOUNT: This is an explicit product feature reducing the first N% of downside
   loss. If Buffer Amount = 5% and Trigger Value = 50%, effective protection extends to
   55% decline before any loss. Payout below Trigger: $1,000 × (Index Return + Buffer).
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+# NOTE: Most JPMorgan Chase & Co filings embed Key Terms as images.
+# html_extractor will return empty for image-based filings; LLM handles those.
+key_terms_table_heading: "Key Terms"
+
+table_labels:
+  # JPM Co uses "Trigger Value" for principal barrier (distinct from Financial LLC)
+  "Trigger Value":                    "barrier.triggerDetails.triggerLevel"
+  "Trigger Buffer Level":             "barrier.triggerDetails.triggerLevel"
+  "Interest Barrier":                 "coupon.barrierLevel"
+  "Interest Barrier/Trigger Value":   "barrier.triggerDetails.triggerLevel"
+  # Date labels
+  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "Original Issue Date (Settlement Date)": "structuredProductsGeneric.issueDate"
+  "Stated Maturity Date":             "structuredProductsGeneric.maturityDate"
+  "Final Review Date":                "structuredProductsGeneric.valuationDate"
+  # Underlying
+  "Index":                            "underlyingTerms.underlyingAssets[*].name"
+  "Initial Value":                    "underlyingTerms.underlyingAssets[*].initialLevel"
+  # Coupon
+  "Contingent Interest Rate":         "coupon.rate"
+  # Identifiers
+  "CUSIP":                            "identifiers.cusip"

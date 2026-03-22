@@ -137,3 +137,22 @@ general_notes: >
   - $1,000.00 (broker-dealer channel)
   - $982.50 (fee-based accounts)
   Footnotes explain which applies. Use the primary listed price for extraction.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+# NOTE: Wells Fargo filings in the current corpus are fixed-rate callable notes.
+# Most PRISM barrier/underlying fields do not apply.  Extraction is limited to
+# product metadata only.
+key_terms_table_heading: "Terms of the Notes"
+
+table_labels:
+  # Fixed-rate note fields only
+  "Interest Rate":                    "coupon.rate"
+  "Fixed Interest Rate":              "coupon.rate"
+  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  "Issue Date":                       "structuredProductsGeneric.issueDate"
+  "Settlement Date":                  "structuredProductsGeneric.issueDate"
+  "Trade Date":                       "structuredProductsGeneric.tradeDate"
+  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "CUSIP":                            "identifiers.cusip"
+  "CUSIP No.":                        "identifiers.cusip"
+  "Aggregate Principal Amount":       "structuredProductsGeneric.notional"

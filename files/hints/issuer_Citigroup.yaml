@@ -326,3 +326,32 @@ general_notes: >
   LAYOUT: Green/teal section headers (#59AE43). Multi-page key terms section with
   "Key Terms (continued)" continuation notice. All percentages rounded to 2 decimal
   places. Hypothetical examples use normalized 100.00 initial values.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+# NOTE: Citigroup uses CSS-div layouts in most filings.  The html_extractor
+# will attempt table matching but may fall back to LLM for layout-heavy pages.
+key_terms_table_heading: "KEY TERMS"
+
+table_labels:
+  # Citi uses "Final barrier value" (not "Barrier Level")
+  "Final barrier value":              "barrier.triggerDetails.triggerLevel"
+  "Final Barrier Value":              "barrier.triggerDetails.triggerLevel"
+  "Coupon barrier value":             "coupon.barrierLevel"
+  "Coupon Barrier Value":             "coupon.barrierLevel"
+  # Underlying label
+  "Worst performing underlying":      "underlyingTerms.underlyingAssets[*].name"
+  "Underlying":                       "underlyingTerms.underlyingAssets[*].name"
+  "Underlying index":                 "underlyingTerms.underlyingAssets[*].name"
+  # Coupon
+  "Contingent coupon":                "coupon.rate"
+  "Contingent Coupon":                "coupon.rate"
+  "Contingent Coupon Rate":           "coupon.rate"
+  # Dates
+  "Pricing date":                     "structuredProductsGeneric.tradeDate"
+  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "Issue date":                       "structuredProductsGeneric.issueDate"
+  "Issue Date":                       "structuredProductsGeneric.issueDate"
+  "Maturity date":                    "structuredProductsGeneric.maturityDate"
+  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  "Valuation date":                   "structuredProductsGeneric.valuationDate"
+  "Valuation Date":                   "structuredProductsGeneric.valuationDate"

@@ -215,3 +215,24 @@ general_notes: >
   fields with callLevel = 1.00 and observationFrequency = {"$type": "monthly"}.
   Products labelled yieldEnhancementBarrierCoupon (no autocall clause in Key Terms)
   have no autocall — leave all autocall fields null for those.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+key_terms_table_heading: "Specific Terms of the Notes:"
+
+table_labels:
+  # BOM uses standard terminology — mostly covered by cross-issuer map.
+  # Adding explicit entries for plural/alternative forms observed in filings.
+  "Trigger Level":                    "barrier.triggerDetails.triggerLevel"
+  "Coupon Barrier Level":             "coupon.barrierLevel"
+  # BOM uses "Pricing Date" for trade date
+  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "Settlement Date":                  "structuredProductsGeneric.issueDate"
+  "Valuation Date":                   "structuredProductsGeneric.valuationDate"
+  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  # Reference assets
+  "Reference Asset":                  "underlyingTerms.underlyingAssets[*].name"
+  "Reference Assets":                 "underlyingTerms.underlyingAssets[*].name"
+  "Initial Level":                    "underlyingTerms.underlyingAssets[*].initialLevel"
+  "Ticker Symbol":                    "underlyingTerms.underlyingAssets[*].bloombergTicker"
+  # Coupon
+  "Contingent Interest Rate":         "coupon.rate"

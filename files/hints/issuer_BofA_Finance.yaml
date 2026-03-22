@@ -204,3 +204,26 @@ general_notes: >
   Confidence: Fields extracted from Threshold Value row and Hypothetical Payout table
   should be assigned confidence 0.90. Fields extracted from cover bullets or risk
   factors prose should be assigned confidence 0.80.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+key_terms_table_heading: "Terms of the Notes"
+
+table_labels:
+  # BofA uses "Threshold Value" for principal barrier
+  "Threshold Value":                  "barrier.triggerDetails.triggerLevel"
+  "Coupon Barrier":                   "coupon.barrierLevel"
+  "Coupon Barrier Level":             "coupon.barrierLevel"
+  # Underlying
+  "Underlyings":                      "underlyingTerms.underlyingAssets[*].name"
+  "Starting Value":                   "underlyingTerms.underlyingAssets[*].initialLevel"
+  "Ending Value":                     "underlyingTerms.underlyingAssets[*].finalLevel"
+  # Coupon
+  "Contingent coupon rate":           "coupon.rate"
+  "Contingent Coupon Rate":           "coupon.rate"
+  # Dates
+  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "Issue Date":                       "structuredProductsGeneric.issueDate"
+  "Valuation Date":                   "structuredProductsGeneric.valuationDate"
+  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  # Identifiers
+  "CUSIP":                            "identifiers.cusip"

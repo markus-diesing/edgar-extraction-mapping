@@ -123,6 +123,7 @@ class FieldResult(Base):
     # pending | accepted | corrected | rejected | schema_error
     reviewed_at      = Column(String)
     validation_error = Column(Text)                     # set when value violates schema enum/const
+    source           = Column(String, default="llm")    # llm | html_table | registry | html_title
 
     __table_args__ = (UniqueConstraint("extraction_id", "field_name"),)
 
@@ -205,6 +206,8 @@ def _migrate() -> None:
         # v4 columns — prompt caching token tracking
         ("api_usage_log",      "cache_read_tokens",              "INTEGER"),
         ("api_usage_log",      "cache_write_tokens",             "INTEGER"),
+        # v5 columns — hybrid extraction source tracking
+        ("field_results",      "source",                         "TEXT"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

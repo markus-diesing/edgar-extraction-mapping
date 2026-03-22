@@ -196,3 +196,28 @@ general_notes: >
   and autocall observation dates. Memory coupon feature present in some filings.
 
   COUPON: Quoted quarterly with a per-$1,000 dollar amount alongside the percentage rate.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+# NOTE: Most JPMorgan Chase Financial filings embed the Key Terms section as
+# images (0 HTML table elements).  html_extractor will return empty for those
+# filings; the LLM handles all extraction.  When HTML tables ARE present,
+# the labels below apply.
+key_terms_table_heading: "Key Terms"
+
+table_labels:
+  # JPMorgan uses a combined barrier field — map to principal trigger
+  "Interest Barrier/Trigger Value":   "barrier.triggerDetails.triggerLevel"
+  "Trigger Value":                    "barrier.triggerDetails.triggerLevel"
+  "Interest Barrier":                 "coupon.barrierLevel"
+  # Date labels
+  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "Original Issue Date (Settlement Date)": "structuredProductsGeneric.issueDate"
+  "Stated Maturity Date":             "structuredProductsGeneric.maturityDate"
+  "Final Review Date":                "structuredProductsGeneric.valuationDate"
+  # Underlying
+  "Index":                            "underlyingTerms.underlyingAssets[*].name"
+  "Initial Value":                    "underlyingTerms.underlyingAssets[*].initialLevel"
+  # Coupon
+  "Contingent Interest Rate":         "coupon.rate"
+  # Identifier
+  "CUSIP":                            "identifiers.cusip"

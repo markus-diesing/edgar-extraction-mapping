@@ -178,3 +178,38 @@ general_notes: >
   IMAGE-EMBEDDED FORMULAS: Some Barclays filings embed complex payout formulas as image
   files (image_001.jpg etc.). Use the text labels from "Payment at Maturity:" sub-cases
   and "Hypothetical Examples" table for extraction when images are present.
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+# key_terms_table_heading: exact text (case-insensitive) that identifies the
+#   Key Terms table in this issuer's HTML filing.
+# table_labels: exact label string → PRISM field path overrides/additions.
+#   These are per-issuer terms that differ from cross_issuer label_map or are
+#   not present there.  Labels are matched case-insensitively.
+
+key_terms_table_heading: "KEY TERMS"
+
+table_labels:
+  # Barclays uses "Barrier Value" (not "Barrier Level")
+  "Barrier Value":                    "barrier.triggerDetails.triggerLevel"
+  "Barrier value":                    "barrier.triggerDetails.triggerLevel"
+  # Coupon gate — distinct from principal barrier
+  "Coupon Barrier Value":             "coupon.barrierLevel"
+  "Coupon Barrier value":             "coupon.barrierLevel"
+  # Initial level label
+  "Initial Underlier Value":          "underlyingTerms.underlyingAssets[*].initialLevel"
+  # Combined CUSIP/ISIN cell — parser extracts CUSIP from first token
+  "CUSIP / ISIN":                     "identifiers.cusip"
+  # Coupon — Barclays uses "Contingent Coupon" OR "Redemption Premium"
+  "Contingent Coupon":                "coupon.rate"
+  "Redemption Premium":               "coupon.rate"
+  # Issue price
+  "Initial Issue Price":              "product.issuePrice"
+  "Price to Public":                  "product.issuePrice"
+  # Underlying asset labels
+  "Underlier":                        "underlyingTerms.underlyingAssets[*].name"
+  "Reference Asset":                  "underlyingTerms.underlyingAssets[*].name"
+  "Lesser Performing Underlier":      "underlyingTerms.underlyingAssets[*].name"
+  "Least Performing Underlier":       "underlyingTerms.underlyingAssets[*].name"
+  # Principal amount
+  "Principal Amount":                 "product.denomination"
+  "Stated principal amount":          "product.denomination"

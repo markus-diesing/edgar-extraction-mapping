@@ -1,0 +1,139 @@
+# label_map_cross_issuer.yaml
+#
+# Cross-issuer mapping: exact table label text  →  PRISM field path.
+#
+# Used by: backend/extract/label_mapper.py → html_extractor.py
+#
+# ──────────────────────────────────────────────────────────────────────────
+# HOW TO UPDATE THIS FILE (manual trigger process)
+# ──────────────────────────────────────────────────────────────────────────
+#
+# This file is the authoritative, YAML-backed source for cross-issuer
+# programmatic extraction rules.  No code deploy is required to add
+# new labels — just edit this file and re-extract.
+#
+# Step-by-step update workflow:
+#   1. Open the filing's raw HTML in a browser (or use Developer Tools).
+#      Identify the exact text of the label in the Key Terms table row.
+#   2. Add an entry below under the appropriate PRISM field path.
+#      Use the exact label text (case does NOT matter — matching is
+#      case-insensitive and trims leading/trailing whitespace).
+#   3. Save this file (no server restart needed — mtime-reloaded).
+#   4. Re-extract the affected filing(s):
+#        POST /api/extract/{filing_id}/reextract
+#      Or use the "Re-extract" button in the Review UI.
+#
+# Which labels belong here vs. in per-issuer YAML table_labels?
+#   •  Cross-issuer (this file):  labels that appear verbatim across
+#      multiple issuers and unambiguously map to one PRISM field.
+#   •  Per-issuer (issuer_*.yaml table_labels):  labels unique to one
+#      issuer, or that require issuer context to disambiguate.
+#
+# Conflict resolution:
+#   Per-issuer table_labels override cross-issuer entries when both
+#   match the same label string.
+#
+# ──────────────────────────────────────────────────────────────────────────
+_version: "1.0"
+_description: >
+  Cross-issuer label → PRISM field path mappings.  Labels are
+  normalized (stripped, lowercased) before matching.
+
+# ── Identifiers ────────────────────────────────────────────────────────────
+labels:
+  "cusip":                                      "identifiers.cusip"
+  "cusip no.":                                  "identifiers.cusip"
+  "cusip no":                                   "identifiers.cusip"
+  "cusip number":                               "identifiers.cusip"
+  "cusip/isin":                                 "identifiers.cusip"      # Barclays combined field → cusip extracted by parser
+  "isin":                                       "identifiers.isin"
+  "isin no.":                                   "identifiers.isin"
+
+  # ── Dates ──────────────────────────────────────────────────────────────
+  "maturity date":                              "structuredProductsGeneric.maturityDate"
+  "stated maturity date":                       "structuredProductsGeneric.maturityDate"
+  "final maturity date":                        "structuredProductsGeneric.maturityDate"
+
+  "pricing date":                               "structuredProductsGeneric.tradeDate"
+  "trade date":                                 "structuredProductsGeneric.tradeDate"
+
+  "settlement date":                            "structuredProductsGeneric.issueDate"
+  "issue date":                                 "structuredProductsGeneric.issueDate"
+  "original issue date":                        "structuredProductsGeneric.issueDate"
+  "original issue date (settlement date)":      "structuredProductsGeneric.issueDate"
+
+  "valuation date":                             "structuredProductsGeneric.valuationDate"
+  "final valuation date":                       "structuredProductsGeneric.valuationDate"
+  "determination date":                         "structuredProductsGeneric.valuationDate"
+  "final observation date":                     "structuredProductsGeneric.valuationDate"
+
+  # ── Coupon / interest ─────────────────────────────────────────────────
+  "contingent interest rate":                   "coupon.rate"
+  "contingent coupon rate":                     "coupon.rate"
+  "contingent coupon":                          "coupon.rate"
+  "coupon rate":                                "coupon.rate"
+  "interest rate":                              "coupon.rate"
+
+  "coupon barrier level":                       "coupon.barrierLevel"
+  "coupon barrier":                             "coupon.barrierLevel"
+  "interest barrier":                           "coupon.barrierLevel"
+  "coupon trigger level":                       "coupon.barrierLevel"
+
+  "coupon frequency":                           "coupon.frequency"
+  "payment frequency":                          "coupon.frequency"
+  "interest payment frequency":                 "coupon.frequency"
+
+  # ── Principal barrier ─────────────────────────────────────────────────
+  "barrier level":                              "barrier.triggerDetails.triggerLevel"
+  "trigger level":                              "barrier.triggerDetails.triggerLevel"
+  "knock-in level":                             "barrier.triggerDetails.triggerLevel"
+  "knock-in barrier":                           "barrier.triggerDetails.triggerLevel"
+  "downside threshold":                         "barrier.triggerDetails.triggerLevel"
+  "threshold value":                            "barrier.triggerDetails.triggerLevel"
+  "trigger value":                              "barrier.triggerDetails.triggerLevel"
+  "trigger buffer level":                       "barrier.triggerDetails.triggerLevel"
+
+  # ── Autocall ──────────────────────────────────────────────────────────
+  "call level":                                 "autocall.callLevel"
+  "autocall level":                             "autocall.callLevel"
+  "call threshold level":                       "autocall.callLevel"
+  "call threshold levels":                      "autocall.callLevel"
+  "optional early redemption level":            "autocall.callLevel"
+
+  # ── Underlying assets ─────────────────────────────────────────────────
+  "reference asset":                            "underlyingTerms.underlyingAssets[*].name"
+  "underlying":                                 "underlyingTerms.underlyingAssets[*].name"
+  "underlier":                                  "underlyingTerms.underlyingAssets[*].name"
+  "index":                                      "underlyingTerms.underlyingAssets[*].name"
+
+  "initial level":                              "underlyingTerms.underlyingAssets[*].initialLevel"
+  "initial value":                              "underlyingTerms.underlyingAssets[*].initialLevel"
+  "starting value":                             "underlyingTerms.underlyingAssets[*].initialLevel"
+  "initial underlier level":                    "underlyingTerms.underlyingAssets[*].initialLevel"
+
+  "bloomberg ticker":                           "underlyingTerms.underlyingAssets[*].bloombergTicker"
+  "bloomberg tickers":                          "underlyingTerms.underlyingAssets[*].bloombergTicker"
+  "ticker symbol":                              "underlyingTerms.underlyingAssets[*].bloombergTicker"
+
+  # ── Notional / denomination ───────────────────────────────────────────
+  "aggregate principal amount":                 "structuredProductsGeneric.notional"
+  "face amount":                                "structuredProductsGeneric.notional"
+  "total principal amount":                     "structuredProductsGeneric.notional"
+
+  "denomination":                               "product.denomination"
+  "minimum denomination":                       "product.denomination"
+  "principal amount per note":                  "product.denomination"
+
+  # ── Parties ───────────────────────────────────────────────────────────
+  "issuer":                                     "parties.issuer.name"
+  "guarantor":                                  "parties.guarantor.name"
+  "calculation agent":                          "parties.calculationAgent.name"
+
+  # ── Currency ──────────────────────────────────────────────────────────
+  "currency":                                   "structuredProductsGeneric.currency"
+  "specified currency":                         "structuredProductsGeneric.currency"
+
+  # ── Term / tenor ──────────────────────────────────────────────────────
+  "term":                                       "structuredProductsGeneric.term"
+  "tenor":                                      "structuredProductsGeneric.term"
+  "term of the notes":                          "structuredProductsGeneric.term"

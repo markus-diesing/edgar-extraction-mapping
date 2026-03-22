@@ -297,3 +297,31 @@ general_notes: >
   uses Bloomberg tickers explicitly labeled 'Bloomberg Tickers' (not 'Ticker Symbol').
   The 'Contingent Coupon Rate' applies to all underlying assets collectively (one rate
   for the worst-of basket).
+
+# ── Programmatic extraction (Tier 1) ───────────────────────────────────────
+# NOTE: UBS uses CSS-div layouts rather than standard HTML tables for some
+# filings.  The html_extractor may not find a Key Terms table; the LLM
+# handles those cases as fallback.
+key_terms_table_heading: "Note Offering"
+
+table_labels:
+  # UBS uses plural column headers in multi-underlying tables
+  "Downside Thresholds":              "barrier.triggerDetails.triggerLevel"
+  "Downside Threshold":               "barrier.triggerDetails.triggerLevel"
+  "Coupon Barriers":                  "coupon.barrierLevel"
+  "Coupon Barrier":                   "coupon.barrierLevel"
+  "Call Threshold Levels":            "autocall.callLevel"
+  "Call Threshold Level":             "autocall.callLevel"
+  "Contingent Coupon Rate":           "coupon.rate"
+  "Underlying Assets":                "underlyingTerms.underlyingAssets[*].name"
+  "Initial Levels":                   "underlyingTerms.underlyingAssets[*].initialLevel"
+  "Initial Level":                    "underlyingTerms.underlyingAssets[*].initialLevel"
+  "Bloomberg Tickers":                "underlyingTerms.underlyingAssets[*].bloombergTicker"
+  "Bloomberg Ticker":                 "underlyingTerms.underlyingAssets[*].bloombergTicker"
+  # Dates
+  "Trade Date":                       "structuredProductsGeneric.tradeDate"
+  "Settlement Date":                  "structuredProductsGeneric.issueDate"
+  "Final Valuation Date":             "structuredProductsGeneric.valuationDate"
+  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  # ISIN is explicit in UBS Note Offering table
+  "ISIN":                             "identifiers.isin"
