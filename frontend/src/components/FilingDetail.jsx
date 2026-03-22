@@ -157,6 +157,7 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
   }
 
   const doClassify        = () => run('classify',   () => api.classify(filingId))
+  const doConfirm         = () => run('confirm',     () => api.confirmClassification(filingId, { confirmed_by: 'reviewer' }))
   const doExtract         = () => run('extract',     () => api.extract(filingId))
   const doReextract       = () => run('reextract',   () => api.reextract(filingId))
   const doApprove         = () => run('approve',     () => api.approve(filingId))
@@ -206,9 +207,9 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
 
   const status = filing.status
   const canClassify     = ['ingested'].includes(status)
-  const canResetClassify= ['classified', 'needs_review'].includes(status)
+  const canResetClassify= ['classified', 'needs_classification_review', 'needs_review'].includes(status)
   const canOverride     = !['approved', 'exported'].includes(status)
-  const canExtract      = ['classified', 'needs_review'].includes(status)
+  const canExtract      = ['classified', 'needs_classification_review', 'needs_review'].includes(status)
   const canReextract    = ['extracted'].includes(status)
   const canApprove      = ['extracted', 'needs_review'].includes(status)
   const canUnapprove    = status === 'approved'
@@ -281,6 +282,30 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
             {canExport       && <ActionButton label={action === 'export'        ? 'Exporting…'   : '↓ Export'}      onClick={doExport}        disabled={!!action} variant="neutral" />}
           </div>
         </div>
+
+        {/* Classification review banner — medium confidence, needs human sign-off */}
+        {status === 'needs_classification_review' && !showOverride && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded flex items-start gap-3">
+            <span className="text-amber-500 text-base mt-0.5">⚠</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-800">
+                Classification confidence is medium ({filing.classification_confidence != null ? (filing.classification_confidence * 100).toFixed(0) : '—'}%)
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Identified as <strong>{filing.payout_type_id}</strong> but with reduced certainty.
+                Confirm to proceed, or use <em>Set Model</em> to correct.
+                You can also extract directly — confidence will be shown as a caution.
+              </p>
+            </div>
+            <ActionButton
+              label={action === 'confirm' ? 'Confirming…' : '✓ Confirm'}
+              onClick={doConfirm}
+              disabled={!!action}
+              variant="warning"
+              small
+            />
+          </div>
+        )}
 
         {/* Classification override panel */}
         {showOverride && (
@@ -397,6 +422,8 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
               ? 'bg-slate-50 border-slate-200'
               : status === 'ingested'
               ? 'bg-amber-50 border-amber-200'
+              : status === 'needs_classification_review'
+              ? 'bg-orange-50 border-orange-200'
               : status === 'needs_review'
               ? 'bg-red-50 border-red-200'
               : status === 'exported'
@@ -404,10 +431,11 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
               : 'bg-blue-50 border-blue-200'
           }`}>
             <span className={`text-xs font-medium flex-1 ${
-              showHtml          ? 'text-slate-500' :
-              status === 'ingested'      ? 'text-amber-700' :
-              status === 'needs_review'  ? 'text-red-700'   :
-              status === 'exported'      ? 'text-slate-500' : 'text-blue-700'
+              showHtml                                      ? 'text-slate-500'  :
+              status === 'ingested'                         ? 'text-amber-700'  :
+              status === 'needs_classification_review'      ? 'text-orange-700' :
+              status === 'needs_review'                     ? 'text-red-700'    :
+              status === 'exported'                         ? 'text-slate-500'  : 'text-blue-700'
             }`}>
               {showHtml && hasResults
                 ? `EDGAR filing source — ${filing.cusip || filing.accession_number}`
@@ -415,6 +443,8 @@ export default function FilingDetail({ filingId, onFilingUpdated }) {
                 ? 'Raw filing preview — click Classify above to identify the PRISM model.'
                 : status === 'classified'
                 ? `Classified as ${filing.payout_type_id} (${(filing.classification_confidence * 100).toFixed(0)}% conf.) — click Extract to pull all PRISM fields.`
+                : status === 'needs_classification_review'
+                ? `Classified as ${filing.payout_type_id} with medium confidence (${filing.classification_confidence != null ? (filing.classification_confidence * 100).toFixed(0) : '—'}%) — confirm or override, then Extract.`
                 : status === 'needs_review'
                 ? 'Low-confidence classification — review the filing below, then use "Set Model" to override or click Extract.'
                 : status === 'exported'

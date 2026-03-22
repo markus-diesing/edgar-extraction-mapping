@@ -1,11 +1,14 @@
 """
 Classification API routes.
 
-POST /api/classify/{filing_id}  — classify a filing into a PRISM payout type
+POST /api/classify/{filing_id}         — classify a filing into a PRISM payout type
+POST /api/classify/{filing_id}/confirm — human confirmation of needs_classification_review
 """
 from __future__ import annotations
 
 import logging
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -30,6 +33,18 @@ class ClassifyResponse(BaseModel):
     title_excerpt: str | None = None
     product_features: dict | None = None
     classification_stage: int = 1
+
+
+class ConfirmClassificationRequest(BaseModel):
+    confirmed_by: str = "reviewer"
+    payout_type_id: str | None = None   # None → confirm the existing model unchanged
+
+
+class ConfirmClassificationResponse(BaseModel):
+    filing_id: str
+    payout_type_id: str
+    status: str
+    confirmed_by: str
 
 
 @router.get("/classify/models")
@@ -93,4 +108,60 @@ def classify(filing_id: str):
         title_excerpt=result.title_excerpt or None,
         product_features=result.product_features or None,
         classification_stage=result.stage,
+    )
+
+
+@router.post("/classify/{filing_id}/confirm", response_model=ConfirmClassificationResponse)
+def confirm_classification(filing_id: str, body: ConfirmClassificationRequest):
+    """
+    Human confirmation of a needs_classification_review filing.
+    Promotes it to 'classified' (confidence set to 1.0).
+    Optionally accepts a corrected payout_type_id; if omitted, confirms the existing model.
+    Records a ClassificationFeedback entry for the few-shot feedback loop.
+    """
+    with database.get_session() as session:
+        filing = session.get(database.Filing, filing_id)
+        if not filing:
+            raise HTTPException(status_code=404, detail="Filing not found")
+        if filing.status != "needs_classification_review":
+            raise HTTPException(
+                status_code=422,
+                detail=f"Filing status is '{filing.status}', expected 'needs_classification_review'",
+            )
+
+        known_models = schema_loader.list_models()
+        original_model = filing.payout_type_id or "unknown"
+        confirmed_model = body.payout_type_id or original_model
+
+        if confirmed_model not in known_models and confirmed_model != "unknown":
+            raise HTTPException(status_code=422, detail=f"Unknown PRISM model: '{confirmed_model}'")
+
+        now = datetime.now(timezone.utc).isoformat()
+        filing.payout_type_id = confirmed_model
+        filing.classification_confidence = 1.0
+        filing.status = "classified"
+        filing.classified_at = now
+
+        feedback = database.ClassificationFeedback(
+            id=str(uuid.uuid4()),
+            filing_id=filing_id,
+            original_payout_type=original_model,
+            corrected_payout_type=confirmed_model,
+            correction_reason="human confirmation via classification review gate",
+            corrected_by=body.confirmed_by,
+            corrected_at=now,
+            used_as_example=False,
+        )
+        session.add(feedback)
+        session.commit()
+
+    log.info(
+        "Classification confirmed: filing=%s  model=%s  by=%s",
+        filing_id, confirmed_model, body.confirmed_by,
+    )
+    return ConfirmClassificationResponse(
+        filing_id=filing_id,
+        payout_type_id=confirmed_model,
+        status="classified",
+        confirmed_by=body.confirmed_by,
     )

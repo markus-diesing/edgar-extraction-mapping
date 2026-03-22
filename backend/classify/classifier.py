@@ -195,15 +195,17 @@ def _build_stage1_prompt(
     hint_section = ""
     if cusip_hint and cusip_hint_in_schema:
         hint_section = (
-            f"\nNote: The CUSIP lookup table suggests this may be a **{cusip_hint}** — "
-            "treat this as a prior but verify independently.\n"
+            f"\nSupplementary reference: A historical mapping file associates this CUSIP "
+            f"with **{cusip_hint}**. Use this as weak background context only — "
+            "base your classification on the document content, not on this reference. "
+            "If the document evidence points to a different model, follow the document.\n"
         )
     elif cusip_hint and not cusip_hint_in_schema:
         hint_section = (
-            f"\nNote: The CUSIP lookup table suggests this product is a "
-            f"**{cusip_hint}**, but that model does not yet exist in the current schema. "
-            "If the filing clearly belongs to that product family and no listed model "
-            "fits well, return 'unknown' — do not force a wrong match.\n"
+            f"\nSupplementary reference: A historical mapping file associates this CUSIP "
+            f"with **{cusip_hint}**, which is not in the current schema. "
+            "Ignore this reference for classification purposes and use the document content only. "
+            "Return 'unknown' only if no listed model fits the document evidence.\n"
         )
 
     few_shot_section = f"\n{few_shot_block}" if few_shot_block else ""
@@ -252,12 +254,15 @@ def _build_stage2_prompt(
     hint_section = ""
     if cusip_hint and cusip_hint_in_schema:
         hint_section = (
-            f"\nNote: The CUSIP lookup table suggests this may be a **{cusip_hint}**.\n"
+            f"\nSupplementary reference only: historical mapping associates this CUSIP "
+            f"with **{cusip_hint}**. Follow document evidence — override this reference "
+            "if the filing content points clearly elsewhere.\n"
         )
     elif cusip_hint and not cusip_hint_in_schema:
         hint_section = (
-            f"\nNote: CUSIP lookup suggests **{cusip_hint}** (not in current schema). "
-            "Return 'unknown' if no listed model fits.\n"
+            f"\nSupplementary reference: historical mapping associates this CUSIP "
+            f"with **{cusip_hint}** (not in current schema). "
+            "Classify from document content only; do not force a match to this label.\n"
         )
 
     features_hint = ""
@@ -356,13 +361,40 @@ def _extract_targeted_sections(full_text: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _get_model_descriptions(schema: dict[str, Any]) -> dict[str, str]:
-    """Return {model_name: description} for all models in the schema."""
+    """
+    Return {model_name: description_text} for all models in the schema.
+
+    If a model has a 'classificationHints' block (added by the PRISM team per
+    SPEC_CLASSIFICATION_HINTS_FORMAT.md), formats it into a structured prompt
+    string that includes discriminating features and counter-indicators.
+
+    Falls back to the plain 'description' string for models without hints,
+    preserving full backward compatibility with the current 9 models.
+    """
     result: dict[str, str] = {}
     for entry in schema.get("oneOf", []):
         const = entry.get("properties", {}).get("model", {}).get("const")
-        desc  = entry.get("description", "")
-        if const:
-            result[const] = desc
+        if not const:
+            continue
+
+        hints = entry.get("classificationHints")
+        if hints:
+            parts: list[str] = []
+            if hints.get("description"):
+                parts.append(hints["description"])
+            features = hints.get("discriminating_features", [])
+            if features:
+                parts.append("Key features: " + "; ".join(features[:4]) + ".")
+            counters = hints.get("counter_indicators", [])
+            if counters:
+                parts.append("Not this model if: " + "; ".join(counters[:3]) + ".")
+            keywords = hints.get("title_keywords", [])
+            if keywords:
+                parts.append("Typical title terms: " + ", ".join(keywords[:6]) + ".")
+            result[const] = " | ".join(parts)
+        else:
+            result[const] = entry.get("description", "")
+
     return result
 
 
@@ -512,12 +544,14 @@ def classify_filing(
 
 def _persist(filing_id: str, result: ClassificationResult) -> None:
     now = datetime.now(timezone.utc).isoformat()
-    new_status = (
-        "classified"
-        if result.confidence_score >= config.CLASSIFICATION_CONFIDENCE_THRESHOLD
-        and result.payout_type_id != "unknown"
-        else "needs_review"
-    )
+    if result.payout_type_id == "unknown":
+        new_status = "needs_review"
+    elif result.confidence_score >= config.CLASSIFICATION_GATE_CONFIDENCE:
+        new_status = "classified"
+    else:
+        # Medium confidence (CLASSIFICATION_MIN_CONFIDENCE ≤ conf < CLASSIFICATION_GATE_CONFIDENCE)
+        # Product is identified but human review is recommended before extraction.
+        new_status = "needs_classification_review"
 
     with database.get_session() as session:
         filing = session.get(database.Filing, filing_id)

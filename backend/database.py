@@ -78,7 +78,7 @@ class Filing(Base):
     ingest_timestamp           = Column(String, nullable=False, default=_now)
     ingest_started_at          = Column(String)   # when EDGAR download begins
     status                     = Column(String, nullable=False, default="ingested")
-    # ingested | classified | extracted | needs_review | approved | exported
+    # ingested | classified | needs_classification_review | extracted | needs_review | approved | exported
     payout_type_id             = Column(String)
     classification_confidence  = Column(Float)
     matched_schema_version     = Column(String)

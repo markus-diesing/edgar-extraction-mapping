@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import StatusBadge from './StatusBadge.jsx'
 
-const STATUSES = ['', 'ingested', 'classified', 'needs_review', 'extracted', 'approved', 'exported']
+const STATUSES = ['', 'ingested', 'classified', 'needs_classification_review', 'needs_review', 'extracted', 'approved', 'exported']
 
 export default function FilingList({ filings, selectedId, onSelect, onRefresh }) {
   const [statusFilter, setStatusFilter] = useState('')
