@@ -164,46 +164,46 @@ flowchart TD
 
     User([Browser UI\nReact + Vite]):::user
 
-    subgraph Ingest["INGEST — POST /api/ingest/..."]
+    subgraph Ingest["INGEST  POST /api/ingest"]
       EDGAR_SEARCH[EFTS Full-Text\nSearch API]:::proc
       SEC_FETCH[SEC Filing\nFetch + HTML Save]:::proc
       IMG_DL[Image Download\nfrom EDGAR folder]:::proc
     end
 
-    subgraph Classify["CLASSIFY — POST /api/classify/{id}"]
-      CLS1[Stage 1 — Cover page\n4K chars + CUSIP hint]:::ai
-      CLS2[Stage 2 — Targeted sections\n8K chars structural headers]:::ai
+    subgraph Classify["CLASSIFY  POST /api/classify/:id"]
+      CLS1[Stage 1 - Cover page\n4K chars + CUSIP hint]:::ai
+      CLS2[Stage 2 - Targeted sections\n8K chars structural headers]:::ai
       CLS_PERSIST[Persist result\npayout_type_id + confidence]:::proc
     end
 
-    subgraph Extract["EXTRACT — POST /api/extract/{id}"]
-      T0[Tier 0 — Registry\nCUSIP + issuer from DB]:::tier0
-      T1[Tier 1 — HTML Table\nKey Terms section\n label_mapper + field_parsers]:::tier1
-      T2[Tier 2 — LLM\nClaude tool-call\nwith schema + hints]:::tier2
+    subgraph Extract["EXTRACT  POST /api/extract/:id"]
+      T0[Tier 0 - Registry\nCUSIP + issuer from DB]:::tier0
+      T1[Tier 1 - HTML Table\nKey Terms section\nlabel_mapper + field_parsers]:::tier1
+      T2[Tier 2 - LLM\nClaude tool-call\nwith schema + hints]:::tier2
       MERGE[Merge: T0 overrides LLM\nT1 overrides LLM\nConflicts logged]:::proc
     end
 
-    subgraph Review["REVIEW — PATCH /api/extract/{id}/fields/{fid}"]
+    subgraph Review["REVIEW  PATCH /api/extract/:id/fields/:fid"]
       FT[Field Table\nSimple View\nTABLE / REG / AI badges]:::user
       ER[Expert Review\nSide-by-side iframe\nSource highlight]:::user
       APPROVE[Approve Filing]:::proc
     end
 
-    subgraph Export["EXPORT — POST /api/export/{id}"]
+    subgraph Export["EXPORT  POST /api/export/:id"]
       EXPJ[JSON export\nPRISM-format]:::proc
       EXPC[CSV export\nFlat fields]:::proc
     end
 
     subgraph Storage["STORAGE"]
       DB[(SQLite DB\nfilings\nextraction_results\nfield_results\nlabel_miss_log\napi_usage_log)]:::store
-      FS[File System\ndata/filings/{accession}/\nraw.html + images\ndata/exports/]:::store
-      YAML[YAML Config Files\nhints/ · sections/\nlabel_maps · settings\nprism-v1.schema.json]:::config
+      FS[File System\ndata/filings/ACC/\nraw.html + images\ndata/exports/]:::store
+      YAML[YAML Config Files\nhints + sections\nlabel_maps + settings\nprism-v1.schema.json]:::config
     end
 
-    subgraph Admin["ADMIN — /api/admin/..."]
+    subgraph Admin["ADMIN  /api/admin"]
       LOGS[Log Viewer\napp.log tail + filter]:::proc
-      USAGE[Cost &amp; Usage\ntoken counts + USD cost]:::proc
-      SCHEMA[Schema Manager\nFetch → Diff → Activate]:::proc
+      USAGE[Cost and Usage\ntoken counts + USD cost]:::proc
+      SCHEMA[Schema Manager\nFetch - Diff - Activate]:::proc
     end
 
     User --> |"Search EDGAR\nor paste accession"| EDGAR_SEARCH
@@ -214,9 +214,9 @@ flowchart TD
 
     User --> |"Classify"| CLS1
     DB --> |"filing record\ncusip + html_path"| CLS1
-    YAML --> |"CUSIP→model mapping\n(.xlsx)"| CLS1
-    CLS1 --> |"confidence ≥ 0.75"| CLS_PERSIST
-    CLS1 --> |"confidence &lt; 0.75"| CLS2
+    YAML --> |"CUSIP to model mapping"| CLS1
+    CLS1 --> |"confidence above 0.75"| CLS_PERSIST
+    CLS1 --> |"confidence below 0.75"| CLS2
     CLS2 --> CLS_PERSIST
     CLS_PERSIST --> DB
 
@@ -286,7 +286,7 @@ flowchart LR
       L1 --> L2 --> L3 --> L4 --> L5
     end
 
-    subgraph Merge["Merge &amp; Persist"]
+    subgraph Merge["Merge and Persist"]
       M1[Tier 0 fills pre_extracted map]:::merge
       M2[Tier 1 overwrites T0\non same field]:::merge
       M3[For each field path:\n  if in pre_extracted → use T0/T1\n  else use LLM value]:::merge
@@ -413,17 +413,17 @@ flowchart LR
     <div class="mermaid">
 stateDiagram-v2
     [*] --> ingested : POST /api/ingest/filing
-    ingested --> classified : POST /api/classify/{id}\nconfidence ≥ 0.75
-    ingested --> needs_review : POST /api/classify/{id}\nconfidence &lt; 0.75 or unknown
-    needs_review --> classified : Manual override\nPOST /api/classify/{id}/confirm
-    classified --> extracting : POST /api/extract/{id}\nin-flight marker
+    ingested --> classified : POST /api/classify/:id\nconfidence above 0.75
+    ingested --> needs_review : POST /api/classify/:id\nconfidence below 0.75 or unknown
+    needs_review --> classified : Manual override\nPOST /api/classify/:id/confirm
+    classified --> extracting : POST /api/extract/:id\nin-flight marker
     extracting --> extracted : Extraction complete
-    extracting --> classified : Extraction failed\nrollback
-    extracted --> approved : POST /api/extract/{id}/approve
-    approved --> extracted : POST /api/extract/{id}/unapprove
-    approved --> exported : POST /api/export/{id}
-    classified --> ingested : POST /api/filings/{id}/reset-classification
-    needs_review --> ingested : POST /api/filings/{id}/reset-classification
+    extracting --> classified : Extraction failed - rollback
+    extracted --> approved : POST /api/extract/:id/approve
+    approved --> extracted : POST /api/extract/:id/unapprove
+    approved --> exported : POST /api/export/:id
+    classified --> ingested : POST /api/filings/:id/reset-classification
+    needs_review --> ingested : POST /api/filings/:id/reset-classification
     </div>
   </div>
 
