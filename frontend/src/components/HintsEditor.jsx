@@ -465,8 +465,8 @@ function CrossIssuerTab() {
 // ---------------------------------------------------------------------------
 
 export default function HintsEditor() {
-  const [issuers, setIssuers] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [issuers,   setIssuers]   = useState([])
+  const [loading,   setLoading]   = useState(true)
   const [activeTab, setActiveTab] = useState('cross')
 
   const loadList = useCallback(async () => {
@@ -483,49 +483,78 @@ export default function HintsEditor() {
 
   useEffect(() => { loadList() }, [loadList])
 
-  const tabs = [
-    { id: 'cross', label: 'Cross-Issuer Rules' },
-    ...issuers.map(iss => ({ id: iss.slug, label: iss.name.replace(' LLC', '').replace(' AG', '').replace(' Corp.', ''), issuer: iss })),
-  ]
+  const selectIssuer = (slug) => {
+    if (slug) setActiveTab(slug)
+  }
+
+  const isCross  = activeTab === 'cross'
+  const activeIssuer = issuers.find(i => i.slug === activeTab)
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
-      {/* Tab bar */}
-      <div className="flex items-center border-b border-slate-200 bg-slate-50 overflow-x-auto shrink-0">
-        {loading && (
-          <span className="px-4 py-2 text-xs text-slate-400">Loading issuers…</span>
+
+      {/* ── Selector bar ─────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0 flex-wrap">
+
+        {/* Cross-Issuer Rules fixed button */}
+        <button
+          onClick={() => setActiveTab('cross')}
+          className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
+            isCross
+              ? 'bg-white text-blue-600 border-blue-300 shadow-sm'
+              : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-white hover:border-slate-200'
+          }`}
+        >
+          Cross-Issuer Rules
+        </button>
+
+        {/* Vertical rule */}
+        <div className="h-5 w-px bg-slate-300 shrink-0" />
+
+        {/* Issuer dropdown */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs text-slate-500 font-medium whitespace-nowrap shrink-0">Issuer:</span>
+          {loading ? (
+            <span className="text-xs text-slate-400 italic">Loading…</span>
+          ) : (
+            <select
+              value={isCross ? '' : activeTab}
+              onChange={e => selectIssuer(e.target.value)}
+              className={`text-xs border rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 min-w-[220px] transition-colors ${
+                !isCross
+                  ? 'border-blue-300 text-slate-800 shadow-sm'
+                  : 'border-slate-200 text-slate-600'
+              }`}
+            >
+              <option value="">— select issuer —</option>
+              {issuers.map(iss => (
+                <option key={iss.slug} value={iss.slug}>
+                  {iss.name}
+                  {iss.field_hints_count > 0 ? ` (${iss.field_hints_count} hints)` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Active-issuer breadcrumb badge when an issuer is selected */}
+        {!isCross && activeIssuer && (
+          <span className="text-xs text-blue-600 font-medium bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+            {activeIssuer.name}
+          </span>
         )}
-        {!loading && tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap border-r border-slate-200 transition-colors ${
-              activeTab === tab.id
-                ? 'bg-white text-blue-600 border-b-2 border-b-blue-600 relative -mb-px'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-white'
-            }`}
-          >
-            {tab.label}
-            {tab.issuer && (
-              <span className="ml-1.5 text-slate-400 font-normal">
-                ({tab.issuer.field_hints_count})
-              </span>
-            )}
-          </button>
-        ))}
       </div>
 
-      {/* Tab content */}
+      {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
-        {activeTab === 'cross' ? (
+        {isCross ? (
           <CrossIssuerTab />
+        ) : activeIssuer ? (
+          <IssuerTab key={activeTab} summary={activeIssuer} onSaved={loadList} />
         ) : (
-          (() => {
-            const issuerSummary = issuers.find(i => i.slug === activeTab)
-            return issuerSummary
-              ? <IssuerTab key={activeTab} summary={issuerSummary} onSaved={loadList} />
-              : <div className="p-4 text-slate-400 text-sm">Issuer not found.</div>
-          })()
+          <div className="p-6 text-center text-slate-400 text-sm">
+            Select an issuer from the dropdown above to view or edit its hints.
+          </div>
         )}
       </div>
     </div>
