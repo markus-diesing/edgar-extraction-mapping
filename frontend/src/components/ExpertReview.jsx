@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import FieldTable from './FieldTable.jsx'
 
 /**
@@ -7,14 +7,18 @@ import FieldTable from './FieldTable.jsx'
  *   Right — original filing rendered as HTML in an iframe, with the selected
  *           field's source excerpt highlighted via postMessage
  *
- * The iframe loads /api/filings/{id}/document which serves the raw HTML with:
- *   - A <base> tag so relative images/resources resolve from EDGAR's archive.
- *   - An injected highlight script that listens for postMessage events.
+ * The divider between the two panes is draggable: grab and drag left/right
+ * to redistribute space between the field table and the filing viewer.
  */
 export default function ExpertReview({ fields, filingId, onFieldUpdated }) {
   const [selectedField, setSelectedField] = useState(null)
-  const iframeRef   = useRef(null)
-  const [iframeReady, setIframeReady] = useState(false)
+  const iframeRef    = useRef(null)
+  const containerRef = useRef(null)
+  const [iframeReady,  setIframeReady]  = useState(false)
+
+  // Resizable split — left pane percentage (clamped 15 – 85)
+  const [splitPct,   setSplitPct]   = useState(42)
+  const [isDragging, setIsDragging] = useState(false)
 
   const excerpt = selectedField?.source_excerpt || null
 
@@ -44,6 +48,28 @@ export default function ExpertReview({ fields, filingId, onFieldUpdated }) {
     }
   }
 
+  // ── Drag-to-resize ──────────────────────────────────────────────────────────
+  const onDividerMouseDown = useCallback((e) => {
+    e.preventDefault()
+    setIsDragging(true)
+
+    const onMouseMove = (e) => {
+      if (!containerRef.current) return
+      const rect   = containerRef.current.getBoundingClientRect()
+      const newPct = ((e.clientX - rect.left) / rect.width) * 100
+      setSplitPct(Math.min(85, Math.max(15, newPct)))
+    }
+
+    const onMouseUp = () => {
+      setIsDragging(false)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup',   onMouseUp)
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup',   onMouseUp)
+  }, [])
+
   // Status hint shown in the right-pane header.
   const hint = !selectedField
     ? '← Select a field to locate its source in the filing'
@@ -58,10 +84,16 @@ export default function ExpertReview({ fields, filingId, onFieldUpdated }) {
       : 'text-emerald-600 font-medium'
 
   return (
-    <div className="flex h-full min-h-0">
+    <div
+      ref={containerRef}
+      className={`flex h-full min-h-0${isDragging ? ' select-none cursor-col-resize' : ''}`}
+    >
 
       {/* ── Left pane: PRISM fields ── */}
-      <div className="w-[42%] shrink-0 flex flex-col min-h-0 border-r border-slate-200">
+      <div
+        className="shrink-0 flex flex-col min-h-0 overflow-hidden"
+        style={{ width: `${splitPct}%` }}
+      >
         <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">PRISM Fields</span>
           {selectedField && (
@@ -79,6 +111,28 @@ export default function ExpertReview({ fields, filingId, onFieldUpdated }) {
             onSelectField={setSelectedField}
           />
         </div>
+      </div>
+
+      {/* ── Drag handle / divider ── */}
+      <div
+        onMouseDown={onDividerMouseDown}
+        title="Drag to resize"
+        className={`
+          w-[5px] shrink-0 flex flex-col items-center justify-center gap-[3px]
+          cursor-col-resize transition-colors duration-100 group
+          ${isDragging ? 'bg-lpa-cyan' : 'bg-slate-200 hover:bg-slate-300'}
+        `}
+      >
+        {/* Dot-grip indicator */}
+        {[0, 1, 2, 3, 4].map(i => (
+          <div
+            key={i}
+            className={`
+              w-[3px] h-[3px] rounded-full pointer-events-none transition-colors
+              ${isDragging ? 'bg-white' : 'bg-slate-400 opacity-40 group-hover:opacity-80'}
+            `}
+          />
+        ))}
       </div>
 
       {/* ── Right pane: HTML filing viewer (iframe) ── */}
