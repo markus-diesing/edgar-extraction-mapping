@@ -93,28 +93,58 @@ def parse_percentage(raw: str) -> float | None:
     Parse a percentage value and return a decimal (e.g. 70% → 0.70).
 
     Handles:
-      "70%"                              → 0.70
-      "70.00%"                           → 0.70
-      "70.00% of Initial Underlier Value"→ 0.70
-      "70% of the Initial Level"         → 0.70
-      "1,949.187, 80.00% of its Initial Level" → 0.80
-      "$5,350.77 (80.00% of its Initial Level)" → 0.80
+      "70%"                                                   → 0.70
+      "70.00%"                                                → 0.70
+      "70.00% of Initial Underlier Value"                     → 0.70
+      "70% of the Initial Level"                              → 0.70
+      "1,949.187, 80.00% of its Initial Level"                → 0.80
+      "$5,350.77 (80.00% of its Initial Level)"               → 0.80
+      "$8.75 per $1,000 ... 10.50% per annum or 0.875% per month" → 0.1050
+
+    Priority order:
+      1. A percentage explicitly qualified with "per annum", "p.a.", "per year",
+         or "annually" — always preferred (annual rate wins over monthly rate).
+      2. Among remaining percentages, non-monthly figures are preferred over
+         those qualified as "per month" / "monthly".
+      3. Fall back to the last percentage found (existing behaviour, preserves
+         barrier / call-level parsing which never has annum/month qualifiers).
     """
-    # Find the LAST percentage figure (often "X.XX% of initial …")
-    matches = re.findall(r"([\d,]+\.?\d*)\s*%", raw)
-    if not matches:
+    def _to_decimal(raw_num: str) -> float | None:
+        try:
+            pct = float(raw_num.replace(",", ""))
+        except ValueError:
+            return None
+        return round(pct / 100.0, 6) if pct > 1.0 else round(pct, 6)
+
+    # Priority 1: per-annum qualified percentage
+    pa_match = re.search(
+        r"([\d,]+\.?\d*)\s*%\s*(?:per\s+annum|p\.a\.|per\s+year|annually)\b",
+        raw, re.IGNORECASE,
+    )
+    if pa_match:
+        result = _to_decimal(pa_match.group(1))
+        if result is not None:
+            return result
+
+    # Collect all percentage occurrences; tag each as monthly or not
+    # Regex: capture the number, then optionally a "per month" / "monthly" qualifier
+    candidates: list[tuple[str, bool]] = []   # (raw_number, is_monthly)
+    for m in re.finditer(
+        r"([\d,]+\.?\d*)\s*%(\s*(?:per\s+month|monthly)\b)?",
+        raw, re.IGNORECASE,
+    ):
+        is_monthly = bool(m.group(2))
+        candidates.append((m.group(1), is_monthly))
+
+    if not candidates:
         return None
-    # Prefer the last match which is typically the normalised percentage
-    raw_num = matches[-1].replace(",", "")
-    try:
-        pct = float(raw_num)
-    except ValueError:
-        return None
-    # Values >1 are percentages — convert to decimal
-    # Values already ≤1.0 are treated as decimal (rare in this context)
-    if pct > 1.0:
-        return round(pct / 100.0, 6)
-    return round(pct, 6)
+
+    # Priority 2: prefer non-monthly figures when both kinds are present
+    non_monthly = [num for num, monthly in candidates if not monthly]
+    pool = non_monthly if non_monthly else [num for num, _ in candidates]
+
+    # Take the last from the preferred pool (existing "last match" convention)
+    return _to_decimal(pool[-1])
 
 
 def parse_amount(raw: str) -> float | None:
