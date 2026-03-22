@@ -338,30 +338,38 @@ def _trim_to_key_terms_section(
     return filing_text[start:end], True
 
 
-def _build_extraction_prompt(
+def _build_extraction_parts(
     model_name: str,
     schema_json: str,
     filing_text: str,
     hints_block: str = "",
-) -> str:
-    truncated = filing_text[: config.MAX_FILING_CHARS]
+) -> tuple[str, str]:
+    """
+    Split the extraction prompt into a cacheable preamble and an uncacheable filing suffix.
+
+    The preamble (instructions + schema + hints) is identical for all filings of the same
+    issuer and PRISM model — it is sent with cache_control so Claude can reuse the KV cache
+    across a batch run, reducing input token cost by ~90% on cache hits.
+
+    The filing suffix (unique per filing) is never cached.
+
+    Returns:
+        preamble    — static instructions, schema JSON, and hints block
+        filing_part — "FILING TEXT:\\n{truncated_text}"
+    """
     hints_section = f"\n{hints_block}\n---\n" if hints_block.strip() else "\n---\n"
-    return f"""Extract all fields from the 424B2 filing text below into a PRISM JSON object.
-Model to populate: **{model_name}**
-
-PRISM schema for this model:
-```json
-{schema_json}
-```
-
-Output format — a single JSON object with three top-level keys:
-1. The PRISM data itself (matching the schema above, including a "model" field set to "{model_name}")
-2. "_confidence": {{ "<dot.path.field>": <0.0–1.0>, ... }}
-3. "_excerpts":   {{ "<dot.path.field>": "<source text fragment>", ... }}
-{hints_section}
-FILING TEXT:
-{truncated}
-"""
+    preamble = (
+        f"Extract all fields from the 424B2 filing text below into a PRISM JSON object.\n"
+        f"Model to populate: **{model_name}**\n\n"
+        f"PRISM schema for this model:\n```json\n{schema_json}\n```\n\n"
+        f"Output format — a single JSON object with three top-level keys:\n"
+        f"1. The PRISM data itself (matching the schema above, including a \"model\" field set to \"{model_name}\")\n"
+        f"2. \"_confidence\": {{ \"<dot.path.field>\": <0.0–1.0>, ... }}\n"
+        f"3. \"_excerpts\":   {{ \"<dot.path.field>\": \"<source text fragment>\", ... }}\n"
+        f"{hints_section}"
+    )
+    filing_part = f"FILING TEXT:\n{filing_text[:config.MAX_FILING_CHARS]}"
+    return preamble, filing_part
 
 
 # ---------------------------------------------------------------------------
@@ -424,31 +432,43 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
         "(trimmed to key-terms section)" if was_trimmed else "(no section anchor found — using head)",
     )
 
-    # Build prompt and tool definition
-    user_prompt = _build_extraction_prompt(model_name, schema_for_prompt, filing_text, hints_block)
+    # Build prompt parts and tool definition
+    # preamble (schema + hints) is sent with cache_control; filing text is not cached.
+    preamble, filing_part = _build_extraction_parts(model_name, schema_for_prompt, filing_text, hints_block)
     extraction_tool = _build_extraction_tool(model_name, model_schema)
 
+    # Resolve active Claude model from runtime settings (changeable without server restart)
+    active_model = settings_store.get_settings().get("claude_model", config.CLAUDE_MODEL_DEFAULT)
+
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    log.info("Extracting filing %s model=%s via Claude (tool-call mode)", filing_id, model_name)
+    log.info("Extracting filing %s model=%s claude=%s (tool-call mode)", filing_id, model_name, active_model)
 
     t0 = time.monotonic()
     message = client.messages.create(
-        model=config.CLAUDE_MODEL,
+        model=active_model,
         max_tokens=8192,
-        system=_get_system_prompt(),
+        # System prompt is static per server instance — cache it
+        system=[{"type": "text", "text": _get_system_prompt(), "cache_control": {"type": "ephemeral"}}],
         tools=[extraction_tool],
         tool_choice={"type": "tool", "name": "submit_prism_extraction"},
-        messages=[{"role": "user", "content": user_prompt}],
+        # Two content blocks: cached preamble + uncached filing text
+        messages=[{"role": "user", "content": [
+            {"type": "text", "text": preamble,     "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": filing_part},
+        ]}],
     )
     duration = time.monotonic() - t0
 
-    # Log API usage
+    # Log API usage including cache token counts (0 when caching not yet active)
     _log_api_usage(
         filing_id=filing_id,
         call_type="extract",
         input_tokens=message.usage.input_tokens,
         output_tokens=message.usage.output_tokens,
         duration_seconds=duration,
+        model=active_model,
+        cache_read_tokens=getattr(message.usage, "cache_read_input_tokens", 0) or 0,
+        cache_write_tokens=getattr(message.usage, "cache_creation_input_tokens", 0) or 0,
     )
 
     # Extract from tool_use block (guaranteed valid JSON — no regex cleanup needed)
@@ -611,14 +631,24 @@ def _extract_section_schema(model_schema: dict, section_spec: SectionSpec) -> di
     }
 
 
-def _build_section_prompt(
+def _build_section_parts(
     model_name: str,
     section_spec: SectionSpec,
     section_schema_json: str,
     filing_slice: str,
     hints_block: str,
-) -> str:
-    parts = [
+) -> tuple[str, str]:
+    """
+    Split a section-mode prompt into a cacheable preamble and an uncacheable filing excerpt.
+
+    The preamble (model/section instructions + schema + hints) is stable within a batch run
+    for the same model and section — it is sent with cache_control.
+
+    Returns:
+        preamble      — section instructions, schema, hints
+        filing_part   — "FILING TEXT (section excerpt):\\n{slice}"
+    """
+    preamble_parts = [
         f"PRISM MODEL: {model_name}",
         f"SECTION: {section_spec.name}",
         f"SECTION INSTRUCTION: {section_spec.system_note.strip()}",
@@ -627,13 +657,16 @@ def _build_section_prompt(
         section_schema_json,
     ]
     if hints_block:
-        parts += ["", hints_block]
-    parts += [
-        "",
-        "FILING TEXT (section excerpt):",
-        filing_slice if filing_slice else "[No matching section found in this filing — return all fields as null]",
-    ]
-    return "\n".join(parts)
+        preamble_parts += ["", hints_block]
+    preamble = "\n".join(preamble_parts)
+
+    filing_content = (
+        filing_slice
+        if filing_slice
+        else "[No matching section found in this filing — return all fields as null]"
+    )
+    filing_part = f"FILING TEXT (section excerpt):\n{filing_content}"
+    return preamble, filing_part
 
 
 def _deep_set(d: dict, dot_path: str, value) -> dict:
@@ -726,6 +759,10 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
         filing_id, model_name, [s.name for s in sections],
     )
 
+    # Resolve active Claude model once for the whole sectioned run
+    active_model = settings_store.get_settings().get("claude_model", config.CLAUDE_MODEL_DEFAULT)
+    system_prompt_cached = [{"type": "text", "text": _get_system_prompt(), "cache_control": {"type": "ephemeral"}}]
+
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
     section_results: list[SectionResult] = []
 
@@ -751,8 +788,8 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
         section_schema = _extract_section_schema(model_schema, section_spec)
         section_schema_json = json.dumps(section_schema, indent=2)
 
-        # Build prompt
-        user_prompt = _build_section_prompt(
+        # Split into cached preamble (schema + hints) and uncached filing excerpt
+        preamble, filing_part = _build_section_parts(
             model_name, section_spec, section_schema_json, filing_slice, hints_block
         )
 
@@ -768,22 +805,28 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
 
         t0 = time.monotonic()
         message = client.messages.create(
-            model=config.CLAUDE_MODEL,
+            model=active_model,
             max_tokens=4096,
-            system=_get_system_prompt(),
+            system=system_prompt_cached,
             tools=[extraction_tool],
             tool_choice={"type": "tool", "name": "submit_prism_extraction"},
-            messages=[{"role": "user", "content": user_prompt}],
+            messages=[{"role": "user", "content": [
+                {"type": "text", "text": preamble,     "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": filing_part},
+            ]}],
         )
         duration = time.monotonic() - t0
 
-        # Log API usage per section call
+        # Log API usage per section call including cache tokens
         _log_api_usage(
             filing_id=filing_id,
             call_type=f"extract_{section_spec.name}",
             input_tokens=message.usage.input_tokens,
             output_tokens=message.usage.output_tokens,
             duration_seconds=duration,
+            model=active_model,
+            cache_read_tokens=getattr(message.usage, "cache_read_input_tokens", 0) or 0,
+            cache_write_tokens=getattr(message.usage, "cache_creation_input_tokens", 0) or 0,
         )
 
         prism_data, confidence_map, excerpts_map = _parse_tool_response(message)
@@ -986,17 +1029,26 @@ def _is_leaf_object(v: Any) -> bool:
 # ---------------------------------------------------------------------------
 
 def _log_api_usage(
-    filing_id: str, call_type: str, input_tokens: int, output_tokens: int,
+    filing_id: str,
+    call_type: str,
+    input_tokens: int,
+    output_tokens: int,
     duration_seconds: float | None = None,
+    model: str | None = None,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
 ) -> None:
+    """Persist one API call record to api_usage_log."""
     entry = database.ApiUsageLog(
         id=str(uuid.uuid4()),
         filing_id=filing_id,
         call_type=call_type,
-        model=config.CLAUDE_MODEL,
+        model=model or config.CLAUDE_MODEL_DEFAULT,
         prompt_tokens=input_tokens,
         completion_tokens=output_tokens,
         duration_seconds=duration_seconds,
+        cache_read_tokens=cache_read_tokens or None,
+        cache_write_tokens=cache_write_tokens or None,
     )
     with database.get_session() as session:
         session.add(entry)

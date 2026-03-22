@@ -24,9 +24,10 @@ _SETTINGS_PATH: Path = config.PROJECT_ROOT / "files" / "runtime_settings.yaml"
 
 # Defaults mirror config.py so the store is always self-consistent
 _DEFAULTS: dict = {
-    "sectioned_extraction": config.SECTIONED_EXTRACTION,
+    "sectioned_extraction":           config.SECTIONED_EXTRACTION,
     "section_merge_confidence_delta": config.SECTION_MERGE_CONFIDENCE_DELTA,
     "classification_gate_confidence": config.CLASSIFICATION_GATE_CONFIDENCE,
+    "claude_model":                   config.CLAUDE_MODEL_DEFAULT,
 }
 
 

@@ -37,6 +37,7 @@ import anthropic
 import config
 import database
 import schema_loader
+import settings_store
 from ingest.edgar_client import strip_html
 
 log = logging.getLogger(__name__)
@@ -395,12 +396,18 @@ def classify_filing(
         raise RuntimeError("No PRISM models loaded — check prism-v1.schema.json")
 
     schema_version = schema_loader.get_schema_version()
+
+    # Resolve active Claude model from runtime settings (changeable without server restart)
+    active_model = settings_store.get_settings().get("claude_model", config.CLAUDE_MODEL_DEFAULT)
+    # System prompt is static — cache it to reduce token cost on repeated calls
+    system_cached = [{"type": "text", "text": _SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]
+
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
     # ------------------------------------------------------------------
     # Stage 1 — cover page (with few-shot feedback injection)
     # ------------------------------------------------------------------
-    log.info("Classification stage 1: filing=%s  chars=%d", filing_id, len(cover_text))
+    log.info("Classification stage 1: filing=%s  chars=%d  claude=%s", filing_id, len(cover_text), active_model)
     example_ids, few_shot_block = _get_few_shot_examples()
     if example_ids:
         log.info("Injecting %d few-shot feedback example(s) into stage 1 prompt", len(example_ids))
@@ -411,9 +418,9 @@ def classify_filing(
 
     t0 = time.monotonic()
     msg1 = client.messages.create(
-        model=config.CLAUDE_MODEL,
+        model=active_model,
         max_tokens=768,
-        system=_SYSTEM_PROMPT,
+        system=system_cached,
         messages=[{"role": "user", "content": prompt1}],
     )
     duration1 = time.monotonic() - t0
@@ -424,6 +431,9 @@ def classify_filing(
         input_tokens=msg1.usage.input_tokens,
         output_tokens=msg1.usage.output_tokens,
         duration_seconds=duration1,
+        model=active_model,
+        cache_read_tokens=getattr(msg1.usage, "cache_read_input_tokens", 0) or 0,
+        cache_write_tokens=getattr(msg1.usage, "cache_creation_input_tokens", 0) or 0,
     )
 
     result1 = _parse_classification_response(msg1.content[0].text.strip(), models, schema_version, stage=1)
@@ -460,9 +470,9 @@ def classify_filing(
 
     t0 = time.monotonic()
     msg2 = client.messages.create(
-        model=config.CLAUDE_MODEL,
+        model=active_model,
         max_tokens=768,
-        system=_SYSTEM_PROMPT,
+        system=system_cached,
         messages=[{"role": "user", "content": prompt2}],
     )
     duration2 = time.monotonic() - t0
@@ -473,6 +483,9 @@ def classify_filing(
         input_tokens=msg2.usage.input_tokens,
         output_tokens=msg2.usage.output_tokens,
         duration_seconds=duration2,
+        model=active_model,
+        cache_read_tokens=getattr(msg2.usage, "cache_read_input_tokens", 0) or 0,
+        cache_write_tokens=getattr(msg2.usage, "cache_creation_input_tokens", 0) or 0,
     )
 
     result2 = _parse_classification_response(msg2.content[0].text.strip(), models, schema_version, stage=2)
@@ -582,17 +595,26 @@ def _parse_classification_response(
 # ---------------------------------------------------------------------------
 
 def _log_api_usage(
-    filing_id: str, call_type: str, input_tokens: int, output_tokens: int,
+    filing_id: str,
+    call_type: str,
+    input_tokens: int,
+    output_tokens: int,
     duration_seconds: float | None = None,
+    model: str | None = None,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
 ) -> None:
+    """Persist one API call record to api_usage_log."""
     entry = database.ApiUsageLog(
         id=str(uuid.uuid4()),
         filing_id=filing_id,
         call_type=call_type,
-        model=config.CLAUDE_MODEL,
+        model=model or config.CLAUDE_MODEL_DEFAULT,
         prompt_tokens=input_tokens,
         completion_tokens=output_tokens,
         duration_seconds=duration_seconds,
+        cache_read_tokens=cache_read_tokens or None,
+        cache_write_tokens=cache_write_tokens or None,
     )
     with database.get_session() as session:
         session.add(entry)

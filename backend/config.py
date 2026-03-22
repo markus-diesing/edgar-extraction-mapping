@@ -26,9 +26,46 @@ CUSIP_MAPPING_FILE   = SCHEMAS_DIR / "CUSIP_PRISM_Mapping.xlsx"
 ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # ---------------------------------------------------------------------------
-# Claude model
+# Claude model registry
+#
+# Pricing in USD per million tokens.
+# cache_write_per_m = 1.25× input rate (cache population)
+# cache_read_per_m  = 0.10× input rate (cache hit)
+#
+# Add newer models here — the Admin UI and cost calculations derive from this dict.
 # ---------------------------------------------------------------------------
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
+CLAUDE_MODEL_REGISTRY: dict[str, dict] = {
+    "claude-sonnet-4-6": {
+        "display_name":       "Claude Sonnet 4.6 (latest)",
+        "input_price_per_m":  3.00,
+        "output_price_per_m": 15.00,
+        "cache_write_per_m":  3.75,
+        "cache_read_per_m":   0.30,
+        "context_tokens":     1_000_000,
+        "note": "1M context window. Training cutoff Jan 2026.",
+    },
+    "claude-sonnet-4-5-20250929": {
+        "display_name":       "Claude Sonnet 4.5",
+        "input_price_per_m":  3.00,
+        "output_price_per_m": 15.00,
+        "cache_write_per_m":  3.75,
+        "cache_read_per_m":   0.30,
+        "context_tokens":     200_000,
+        "note": "200k context. Extended to 1M via beta header (tokens >200k priced at $6/M).",
+    },
+    "claude-sonnet-4-20250514": {
+        "display_name":       "Claude Sonnet 4",
+        "input_price_per_m":  3.00,
+        "output_price_per_m": 15.00,
+        "cache_write_per_m":  3.75,
+        "cache_read_per_m":   0.30,
+        "context_tokens":     200_000,
+        "note": "Original project default. Training cutoff March 2025.",
+    },
+}
+
+CLAUDE_MODEL_DEFAULT = "claude-sonnet-4-6"
+CLAUDE_MODEL = CLAUDE_MODEL_DEFAULT   # backward-compat alias; prefer CLAUDE_MODEL_DEFAULT in new code
 
 # Maximum characters of filing HTML sent to Claude (manages token cost).
 # Large filings can be 2–10 MB; we truncate the stripped text.

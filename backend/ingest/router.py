@@ -661,13 +661,38 @@ def get_filing_document(filing_id: str):
     return HTMLResponse(content=html)
 
 
+def _cost_for_row(row) -> float:
+    """
+    Calculate USD cost for a single api_usage_log row using model-specific pricing
+    from config.CLAUDE_MODEL_REGISTRY.  Falls back to the default model's pricing
+    for any row whose model field is absent or unrecognised.
+
+    Prompt caching changes the effective rate:
+      - Regular input tokens : full input_price_per_m
+      - Cache-write tokens   : 1.25× input (cache population overhead)
+      - Cache-read tokens    : 0.10× input (cache hit — the cost saving)
+    """
+    pricing = config.CLAUDE_MODEL_REGISTRY.get(
+        row.model or "",
+        config.CLAUDE_MODEL_REGISTRY[config.CLAUDE_MODEL_DEFAULT],
+    )
+    regular_in = max(
+        0,
+        (row.prompt_tokens   or 0)
+        - (row.cache_read_tokens  or 0)
+        - (row.cache_write_tokens or 0),
+    )
+    return (
+        regular_in                       * pricing["input_price_per_m"]  / 1_000_000
+        + (row.cache_write_tokens or 0)  * pricing["cache_write_per_m"]  / 1_000_000
+        + (row.cache_read_tokens  or 0)  * pricing["cache_read_per_m"]   / 1_000_000
+        + (row.completion_tokens  or 0)  * pricing["output_price_per_m"] / 1_000_000
+    )
+
+
 @router.get("/filings/{filing_id}/kpis")
 def get_filing_kpis(filing_id: str):
     """Return timing and token-cost KPIs for a filing."""
-    # Pricing for claude-sonnet-4-20250514 (USD per token)
-    INPUT_PRICE  = 3.00  / 1_000_000
-    OUTPUT_PRICE = 15.00 / 1_000_000
-
     with database.get_session() as session:
         f = session.get(database.Filing, filing_id)
         if not f:
@@ -705,16 +730,29 @@ def get_filing_kpis(filing_id: str):
             matching = [r for r in rows if r.call_type.startswith(prefix)]
             if not matching:
                 return None
-            total_in   = sum(r.prompt_tokens     or 0 for r in matching)
-            total_out  = sum(r.completion_tokens or 0 for r in matching)
-            total_dur  = sum(r.duration_seconds  or 0 for r in matching)
-            cost       = round(total_in * INPUT_PRICE + total_out * OUTPUT_PRICE, 6)
+            total_in    = sum(r.prompt_tokens     or 0 for r in matching)
+            total_out   = sum(r.completion_tokens or 0 for r in matching)
+            total_dur   = sum(r.duration_seconds  or 0 for r in matching)
+            cache_read  = sum(r.cache_read_tokens  or 0 for r in matching)
+            cache_write = sum(r.cache_write_tokens or 0 for r in matching)
+            cost        = round(sum(_cost_for_row(r) for r in matching), 6)
+            # Savings = what cache-read tokens would have cost at full input rate minus what they did cost
+            pricing = config.CLAUDE_MODEL_REGISTRY.get(
+                matching[0].model or "",
+                config.CLAUDE_MODEL_REGISTRY[config.CLAUDE_MODEL_DEFAULT],
+            )
+            cache_savings = round(
+                cache_read * (pricing["input_price_per_m"] - pricing["cache_read_per_m"]) / 1_000_000, 6
+            )
             return {
                 "called_at":        matching[0].called_at,
                 "duration_seconds": round(total_dur, 2) if total_dur else None,
                 "input_tokens":     total_in,
                 "output_tokens":    total_out,
+                "cache_read_tokens":  cache_read,
+                "cache_write_tokens": cache_write,
                 "cost_usd":         cost,
+                "cache_savings_usd": cache_savings,
                 "call_count":       len(matching),
             }
 

@@ -31,6 +31,7 @@ from export.router   import router as export_router
 from hints.router    import router as hints_router
 from sections.router import router as sections_router
 from settings.router import router as settings_router
+from admin.router    import router as admin_router
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -44,6 +45,11 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger("main")
+
+# Suppress per-request uvicorn access logs — they use a different format and
+# flood the log file with health-check polls every 30 s from the frontend.
+# WARNING level still surfaces 4xx/5xx access events.
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +104,7 @@ app.include_router(export_router,   prefix="/api")
 app.include_router(hints_router,    prefix="/api")
 app.include_router(sections_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
+app.include_router(admin_router,    prefix="/api")
 
 
 @app.get("/api/health")

@@ -53,4 +53,12 @@ export const api = {
   // Runtime settings (Expert Settings → Extraction Settings)
   getSettings:       ()       => call('GET',  '/settings'),
   updateSettings:    (body)   => call('PUT',  '/settings', body),
+
+  // Admin — Log viewer
+  adminLogs:         (params) => call('GET', `/admin/logs${params ? '?' + new URLSearchParams(params) : ''}`),
+  adminLogsDownloadUrl: ()    => '/api/admin/logs/download',   // direct URL — use as <a href> for native download
+
+  // Admin — Cost & Usage
+  adminUsageSummary:  ()              => call('GET', '/admin/usage/summary'),
+  adminUsageTimeline: (granularity)   => call('GET', `/admin/usage/timeline?granularity=${granularity}`),
 }

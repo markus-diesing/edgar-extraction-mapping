@@ -170,10 +170,12 @@ class ApiUsageLog(Base):
     filing_id         = Column(String, ForeignKey("filings.id"), nullable=True)
     call_type         = Column(String, nullable=False)   # classify | extract
     model             = Column(String, nullable=False)
-    prompt_tokens     = Column(Integer)
-    completion_tokens = Column(Integer)
-    duration_seconds  = Column(Float)    # wall-clock time for the API call
-    called_at         = Column(String, nullable=False, default=_now)
+    prompt_tokens      = Column(Integer)
+    completion_tokens  = Column(Integer)
+    duration_seconds   = Column(Float)    # wall-clock time for the API call
+    cache_read_tokens  = Column(Integer)  # tokens served from prompt cache (0.10× input rate)
+    cache_write_tokens = Column(Integer)  # tokens written to prompt cache  (1.25× input rate)
+    called_at          = Column(String, nullable=False, default=_now)
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +202,9 @@ def _migrate() -> None:
         ("field_results", "validation_error",                    "TEXT"),
         # v3 columns — section-by-section extraction
         ("extraction_results", "extraction_mode",                "TEXT"),
+        # v4 columns — prompt caching token tracking
+        ("api_usage_log",      "cache_read_tokens",              "INTEGER"),
+        ("api_usage_log",      "cache_write_tokens",             "INTEGER"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

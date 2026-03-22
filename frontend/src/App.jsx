@@ -6,6 +6,7 @@ import FilingDetail from './components/FilingDetail.jsx'
 import HintsEditor from './components/HintsEditor.jsx'
 import SectionPromptsEditor from './components/SectionPromptsEditor.jsx'
 import ExtractionSettings from './components/ExtractionSettings.jsx'
+import AdminPanel from './components/AdminPanel.jsx'
 
 function HealthDot({ healthy }) {
   return (
@@ -20,7 +21,7 @@ export default function App() {
   const [sideTab,      setSideTab]      = useState('filings')  // 'filings' | 'ingest'
   const [loadingList,  setLoadingList]  = useState(false)
   const [sidebarOpen,  setSidebarOpen]  = useState(true)
-  const [mainView,     setMainView]     = useState('filings')  // 'filings' | 'expert'
+  const [mainView,     setMainView]     = useState('filings')  // 'filings' | 'expert' | 'admin'
   const [expertTab,    setExpertTab]    = useState('hints')    // 'hints' | 'sections' | 'extraction'
 
   const loadFilings = useCallback(async () => {
@@ -77,7 +78,7 @@ export default function App() {
         <div className="flex items-center gap-4">
           {/* Top-level nav */}
           <nav className="flex items-center gap-1">
-            {[['filings', 'Filings'], ['expert', 'Expert ⚙']].map(([view, label]) => (
+            {[['filings', 'Filings'], ['expert', 'Expert ⚙'], ['admin', 'Admin']].map(([view, label]) => (
               <button
                 key={view}
                 onClick={() => setMainView(view)}
@@ -139,6 +140,13 @@ export default function App() {
                   : <ExtractionSettings />
               }
             </div>
+          </div>
+        )}
+
+        {/* Admin view — full width, no sidebar */}
+        {mainView === 'admin' && (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <AdminPanel />
           </div>
         )}
 
