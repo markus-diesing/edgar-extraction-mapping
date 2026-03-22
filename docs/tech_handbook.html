@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGAR Extraction — Technical Handbook</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+#app-layout { display: flex; min-height: 100vh; }
+
+/* ── Sidebar TOC ──────────────────────────────────────────────────────────── */
+#toc {
+  width: 230px;
+  min-width: 230px;
+  background: #011151;
+  color: #cbd5e1;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 20px 0 40px;
+}
+#toc h2 {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  padding: 0 16px;
+  margin-bottom: 10px;
+}
+#toc ul { list-style: none; }
+#toc ul li a {
+  display: block;
+  padding: 5px 16px;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1.4;
+}
+#toc ul li a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+#toc ul li a.active { color: #00b4d8; background: rgba(0,180,216,0.12); }
+#toc .toc-sub a { padding-left: 28px; font-size: 0.72rem; color: #94a3b8; }
+#toc .toc-sub a:hover { color: #cbd5e1; }
+#toc-logo {
+  padding: 16px 16px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 12px;
+}
+#toc-logo span { font-size: 0.85rem; font-weight: 700; color: #fff; }
+#toc-logo small { display: block; font-size: 0.68rem; color: #64748b; margin-top: 2px; }
+
+/* ── Main Content ─────────────────────────────────────────────────────────── */
+#main-content { flex: 1; min-width: 0; }
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+#topbar {
+  background: #011151;
+  color: #fff;
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+#topbar h1 { font-size: 1rem; font-weight: 700; }
+#topbar-actions { display: flex; align-items: center; gap: 12px; }
+#topbar-actions a { color: #00b4d8; text-decoration: none; font-size: 0.78rem; }
+#topbar-actions a:hover { text-decoration: underline; }
+
+/* ── Search bar ───────────────────────────────────────────────────────────── */
+#search-container {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px; padding: 5px 10px;
+}
+#search-input {
+  background: transparent; border: none; outline: none;
+  color: #fff; font-size: 0.8rem; width: 180px;
+}
+#search-input::placeholder { color: #94a3b8; }
+#search-count { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; }
+#search-prev, #search-next {
+  background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; padding: 0 2px;
+}
+#search-prev:hover, #search-next:hover { color: #fff; }
+mark.search-hit { background: #fde68a; color: #1e293b; border-radius: 2px; }
+mark.search-hit.current { background: #f59e0b; }
+
+/* ── Content sections ─────────────────────────────────────────────────────── */
+.content-section {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 40px 20px;
+}
+.content-section:last-child { padding-bottom: 80px; }
+
+/* ── Breadcrumb ───────────────────────────────────────────────────────────── */
+.breadcrumb { font-size: 0.72rem; color: #94a3b8; margin-bottom: 16px; }
+.breadcrumb span { color: #cbd5e1; }
+.breadcrumb a { color: #00b4d8; text-decoration: none; }
+
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+h1.section-title { font-size: 1.75rem; font-weight: 800; color: #011151; margin-bottom: 6px; }
+h2.sub-title {
+  font-size: 1.15rem; font-weight: 700; color: #011151;
+  margin-top: 32px; margin-bottom: 12px;
+  border-left: 4px solid #00b4d8; padding-left: 12px;
+}
+h3.sub-sub-title { font-size: 0.95rem; font-weight: 700; color: #1e40af; margin-top: 20px; margin-bottom: 8px; }
+.section-divider { border: none; border-top: 2px solid #e2e8f0; margin: 40px 0 32px; }
+
+p { margin-bottom: 12px; }
+p:last-child { margin-bottom: 0; }
+ul, ol { margin: 8px 0 12px 22px; line-height: 1.8; }
+li { margin-bottom: 3px; }
+
+/* ── Code blocks ──────────────────────────────────────────────────────────── */
+pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin: 14px 0;
+  overflow-x: auto;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  position: relative;
+}
+pre .copy-btn {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #94a3b8;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+pre .copy-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+pre .copy-btn.copied { color: #4ade80; }
+
+code {
+  background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 3px;
+  padding: 1px 5px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.82em; color: #7c3aed;
+}
+pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+
+/* ── Directory tree ───────────────────────────────────────────────────────── */
+.dir-tree {
+  background: #0f172a; color: #e2e8f0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.78rem; line-height: 1.7;
+  border-radius: 8px; padding: 16px 18px;
+  margin: 14px 0; overflow-x: auto;
+}
+.dir-tree .dir  { color: #60a5fa; }
+.dir-tree .file { color: #e2e8f0; }
+.dir-tree .comment { color: #4b5563; }
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.82rem; }
+.data-table th { background: #011151; color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; font-size: 0.75rem; }
+.data-table td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.data-table tr:nth-child(even) td { background: #f8fafc; }
+.data-table tr:hover td { background: #eff6ff; }
+
+/* ── API method badges ────────────────────────────────────────────────────── */
+.method {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.03em;
+}
+.GET    { background: #dcfce7; color: #15803d; }
+.POST   { background: #dbeafe; color: #1e40af; }
+.DELETE { background: #fee2e2; color: #b91c1c; }
+.PATCH  { background: #fef3c7; color: #92400e; }
+.PUT    { background: #f3e8ff; color: #7e22ce; }
+
+/* ── Cards & Callouts ─────────────────────────────────────────────────────── */
+.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+.callout { border-radius: 8px; padding: 13px 17px; margin: 14px 0; font-size: 0.85rem; line-height: 1.6; }
+.callout-info    { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+.callout-warn    { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+.callout-tip     { background: #f0fdf4; border-left: 4px solid #22c55e; color: #14532d; }
+.callout strong  { display: block; margin-bottom: 4px; }
+
+/* ── Step Lists ───────────────────────────────────────────────────────────── */
+.steps { counter-reset: step; list-style: none; margin: 12px 0; padding: 0; }
+.steps li { counter-increment: step; display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start; }
+.steps li::before {
+  content: counter(step);
+  display: flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; border-radius: 50%;
+  background: #011151; color: #fff; font-weight: 700; font-size: 0.72rem;
+  flex-shrink: 0; margin-top: 2px;
+}
+
+/* ── Back to top ──────────────────────────────────────────────────────────── */
+#back-to-top {
+  position: fixed; bottom: 80px; right: 24px;
+  background: #011151; color: #fff; border: none; border-radius: 50%;
+  width: 40px; height: 40px; cursor: pointer; font-size: 1.1rem;
+  display: none; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100;
+}
+#back-to-top:hover { background: #1e40af; }
+#back-to-top.visible { display: flex; }
+
+/* ── Chat Widget ──────────────────────────────────────────────────────────── */
+#chat-btn {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #011151; color: #fff; border: none; border-radius: 50%;
+  width: 48px; height: 48px; font-size: 1.3rem; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+}
+#chat-btn:hover { background: #1e40af; }
+#chat-panel {
+  position: fixed; bottom: 82px; right: 24px;
+  width: 320px; height: 420px;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  display: none; flex-direction: column; z-index: 200;
+  overflow: hidden; border: 1px solid #e2e8f0;
+}
+#chat-panel.open { display: flex; }
+#chat-header { background: #011151; color: #fff; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; font-weight: 700; }
+#chat-close { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; }
+#chat-close:hover { color: #fff; }
+#chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; }
+.chat-msg { max-width: 90%; line-height: 1.5; }
+.chat-msg.user { align-self: flex-end; background: #011151; color: #fff; border-radius: 12px 12px 2px 12px; padding: 8px 12px; }
+.chat-msg.bot  { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-radius: 12px 12px 12px 2px; padding: 8px 12px; }
+.chat-msg.bot.error { color: #b91c1c; background: #fef2f2; }
+#chat-input-row { padding: 10px 12px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; }
+#chat-input { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 10px; font-size: 0.82rem; outline: none; }
+#chat-input:focus { border-color: #00b4d8; }
+#chat-send { background: #011151; color: #fff; border: none; border-radius: 6px; padding: 7px 12px; font-size: 0.82rem; cursor: pointer; font-weight: 600; }
+#chat-send:hover { background: #1e40af; }
+#chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 768px) {
+  #toc { display: none; }
+  .content-section { padding: 24px 18px; }
+  #topbar { padding: 12px 18px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app-layout">
+
+<nav id="toc">
+  <div id="toc-logo">
+    <span>EDGAR Extraction</span>
+    <small>Technical Handbook</small>
+  </div>
+  <ul>
+    <li><a href="#overview">1. System Overview</a></li>
+    <li><a href="#installation">2. Installation &amp; Setup</a></li>
+    <ul class="toc-sub">
+      <li><a href="#prereqs">Prerequisites</a></li>
+      <li><a href="#backend-setup">Backend Setup</a></li>
+      <li><a href="#frontend-setup">Frontend Setup</a></li>
+      <li><a href="#running">Running the App</a></li>
+    </ul>
+    <li><a href="#config-ref">3. Configuration Reference</a></li>
+    <li><a href="#db-schema">4. Database Schema</a></li>
+    <li><a href="#api-ref">5. API Reference</a></li>
+    <ul class="toc-sub">
+      <li><a href="#api-ingest">Ingest &amp; Filings</a></li>
+      <li><a href="#api-classify">Classify</a></li>
+      <li><a href="#api-extract">Extract</a></li>
+      <li><a href="#api-export">Export</a></li>
+      <li><a href="#api-hints">Hints</a></li>
+      <li><a href="#api-sections">Sections</a></li>
+      <li><a href="#api-settings">Settings</a></li>
+      <li><a href="#api-admin">Admin</a></li>
+      <li><a href="#api-labelmap">Label Map</a></li>
+      <li><a href="#api-schema">Schema</a></li>
+      <li><a href="#api-docs">Docs Chat</a></li>
+    </ul>
+    <li><a href="#extraction-deep">6. Extraction Deep Dive</a></li>
+    <ul class="toc-sub">
+      <li><a href="#tier0">Tier 0 — Registry</a></li>
+      <li><a href="#tier1">Tier 1 — HTML Table</a></li>
+      <li><a href="#tier2">Tier 2 — LLM</a></li>
+      <li><a href="#merge">Merge Logic</a></li>
+    </ul>
+    <li><a href="#yaml-config">7. YAML Configuration Files</a></li>
+    <li><a href="#schema-mgmt">8. PRISM Schema Management</a></li>
+    <li><a href="#new-issuer">9. Adding a New Issuer</a></li>
+    <li><a href="#monitoring">10. Monitoring &amp; Operations</a></li>
+    <li><a href="#dev-guide">11. Development Guide</a></li>
+  </ul>
+</nav>
+
+<div id="main-content">
+
+<div id="topbar">
+  <h1>EDGAR Extraction &amp; PRISM Mapping — Technical Handbook</h1>
+  <div id="topbar-actions">
+    <a href="architecture.html">Architecture</a>
+    <a href="user_manual.html">User Manual</a>
+    <div id="search-container">
+      <input id="search-input" type="text" placeholder="Search handbook…" autocomplete="off">
+      <span id="search-count"></span>
+      <button id="search-prev">&#8593;</button>
+      <button id="search-next">&#8595;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: System Overview                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="overview">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> System Overview</div>
+  <h1 class="section-title">1. System Overview</h1>
+
+  <h2 class="sub-title">Architecture Summary</h2>
+  <p>
+    A local, standalone pipeline for processing SEC EDGAR 424B2 filings. The backend is a Python
+    FastAPI application; the frontend is a React/Vite single-page app. All persistent state lives
+    in a SQLite database and the local file system. No cloud infrastructure, no authentication,
+    no Docker required.
+  </p>
+
+  <h2 class="sub-title">Tech Stack</h2>
+  <table class="data-table">
+    <thead><tr><th>Layer</th><th>Technology</th><th>Version</th><th>Port</th></tr></thead>
+    <tbody>
+      <tr><td>Backend</td><td>Python + FastAPI + SQLAlchemy</td><td>Python 3.11+, FastAPI 0.115</td><td>8000</td></tr>
+      <tr><td>Frontend</td><td>React + Vite + Tailwind CSS</td><td>React 18, Vite 6</td><td>5173</td></tr>
+      <tr><td>Database</td><td>SQLite (WAL mode)</td><td>—</td><td>file</td></tr>
+      <tr><td>AI</td><td>Anthropic Claude (API)</td><td>claude-sonnet-4-6 default</td><td>—</td></tr>
+      <tr><td>HTML parsing</td><td>BeautifulSoup4 + lxml</td><td>4.12 + 5.3</td><td>—</td></tr>
+      <tr><td>HTTP client</td><td>httpx</td><td>0.28</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Directory Layout</h2>
+  <div class="dir-tree">
+<pre class="dir-tree">
+<span class="dir">EDGAR-Extraction_Mapping/</span>
+├── <span class="file">README.md</span>                         <span class="comment"># Project overview and quick start</span>
+├── <span class="file">REQUIREMENTS.md</span>                   <span class="comment"># Full functional requirements</span>
+├── <span class="file">DATA_MODEL.md</span>                     <span class="comment"># Database schema + PRISM format spec</span>
+├── <span class="file">EDGAR_API.md</span>                      <span class="comment"># EDGAR API reference and quirks</span>
+├── <span class="file">IMPROVEMENTS_TODO.md</span>              <span class="comment"># Prioritised backlog</span>
+├── <span class="dir">docs/</span>                             <span class="comment"># Generated HTML documentation</span>
+│   ├── <span class="file">architecture.html</span>
+│   ├── <span class="file">user_manual.html</span>
+│   └── <span class="file">tech_handbook.html</span>
+├── <span class="dir">schemas/prism/</span>
+│   ├── <span class="file">prism-v1.schema.json</span>          <span class="comment"># Active PRISM schema</span>
+│   ├── <span class="file">CUSIP_PRISM_Mapping.xlsx</span>       <span class="comment"># CUSIP → payout_type_id mapping</span>
+│   ├── <span class="dir">pending/</span>                      <span class="comment"># Pending schema updates (fetch → diff → activate)</span>
+│   └── <span class="dir">archive/</span>                      <span class="comment"># Old schema versions (auto-archived on activate)</span>
+├── <span class="dir">files/</span>
+│   ├── <span class="file">financial_glossary.md</span>         <span class="comment"># Glossary injected into extraction prompt</span>
+│   ├── <span class="file">label_map_cross_issuer.yaml</span>    <span class="comment"># Baseline label → field path map</span>
+│   ├── <span class="file">label_map_user.yaml</span>           <span class="comment"># UI-added label mappings</span>
+│   ├── <span class="file">runtime_settings.yaml</span>         <span class="comment"># Runtime extraction settings</span>
+│   ├── <span class="dir">hints/</span>
+│   │   ├── <span class="file">cross_issuer_field_hints.yaml</span> <span class="comment"># Cross-issuer field rules</span>
+│   │   ├── <span class="file">prism_schema_guide.yaml</span>       <span class="comment"># Discriminated union rules</span>
+│   │   ├── <span class="file">issuer_Barclays.yaml</span>
+│   │   ├── <span class="file">issuer_JPMorgan.yaml</span>
+│   │   └── <span class="file">issuer_*.yaml</span>                 <span class="comment"># Per-issuer hint files</span>
+│   └── <span class="dir">sections/</span>
+│       ├── <span class="file">identifiers.yaml</span>
+│       ├── <span class="file">product.yaml</span>
+│       ├── <span class="file">underlying_terms.yaml</span>
+│       ├── <span class="file">protection.yaml</span>
+│       ├── <span class="file">autocall.yaml</span>
+│       ├── <span class="file">coupon.yaml</span>
+│       └── <span class="file">parties.yaml</span>
+├── <span class="dir">backend/</span>
+│   ├── <span class="file">main.py</span>                       <span class="comment"># FastAPI app entry point</span>
+│   ├── <span class="file">config.py</span>                     <span class="comment"># All paths, thresholds, model registry</span>
+│   ├── <span class="file">database.py</span>                   <span class="comment"># SQLAlchemy models + migration</span>
+│   ├── <span class="file">schema_loader.py</span>              <span class="comment"># PRISM schema + CUSIP mapping loader</span>
+│   ├── <span class="file">schema_diff.py</span>                <span class="comment"># Schema diff computation</span>
+│   ├── <span class="file">hints_loader.py</span>               <span class="comment"># YAML hints mtime-cached loader</span>
+│   ├── <span class="file">settings_store.py</span>             <span class="comment"># Runtime settings YAML reader/writer</span>
+│   ├── <span class="dir">ingest/</span>                       <span class="comment"># EDGAR download + DB persist</span>
+│   ├── <span class="dir">classify/</span>                     <span class="comment"># Two-stage Claude classifier</span>
+│   ├── <span class="dir">extract/</span>                      <span class="comment"># Tier 0/1/2 extraction + merge</span>
+│   ├── <span class="dir">export/</span>                       <span class="comment"># JSON/CSV export</span>
+│   ├── <span class="dir">hints/</span>                        <span class="comment"># Hints CRUD API</span>
+│   ├── <span class="dir">sections/</span>                     <span class="comment"># Section prompts CRUD API</span>
+│   ├── <span class="dir">settings/</span>                     <span class="comment"># Settings API</span>
+│   └── <span class="dir">admin/</span>                        <span class="comment"># Logs, usage, label map, schema</span>
+├── <span class="dir">frontend/src/</span>
+│   ├── <span class="file">App.jsx</span>                       <span class="comment"># Top-level layout + nav</span>
+│   ├── <span class="file">api.js</span>                        <span class="comment"># All API call functions</span>
+│   └── <span class="dir">components/</span>
+│       ├── <span class="file">FilingList.jsx</span>
+│       ├── <span class="file">FilingDetail.jsx</span>
+│       ├── <span class="file">FieldTable.jsx</span>
+│       ├── <span class="file">ExpertReview.jsx</span>
+│       ├── <span class="file">IngestPanel.jsx</span>
+│       ├── <span class="file">HintsEditor.jsx</span>
+│       ├── <span class="file">LabelMapEditor.jsx</span>
+│       ├── <span class="file">AdminPanel.jsx</span>
+│       ├── <span class="file">AdminLogViewer.jsx</span>
+│       ├── <span class="file">AdminUsage.jsx</span>
+│       ├── <span class="file">ExtractionSettings.jsx</span>
+│       ├── <span class="file">SectionPromptsEditor.jsx</span>
+│       ├── <span class="file">SchemaManager.jsx</span>
+│       └── <span class="file">StatusBadge.jsx</span>
+├── <span class="dir">data/</span>
+│   ├── <span class="dir">db/edgar_extraction.db</span>        <span class="comment"># SQLite database</span>
+│   ├── <span class="dir">filings/{accession}/</span>           <span class="comment"># raw.html + images + metadata.json</span>
+│   └── <span class="dir">exports/</span>                      <span class="comment"># JSON + CSV outputs</span>
+└── <span class="dir">logs/app.log</span>                      <span class="comment"># Application log file</span>
+</pre>
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: Installation & Setup                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="installation">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Installation &amp; Setup</div>
+  <h1 class="section-title">2. Installation &amp; Setup</h1>
+
+  <h2 class="sub-title" id="prereqs">Prerequisites</h2>
+  <ul>
+    <li>macOS (tested on Sonoma/Sequoia, Apple Silicon and Intel)</li>
+    <li>Python 3.11 or higher (<code>python3 --version</code>)</li>
+    <li>Node.js 18 or higher (<code>node --version</code>)</li>
+    <li>npm 9+ (comes with Node)</li>
+    <li>An Anthropic API key (for classify + extract)</li>
+  </ul>
+
+  <h2 class="sub-title" id="backend-setup">Backend Setup</h2>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button># 1. Navigate to backend directory
+cd /path/to/EDGAR-Extraction_Mapping/backend
+
+# 2. Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Set the Anthropic API key (required for classify/extract)
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# 5. Initialise the database (creates tables, safe to re-run)
+python main.py init-db</pre>
+
+  <h2 class="sub-title" id="frontend-setup">Frontend Setup</h2>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button>cd /path/to/EDGAR-Extraction_Mapping/frontend
+npm install</pre>
+
+  <h2 class="sub-title" id="running">Running the App</h2>
+  <p>Two terminals are required:</p>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button># Terminal 1 — Backend
+cd /path/to/EDGAR-Extraction_Mapping/backend
+source .venv/bin/activate
+export ANTHROPIC_API_KEY="sk-ant-..."
+uvicorn main:app --reload --port 8000</pre>
+
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button># Terminal 2 — Frontend
+cd /path/to/EDGAR-Extraction_Mapping/frontend
+npm run dev</pre>
+
+  <p>Open <code>http://localhost:5173</code> in your browser.</p>
+
+  <div class="callout callout-info">
+    <strong>Optional: persist API key across sessions</strong>
+    Add <code>export ANTHROPIC_API_KEY="sk-ant-..."</code> to your <code>~/.zshrc</code> or use
+    <code>python scripts/setup_key.py</code> to store the key in macOS Keychain.
+  </div>
+
+  <h3 class="sub-sub-title">Environment Variables</h3>
+  <table class="data-table">
+    <thead><tr><th>Variable</th><th>Required</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Yes (for AI)</td><td>Anthropic API key. Never written to disk.</td></tr>
+      <tr><td><code>SECTIONED_EXTRACTION</code></td><td>No</td><td>Set to <code>true</code> to enable sectioned extraction mode (overrides runtime_settings.yaml).</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-sub-title">Building for Production (Frontend)</h3>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">cd frontend && npm run build
+# Outputs to frontend/dist/ — serve with any static file server</pre>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: Configuration Reference                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="config-ref">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Configuration Reference</div>
+  <h1 class="section-title">3. Configuration Reference</h1>
+  <p>All configuration is in <code>backend/config.py</code>. The file is fully commented; key values are summarised below.</p>
+
+  <h2 class="sub-title">Paths</h2>
+  <table class="data-table">
+    <thead><tr><th>Variable</th><th>Default Value</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>PROJECT_ROOT</code></td><td><em>(parent of backend/)</em></td><td>Absolute path to the project root. All other paths are relative to this.</td></tr>
+      <tr><td><code>DB_PATH</code></td><td><code>data/db/edgar_extraction.db</code></td><td>SQLite database file.</td></tr>
+      <tr><td><code>FILINGS_DIR</code></td><td><code>data/filings/</code></td><td>One subfolder per filing (named by accession number without dashes).</td></tr>
+      <tr><td><code>EXPORTS_DIR</code></td><td><code>data/exports/</code></td><td>JSON + CSV export outputs.</td></tr>
+      <tr><td><code>LOGS_DIR</code></td><td><code>logs/</code></td><td>Application log directory.</td></tr>
+      <tr><td><code>PRISM_SCHEMA_FILE</code></td><td><code>schemas/prism/prism-v1.schema.json</code></td><td>Active PRISM schema.</td></tr>
+      <tr><td><code>CUSIP_MAPPING_FILE</code></td><td><code>schemas/prism/CUSIP_PRISM_Mapping.xlsx</code></td><td>CUSIP → payout_type_id lookup spreadsheet.</td></tr>
+      <tr><td><code>PRISM_SCHEMA_URL</code></td><td><code>http://10.10.21.57:30080/api/schema/json</code></td><td>URL to fetch updated PRISM schema from LPA server.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Claude Model Registry</h2>
+  <p>
+    The <code>CLAUDE_MODEL_REGISTRY</code> dict defines all supported Claude models with their
+    pricing per million tokens (input, output, cache_write, cache_read). Add new models here to
+    make them selectable in the Admin UI without any code changes elsewhere.
+  </p>
+  <table class="data-table">
+    <thead><tr><th>Key</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>display_name</code></td><td>Human-readable name shown in the UI dropdown</td></tr>
+      <tr><td><code>input_price_per_m</code></td><td>USD cost per million regular input tokens</td></tr>
+      <tr><td><code>output_price_per_m</code></td><td>USD cost per million output tokens</td></tr>
+      <tr><td><code>cache_write_per_m</code></td><td>USD cost per million cache-write tokens (1.25× input rate)</td></tr>
+      <tr><td><code>cache_read_per_m</code></td><td>USD cost per million cache-read tokens (0.10× input rate)</td></tr>
+      <tr><td><code>context_tokens</code></td><td>Maximum context window in tokens</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Thresholds</h2>
+  <table class="data-table">
+    <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>CLASSIFICATION_CONFIDENCE_THRESHOLD</code></td><td>0.75</td><td>Confidence &ge; this → status "classified". Below → "needs_review".</td></tr>
+      <tr><td><code>CLASSIFICATION_MIN_CONFIDENCE</code></td><td>0.60</td><td>Confidence below this → force "unknown" regardless of model assigned.</td></tr>
+      <tr><td><code>CLASSIFICATION_GATE_CONFIDENCE</code></td><td>0.80</td><td>Confidence below this blocks extraction unless manually confirmed.</td></tr>
+      <tr><td><code>EXTRACTION_CONFIDENCE_THRESHOLD</code></td><td>0.80</td><td>Field confidence below this → highlighted in amber in UI.</td></tr>
+      <tr><td><code>MAX_FILING_CHARS</code></td><td>120,000</td><td>Maximum characters of stripped filing text sent to Claude for extraction.</td></tr>
+      <tr><td><code>CLASSIFICATION_CHARS</code></td><td>4,000</td><td>Characters sent in stage-1 classification (cover page only).</td></tr>
+      <tr><td><code>SECTIONED_EXTRACTION</code></td><td>False</td><td>Enable multi-call sectioned extraction (overridable via env or runtime_settings.yaml).</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 4: Database Schema                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="db-schema">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Database Schema</div>
+  <h1 class="section-title">4. Database Schema</h1>
+  <p>
+    Database file: <code>data/db/edgar_extraction.db</code> (SQLite, WAL mode).
+    All tables are defined as SQLAlchemy ORM models in <code>backend/database.py</code>.
+    Schema migrations are additive (ALTER TABLE ADD COLUMN) and run automatically on startup.
+  </p>
+
+  <h2 class="sub-title">Table: filings</h2>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>String PK</td><td>UUID. Primary key.</td></tr>
+      <tr><td><code>cusip</code></td><td>String</td><td>9-char CUSIP from EDGAR registry. Indexed.</td></tr>
+      <tr><td><code>cik</code></td><td>String</td><td>EDGAR company identifier (CIK).</td></tr>
+      <tr><td><code>accession_number</code></td><td>String UNIQUE</td><td>EDGAR accession number (with dashes).</td></tr>
+      <tr><td><code>issuer_name</code></td><td>String</td><td>Issuer name from EDGAR entity index.</td></tr>
+      <tr><td><code>filing_date</code></td><td>String</td><td>ISO date YYYY-MM-DD.</td></tr>
+      <tr><td><code>edgar_filing_url</code></td><td>String</td><td>URL to the EDGAR filing index page.</td></tr>
+      <tr><td><code>filing_folder_path</code></td><td>String</td><td>Relative path to the filing's data folder.</td></tr>
+      <tr><td><code>raw_html_path</code></td><td>String</td><td>Relative path to raw.html.</td></tr>
+      <tr><td><code>ingest_timestamp</code></td><td>String</td><td>ISO datetime of when the filing was ingested.</td></tr>
+      <tr><td><code>ingest_started_at</code></td><td>String</td><td>ISO datetime when EDGAR download began.</td></tr>
+      <tr><td><code>status</code></td><td>String</td><td>ingested | classified | extracting | extracted | needs_review | approved | exported</td></tr>
+      <tr><td><code>payout_type_id</code></td><td>String</td><td>PRISM model ID assigned by classifier (or null).</td></tr>
+      <tr><td><code>classification_confidence</code></td><td>Float</td><td>0.0–1.0 confidence from classifier.</td></tr>
+      <tr><td><code>matched_schema_version</code></td><td>String</td><td>Schema version active when classified.</td></tr>
+      <tr><td><code>classified_at</code></td><td>String</td><td>ISO datetime of classification.</td></tr>
+      <tr><td><code>classification_title_excerpt</code></td><td>Text</td><td>Verbatim product title from cover page.</td></tr>
+      <tr><td><code>classification_product_features</code></td><td>Text</td><td>JSON: {type, features[], underlyings[]}.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Table: extraction_results</h2>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>String PK</td><td>UUID.</td></tr>
+      <tr><td><code>filing_id</code></td><td>String FK</td><td>→ filings.id</td></tr>
+      <tr><td><code>prism_model_id</code></td><td>String</td><td>PRISM model used for this extraction.</td></tr>
+      <tr><td><code>prism_model_version</code></td><td>String</td><td>Schema version at time of extraction.</td></tr>
+      <tr><td><code>extracted_at</code></td><td>String</td><td>ISO datetime.</td></tr>
+      <tr><td><code>field_count</code></td><td>Integer</td><td>Total schema fields for this model.</td></tr>
+      <tr><td><code>fields_found</code></td><td>Integer</td><td>Fields with non-null extracted values.</td></tr>
+      <tr><td><code>fields_null</code></td><td>Integer</td><td>Fields returned as null/not_found.</td></tr>
+      <tr><td><code>extraction_mode</code></td><td>String</td><td>"single" or "sectioned".</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Table: field_results</h2>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>String PK</td><td>UUID.</td></tr>
+      <tr><td><code>extraction_id</code></td><td>String FK</td><td>→ extraction_results.id</td></tr>
+      <tr><td><code>filing_id</code></td><td>String FK</td><td>→ filings.id (denormalised for fast per-filing queries)</td></tr>
+      <tr><td><code>field_name</code></td><td>String</td><td>PRISM dot-path, e.g. "barrier.triggerDetails.triggerLevel"</td></tr>
+      <tr><td><code>extracted_value</code></td><td>Text</td><td>JSON-encoded Python value (or null).</td></tr>
+      <tr><td><code>confidence_score</code></td><td>Float</td><td>0.0–1.0.</td></tr>
+      <tr><td><code>source_excerpt</code></td><td>Text</td><td>Text fragment from the filing that produced the value.</td></tr>
+      <tr><td><code>not_found</code></td><td>Integer</td><td>1 if field was not found in the filing.</td></tr>
+      <tr><td><code>reviewed_value</code></td><td>Text</td><td>JSON-encoded reviewer-corrected value.</td></tr>
+      <tr><td><code>review_status</code></td><td>String</td><td>pending | accepted | corrected | rejected | schema_error</td></tr>
+      <tr><td><code>reviewed_at</code></td><td>String</td><td>ISO datetime of review action.</td></tr>
+      <tr><td><code>validation_error</code></td><td>Text</td><td>Set when extracted value violates schema enum/const.</td></tr>
+      <tr><td><code>source</code></td><td>String</td><td>llm | html_table | registry | html_title</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Table: label_miss_log</h2>
+  <p>Tracks Key Terms table labels that could not be mapped to any PRISM field path.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>label_norm</code> UNIQUE</td><td>Normalized (lowercase, trimmed) label text. Deduplication key.</td></tr>
+      <tr><td><code>label_raw</code></td><td>Representative raw form as seen in the HTML.</td></tr>
+      <tr><td><code>sample_value</code></td><td>A sample value cell content for context.</td></tr>
+      <tr><td><code>occurrence_count</code></td><td>How many filings contained this unmatched label.</td></tr>
+      <tr><td><code>dismissed</code></td><td>1 if user dismissed without adding a mapping.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Table: api_usage_log</h2>
+  <p>One row per Claude API call. Used for cost tracking and analytics.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>filing_id</code></td><td>FK to filings. Null for non-filing calls (e.g. docs/chat).</td></tr>
+      <tr><td><code>call_type</code></td><td>classify_stage1 | classify_stage2 | extract | extract_* (per section)</td></tr>
+      <tr><td><code>model</code></td><td>Claude model ID used for this call.</td></tr>
+      <tr><td><code>prompt_tokens</code></td><td>Total input tokens (including cached).</td></tr>
+      <tr><td><code>completion_tokens</code></td><td>Output tokens generated.</td></tr>
+      <tr><td><code>cache_read_tokens</code></td><td>Tokens served from prompt cache (billed at 0.10× input rate).</td></tr>
+      <tr><td><code>cache_write_tokens</code></td><td>Tokens written to prompt cache (billed at 1.25× input rate).</td></tr>
+      <tr><td><code>duration_seconds</code></td><td>Wall-clock time for the API call.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Migration System</h2>
+  <p>
+    The <code>database._migrate()</code> function runs on every startup. It applies a list of
+    <code>ALTER TABLE ... ADD COLUMN</code> statements idempotently (SQLite raises an OperationalError
+    if the column already exists, which is silently ignored). To add a new column:
+  </p>
+  <ol class="steps">
+    <li>Add the column to the ORM model class in <code>database.py</code>.</li>
+    <li>Add an entry to the <code>migrations</code> list in <code>_migrate()</code>.</li>
+    <li>Restart the backend — the column is added automatically on existing databases.</li>
+  </ol>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 5: API Reference                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="api-ref">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> API Reference</div>
+  <h1 class="section-title">5. Backend API Reference</h1>
+  <p>Base URL: <code>http://localhost:8000/api</code>. All responses are JSON. CORS is enabled for <code>localhost:5173</code>.</p>
+
+  <h2 class="sub-title" id="api-ingest">Ingest &amp; Filings Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method POST">POST</span></td><td><code>/ingest/search</code></td><td>Search EDGAR for 424B2 filings. Body: <code>{query, start_date?, end_date?, page_size, offset}</code>. Returns paginated list of matching filings.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/ingest/filing</code></td><td>Download and persist a specific filing. Body: <code>{accession_number, cik, cusip?, issuer_name?, filing_date?, source_url?}</code>.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/filings</code></td><td>List all filings. Query params: <code>status</code>, <code>payout_type</code>, <code>cusip</code>. Returns array of FilingRecord.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/filings/{id}</code></td><td>Get one filing record by ID.</td></tr>
+      <tr><td><span class="method DELETE">DELETE</span></td><td><code>/filings/{id}</code></td><td>Delete filing record and all local files.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/filings/{id}/document</code></td><td>Serve raw HTML with highlight injection script. Used by ExpertReview iframe.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/filings/{id}/text</code></td><td>Return stripped plain text of the filing.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/filings/{id}/kpis</code></td><td>Return timing and token/cost KPIs for ingest, classify, and extract steps.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/filings/{id}/fetch-images</code></td><td>(Re-)download images from EDGAR for an existing filing.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/filings/{id}/reset-classification</code></td><td>Revert to "ingested", clearing classification data. Blocked on extracted/approved/exported.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/filings/{id}/classify-override</code></td><td>Manually set PRISM model. Body: <code>{payout_type_id, reason?}</code>. Logged to classification_feedback.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-classify">Classify Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/classify/models</code></td><td>List valid PRISM model IDs from the current schema.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/classify/{id}</code></td><td>Run two-stage Claude classification on a filing. Updates filing status and payout_type_id.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-extract">Extract Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method POST">POST</span></td><td><code>/extract/{id}</code></td><td>Run hybrid extraction (Tier 0 + 1 + 2). Sets status to "extracting" atomically to prevent duplicates.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/extract/{id}/reextract</code></td><td>Delete previous extraction results and re-run. Reverts to "classified" first.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/extract/{id}/results</code></td><td>Return latest ExtractionSummary with all field_results.</td></tr>
+      <tr><td><span class="method PATCH">PATCH</span></td><td><code>/extract/{id}/fields/{fid}</code></td><td>Update a single field. Body: <code>{reviewed_value, review_status}</code>. Logs to edit_log.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/extract/{id}/approve</code></td><td>Approve filing; auto-accepts all pending fields.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/extract/{id}/unapprove</code></td><td>Return approved filing to "extracted" status.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-export">Export Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method POST">POST</span></td><td><code>/export/{id}</code></td><td>Export approved filing to JSON + CSV. Files saved to <code>data/exports/</code>.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/export/batch</code></td><td>Export all approved filings.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/export/list</code></td><td>List existing export files.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-hints">Hints Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/hints</code></td><td>List all issuer hint slugs (from files/hints/ YAML files).</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/hints/cross-issuer</code></td><td>Get cross-issuer field_level_hints block.</td></tr>
+      <tr><td><span class="method PUT">PUT</span></td><td><code>/hints/cross-issuer</code></td><td>Save updated cross-issuer hints to YAML. Invalidates hints cache.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/hints/issuers/{slug}</code></td><td>Get full hints for one issuer.</td></tr>
+      <tr><td><span class="method PUT">PUT</span></td><td><code>/hints/issuers/{slug}</code></td><td>Update/create issuer hints YAML file.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/hints/issuers/{slug}/fields/{field_path}</code></td><td>Get one field hint for an issuer.</td></tr>
+      <tr><td><span class="method PUT">PUT</span></td><td><code>/hints/issuers/{slug}/fields/{field_path}</code></td><td>Update one field hint for an issuer.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-sections">Sections Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/sections</code></td><td>List all section config names.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/sections/{name}</code></td><td>Get one section's YAML config as JSON.</td></tr>
+      <tr><td><span class="method PUT">PUT</span></td><td><code>/sections/{name}</code></td><td>Update a section's YAML config.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-settings">Settings Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/settings</code></td><td>Get current runtime settings (from runtime_settings.yaml merged with config.py defaults).</td></tr>
+      <tr><td><span class="method PUT">PUT</span></td><td><code>/settings</code></td><td>Update one or more runtime settings. Body: <code>{sectioned_extraction?, section_merge_confidence_delta?, classification_gate_confidence?, claude_model?}</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-admin">Admin Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/logs</code></td><td>Tail and filter the app.log file. Query: <code>lines</code>, <code>level</code>, <code>module</code>.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/logs/download</code></td><td>Download the full app.log file as plain text.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/usage/summary</code></td><td>Aggregate cost/token stats across all filings. Includes unit economics, projections, model comparison.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/usage/timeline</code></td><td>Time-bucketed spend. Query: <code>granularity</code> (day/week/month).</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-labelmap">Label Map Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/label-map/entries</code></td><td>All label map entries (cross-issuer + user), each tagged with source.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/admin/label-map/entries</code></td><td>Add/overwrite a user entry. Body: <code>{label, field_path}</code>.</td></tr>
+      <tr><td><span class="method DELETE">DELETE</span></td><td><code>/admin/label-map/entries</code></td><td>Remove a user entry. Body: <code>{label_norm}</code>.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/label-map/misses</code></td><td>Active (non-dismissed) miss log entries.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/admin/label-map/misses/{id}/resolve</code></td><td>Add a mapping for a miss and mark it resolved. Body: <code>{field_path}</code>.</td></tr>
+      <tr><td><span class="method DELETE">DELETE</span></td><td><code>/admin/label-map/misses/{id}</code></td><td>Dismiss a single miss without adding a mapping.</td></tr>
+      <tr><td><span class="method DELETE">DELETE</span></td><td><code>/admin/label-map/misses</code></td><td>Bulk-dismiss all active misses.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/label-map/field-paths</code></td><td>All known PRISM field paths (from FIELD_PARSERS + schema). Used for the UI dropdown.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-schema">Schema Router</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/schema/status</code></td><td>Active schema info (version, hash, models) + list of pending fetches.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/admin/schema/fetch</code></td><td>Fetch latest schema from PRISM server, store in pending/, compute diff.</td></tr>
+      <tr><td><span class="method GET">GET</span></td><td><code>/admin/schema/pending/{fetch_id}</code></td><td>Get the stored diff for a pending fetch.</td></tr>
+      <tr><td><span class="method POST">POST</span></td><td><code>/admin/schema/pending/{fetch_id}/activate</code></td><td>Archive current, activate pending, reload schema_loader.</td></tr>
+      <tr><td><span class="method DELETE">DELETE</span></td><td><code>/admin/schema/pending/{fetch_id}</code></td><td>Discard a pending schema and its diff.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="api-docs">Docs Chat Endpoint</h2>
+  <table class="data-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method POST">POST</span></td><td><code>/docs/chat</code></td><td>Support chat for the HTML manuals. Body: <code>{message: string, history: [{role, content}]}</code>. Returns <code>{reply: string}</code>. Uses CLAUDE_MODEL_DEFAULT.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 6: Extraction Deep Dive                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="extraction-deep">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Extraction Deep Dive</div>
+  <h1 class="section-title">6. Extraction Pipeline Deep Dive</h1>
+
+  <h2 class="sub-title" id="tier0">Tier 0 — Registry Extraction</h2>
+  <p>
+    Entry point: <code>backend/extract/html_extractor.py :: extract_registry_fields(filing_record)</code>
+  </p>
+  <p>
+    Populates fields that are already known from the database filing record — no document parsing
+    required. Currently extracts:
+  </p>
+  <ul>
+    <li><code>identifiers.cusip</code> — from <code>filings.cusip</code> column (confidence = 1.0)</li>
+    <li><code>parties.issuer.name</code> — from <code>filings.issuer_name</code> column (confidence = 1.0)</li>
+  </ul>
+  <p>
+    The CUSIP value itself comes from the EDGAR filing index (CIK entity lookup), so it has full
+    certainty. The CUSIP mapping spreadsheet (<code>CUSIP_PRISM_Mapping.xlsx</code>) is a separate
+    lookup used only for classification hints, not for field extraction.
+  </p>
+
+  <h2 class="sub-title" id="tier1">Tier 1 — HTML Table Extraction</h2>
+  <p>
+    Entry points:
+    <code>backend/extract/html_extractor.py :: extract_from_html(html, issuer_hints, label_map)</code>
+  </p>
+
+  <h3 class="sub-sub-title">Finding the Key Terms Table</h3>
+  <p>
+    <code>_find_key_terms_table(soup, issuer_table_heading)</code> searches for the two-column
+    Key Terms HTML table using a priority list of headings:
+  </p>
+  <ol>
+    <li>Issuer-specific heading from <code>issuer_hints.key_terms_table_heading</code></li>
+    <li>Cross-issuer fallback headings: "key terms and assumptions", "key terms", "terms of the notes", etc.</li>
+  </ol>
+  <p>
+    For each heading candidate, it checks: (a) tables whose first row/header cell contains the
+    heading, (b) heading-like elements (h1–h4, div, p, span) followed by or near a table.
+  </p>
+
+  <h3 class="sub-sub-title">Label Resolution Pipeline</h3>
+  <p>For each label:value pair extracted from the table rows:</p>
+  <ol class="steps">
+    <li><code>label_mapper.resolve_label(raw_label, label_map)</code> — normalise (lowercase, trim, strip colon/footnotes) and look up in the merged label map.</li>
+    <li>If resolved: call <code>field_parsers.get_parser(field_path)</code> to get the typed parser function.</li>
+    <li>If a parser exists: call <code>parser(raw_value)</code> to get a typed Python value.</li>
+    <li>If parser returns None (unparseable): skip the field (LLM will handle it).</li>
+    <li>If no parser exists: store raw text as-is.</li>
+    <li>Unresolved labels: add to the <code>LabelMiss</code> list for miss-log persistence.</li>
+  </ol>
+
+  <h3 class="sub-sub-title">Label Map Merge Order</h3>
+  <p>Lower priority → higher priority (later wins on conflict):</p>
+  <ol>
+    <li><code>files/label_map_cross_issuer.yaml</code> — baseline hand-curated entries</li>
+    <li><code>files/label_map_user.yaml</code> — user-added entries via the UI</li>
+    <li>Per-issuer <code>table_labels</code> from the issuer's YAML hints — highest priority</li>
+  </ol>
+
+  <h3 class="sub-sub-title">Field Parsers (<code>field_parsers.py</code>)</h3>
+  <p>
+    The <code>FIELD_PARSERS</code> dict maps PRISM field paths to typed parser functions.
+    Array paths use <code>[*]</code> wildcard notation (resolved by label_mapper via prefix matching).
+  </p>
+  <table class="data-table">
+    <thead><tr><th>Parser</th><th>Input Example</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td><code>parse_date</code></td><td>"March 21, 2029*"</td><td>"2029-03-21"</td></tr>
+      <tr><td><code>parse_percentage</code></td><td>"70.00% of its Initial Level"</td><td>0.70</td></tr>
+      <tr><td><code>parse_amount</code></td><td>"$1,372,000.00"</td><td>1372000.0</td></tr>
+      <tr><td><code>parse_frequency</code></td><td>"quarterly"</td><td>{"$type": "quarterly"}</td></tr>
+      <tr><td><code>parse_cusip</code></td><td>"06749FWA3 / US06749FWA31"</td><td>"06749FWA3"</td></tr>
+      <tr><td><code>parse_isin</code></td><td>"06749FWA3 / US06749FWA31"</td><td>"US06749FWA31"</td></tr>
+      <tr><td><code>parse_currency</code></td><td>"U.S. dollars"</td><td>"USD"</td></tr>
+      <tr><td><code>parse_observation_type</code></td><td>"daily monitoring"</td><td>"american"</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title" id="tier2">Tier 2 — LLM Extraction</h2>
+  <p>Entry point: <code>backend/extract/extractor.py :: extract_filing(filing_id)</code></p>
+
+  <h3 class="sub-sub-title">Prompt Construction</h3>
+  <p>
+    The prompt is split into two parts to maximise prompt cache reuse:
+  </p>
+  <ul>
+    <li><strong>Preamble</strong> (static per model + issuer) — schema JSON, hints block, output format instructions. Sent with <code>cache_control: {type: ephemeral}</code>.</li>
+    <li><strong>Filing text</strong> (unique per filing) — stripped plain text, up to <code>MAX_FILING_CHARS</code> (120K chars). Not cached.</li>
+  </ul>
+  <p>
+    The system prompt is also cached. This means only the filing text block is charged at the full
+    input rate; the schema + hints + system prompt benefit from the 0.10× cache read rate after the
+    first call for a given model/issuer combination.
+  </p>
+
+  <h3 class="sub-sub-title">Tool-Call Mode</h3>
+  <p>
+    Extraction uses Anthropic's tool_use feature with a single tool <code>submit_prism_extraction</code>
+    whose input schema wraps the PRISM model schema. Claude is forced to call this tool exactly once
+    (<code>tool_choice: {type: "tool", name: "submit_prism_extraction"}</code>), which guarantees
+    valid structured JSON output — no regex cleanup needed.
+  </p>
+  <p>The tool input has three top-level keys:</p>
+  <ul>
+    <li><code>prism_data</code> — the populated PRISM object</li>
+    <li><code>_confidence</code> — <code>{dot.path: float}</code> per-field confidence scores</li>
+    <li><code>_excerpts</code> — <code>{dot.path: string}</code> source text fragments (max 200 chars)</li>
+  </ul>
+
+  <h3 class="sub-sub-title">Key Terms Section Anchoring</h3>
+  <p>
+    Before sending to Claude, the stripped filing text is trimmed using
+    <code>_trim_to_key_terms_section(filing_text, issuer_hints)</code>. This locates the Key Terms
+    section using issuer-specific headings first, then cross-issuer fallbacks, and returns a window
+    of <code>MAX_FILING_CHARS</code> characters starting 200 chars before the anchor. This ensures
+    Claude sees the most relevant section even for very long filings.
+  </p>
+
+  <h2 class="sub-title" id="merge">Merge Logic</h2>
+  <p>
+    The merge in <code>extract_filing()</code> builds a <code>pre_extracted</code> dict from Tier 0
+    and Tier 1 results. For each PRISM field path:
+  </p>
+  <ul>
+    <li>If the path is in <code>pre_extracted</code> → use the Tier 0/1 value (with its higher confidence)</li>
+    <li>Otherwise → use the LLM value from the flattened prism_data</li>
+    <li>Tier 0 → Tier 1 conflict: Tier 1 wins (it parsed from the document; Tier 0 is registry)</li>
+    <li>Any conflict between Tier 1 and LLM is logged at INFO level</li>
+  </ul>
+  <p>
+    The final source tag (<code>"registry"</code>, <code>"html_table"</code>, or <code>"llm"</code>)
+    is stored in <code>field_results.source</code> and shown as badges in the UI.
+  </p>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 7: YAML Configuration Files                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="yaml-config">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> YAML Configuration Files</div>
+  <h1 class="section-title">7. YAML Configuration Files</h1>
+
+  <h2 class="sub-title">Issuer Hint File Structure (<code>files/hints/issuer_*.yaml</code>)</h2>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">_description: "Barclays Bank PLC — extraction hints"
+issuers:
+  Barclays:
+    aliases:
+      name_match_patterns:
+        - "Barclays"
+        - "Barclays Bank PLC"
+        - "Barclays Capital"
+    key_terms_table_heading: "Key Terms and Assumptions"   # heading to locate Key Terms table
+    section_headings:                                        # used to anchor LLM text window
+      - "KEY TERMS"
+      - "SUPPLEMENTAL TERMS"
+    document_structure: "Cover page → Key Terms table → detailed description"
+    general_notes: "Barclays uses 'Reference Asset' for underlying name"
+    table_labels:                                           # per-issuer label → PRISM field overrides
+      "Reference Asset": "underlyingTerms.underlyingAssets[*].name"
+      "Kick-In Barrier Level": "barrier.triggerDetails.triggerLevel"
+    field_hints:                                            # per-field guidance for LLM
+      barrier.triggerDetails.triggerLevel:
+        synonyms: ["Kick-In Level", "Downside Threshold"]
+        label_in_doc: "Kick-In Barrier Level"
+        format: "Percentage — output as decimal (e.g., 0.70 for 70%)"
+        typical_location: "Key Terms table, barrier section"</pre>
+
+  <h2 class="sub-title">Cross-Issuer Field Hints (<code>files/hints/cross_issuer_field_hints.yaml</code>)</h2>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">_version: "1.0"
+field_level_hints:
+  barrier.triggerDetails.triggerLevel:
+    description: "The barrier/trigger/knock-in level as a percentage of initial underlying value"
+    common_synonyms:
+      - "Barrier Level"
+      - "Knock-In Level"
+      - "Downside Threshold"
+      - "Protection Level"
+    value_format: "Output as decimal: 0.70 for 70%"
+    caution: "Do not confuse with call level (autocall) or coupon barrier"</pre>
+
+  <h2 class="sub-title">Label Map Files</h2>
+  <p><code>files/label_map_cross_issuer.yaml</code> — read-only baseline:</p>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">_version: "1.0"
+_description: "Cross-issuer label → PRISM field path baseline"
+labels:
+  "Maturity Date": "structuredProductsGeneric.maturityDate"
+  "Trade Date": "structuredProductsGeneric.tradeDate"
+  "CUSIP": "identifiers.cusip"
+  "Barrier Level": "barrier.triggerDetails.triggerLevel"</pre>
+
+  <p><code>files/label_map_user.yaml</code> — managed by the UI (label_map_router writes this):</p>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">_version: "1.0"
+_description: "User-added label mappings (managed via UI)"
+labels:
+  "Kick-In Barrier Level": "barrier.triggerDetails.triggerLevel"
+  "Final Valuation Date": "structuredProductsGeneric.valuationDate"</pre>
+
+  <h2 class="sub-title">Runtime Settings (<code>files/runtime_settings.yaml</code>)</h2>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">sectioned_extraction: false
+classification_gate_confidence: 0.80
+section_merge_confidence_delta: 0.15
+claude_model: claude-sonnet-4-6</pre>
+
+  <p>
+    Read by <code>backend/settings_store.py</code> using mtime-caching. Changes via <code>PUT /api/settings</code>
+    are reflected immediately on the next extraction call.
+  </p>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 8: PRISM Schema Management                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="schema-mgmt">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> PRISM Schema Management</div>
+  <h1 class="section-title">8. PRISM Schema Management</h1>
+
+  <h2 class="sub-title">Schema File Location and Format</h2>
+  <p>
+    Active schema: <code>schemas/prism/prism-v1.schema.json</code><br>
+    The schema is a JSON Schema document with a top-level <code>oneOf</code> array, one entry per
+    payout type. Each entry has a <code>properties.model.const</code> that is the payout_type_id,
+    and a <code>$defs</code> section with shared type definitions.
+  </p>
+
+  <h2 class="sub-title">Fetch → Diff → Activate Workflow</h2>
+  <ol class="steps">
+    <li><code>POST /api/admin/schema/fetch</code> — downloads the schema from <code>PRISM_SCHEMA_URL</code>, saves to <code>schemas/prism/pending/{timestamp}.schema.json</code>, and computes a diff using <code>schema_diff.py</code>. Returns the diff JSON.</li>
+    <li>Review the diff in the SchemaManager UI. Each change is classified as <strong>breaking</strong>, <strong>caution</strong>, or <strong>safe</strong>.</li>
+    <li><code>POST /api/admin/schema/pending/{fetch_id}/activate</code> — archives the current schema to <code>schemas/prism/archive/</code>, copies the pending schema to the active path, calls <code>schema_loader.reload()</code>, and cleans up pending files.</li>
+  </ol>
+
+  <h2 class="sub-title">What Each Change Severity Means for Code</h2>
+  <table class="data-table">
+    <thead><tr><th>Severity</th><th>Example Change</th><th>Impact on Code</th></tr></thead>
+    <tbody>
+      <tr><td><strong style="color:#dc2626">Breaking</strong></td><td>Field removed; type changed from string to number</td><td>Existing field_results rows may have invalid types. label_mapper entries for removed fields become orphans. Re-extraction needed.</td></tr>
+      <tr><td><strong style="color:#d97706">Caution</strong></td><td>New enum value added; required field made optional</td><td>No immediate breakage, but field parsers or hints may need updating to handle new values.</td></tr>
+      <tr><td><strong style="color:#16a34a">Safe</strong></td><td>New optional field added; description updated</td><td>No impact on existing data. New field will appear as not_found in previous extractions.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">schema_loader.py Internals</h2>
+  <p>
+    <code>backend/schema_loader.py</code> loads and caches the schema at startup. Key functions:
+  </p>
+  <ul>
+    <li><code>list_models()</code> — returns list of payout_type_id strings from schema oneOf</li>
+    <li><code>get_model_schema(model_name)</code> — returns resolved schema dict for one model (with $refs inlined)</li>
+    <li><code>get_field_descriptors(model_name)</code> — returns all leaf field paths with types, enum values, required flags</li>
+    <li><code>load_cusip_mapping()</code> — reads CUSIP_PRISM_Mapping.xlsx, returns {CUSIP: NamedTuple(payout_type_id)}</li>
+    <li><code>reload()</code> — clears the in-memory cache; called after schema activation</li>
+    <li><code>get_schema_version()</code> — returns the schema version string from <code>$id</code></li>
+  </ul>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 9: Adding a New Issuer                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="new-issuer">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Adding a New Issuer</div>
+  <h1 class="section-title">9. Adding a New Issuer</h1>
+
+  <p>
+    To improve Tier 1 (HTML table) extraction coverage for a new issuer, create a YAML hints file.
+    No code changes are required.
+  </p>
+
+  <ol class="steps">
+    <li>
+      <div>
+        <strong>Find a sample filing from the issuer.</strong>
+        Ingest one or two filings from the issuer. Open the raw HTML (<strong>View Filing</strong>
+        in the UI) and identify the Key Terms table.
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Create the issuer YAML file.</strong>
+        Create <code>files/hints/issuer_IssueName.yaml</code> (e.g., <code>issuer_UBS.yaml</code>).
+        Copy the structure from an existing issuer YAML as a starting point.
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Set <code>aliases.name_match_patterns</code>.</strong>
+        Add all name variants that appear in EDGAR's <code>issuer_name</code> field for this issuer.
+        The extractor does a case-insensitive substring match against the filing's issuer_name.
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">aliases:
+  name_match_patterns:
+    - "UBS"
+    - "UBS AG"
+    - "UBS Securities"</pre>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Set <code>key_terms_table_heading</code>.</strong>
+        Find the exact heading text of the Key Terms table in the sample filing HTML (case-insensitive match is applied).
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">key_terms_table_heading: "Key Terms"</pre>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Add <code>table_labels</code>.</strong>
+        For each row in the Key Terms table, add an entry mapping the issuer's label text to the correct PRISM field path.
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">table_labels:
+  "Underlying Share": "underlyingTerms.underlyingAssets[*].name"
+  "Barrier": "barrier.triggerDetails.triggerLevel"
+  "Coupon Rate": "coupon.rate"
+  "Payment Frequency": "coupon.frequency"</pre>
+        Tip: run an extraction first, check the Miss Log in the Label Map tab — it shows exactly which labels appeared but couldn't be mapped.
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Add <code>section_headings</code>.</strong>
+        These are used to anchor the LLM text window on the relevant section of the filing.
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button">section_headings:
+  - "KEY TERMS"
+  - "SUPPLEMENTAL TERMS"
+  - "PRODUCT TERMS"</pre>
+      </div>
+    </li>
+    <li>
+      <div>
+        <strong>Test with a sample filing.</strong>
+        Re-extract the sample filings. Check how many fields now show the
+        <span style="display:inline-block;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:3px;font-size:0.75rem;font-weight:700">TABLE</span>
+        badge vs AI. Iterate on the <code>table_labels</code> until coverage is satisfactory.
+      </div>
+    </li>
+  </ol>
+
+  <div class="callout callout-tip">
+    <strong>No server restart needed</strong>
+    The hints loader is mtime-cached. Creating or editing a YAML file in <code>files/hints/</code>
+    is picked up automatically on the next extraction call.
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 10: Monitoring & Operations                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="monitoring">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Monitoring &amp; Operations</div>
+  <h1 class="section-title">10. Monitoring &amp; Operations</h1>
+
+  <h2 class="sub-title">Log File</h2>
+  <p>
+    Location: <code>logs/app.log</code><br>
+    Format: <code>YYYY-MM-DD HH:MM:SS,mmm  LEVEL     module  message</code>
+  </p>
+  <p>Key log events to watch for:</p>
+  <table class="data-table">
+    <thead><tr><th>Pattern</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>Tier 0: N registry fields extracted</code></td><td>Registry extraction working</td></tr>
+      <tr><td><code>Tier 1: N fields extracted from HTML table</code></td><td>HTML extraction working; N should be &gt; 0</td></tr>
+      <tr><td><code>html_extractor: no Key Terms table found</code></td><td>Table locator failed — check issuer key_terms_table_heading</td></tr>
+      <tr><td><code>Persisted N label miss(es)</code></td><td>Unmatched labels — check Label Map tab</td></tr>
+      <tr><td><code>Stage 2 confidence below threshold</code></td><td>Second classification pass triggered</td></tr>
+      <tr><td><code>WARNING  ANTHROPIC_API_KEY is not set</code></td><td>Classify/extract will fail</td></tr>
+      <tr><td><code>ERROR  Classification failed</code></td><td>Claude API error — check API key and model name</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">Common Failure Modes and Fixes</h2>
+  <table class="data-table">
+    <thead><tr><th>Symptom</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>All fields show AI badge, no TABLE badge</td><td>Key Terms table not found</td><td>Set <code>key_terms_table_heading</code> in issuer YAML</td></tr>
+      <tr><td>Status stuck at "extracting"</td><td>Server crash during extraction</td><td>Restart backend — the startup resets "extracting" → "classified" via migration logic. Or manually update DB.</td></tr>
+      <tr><td>Classification always returns "unknown"</td><td>Confidence below 0.60 floor</td><td>Check if the filing is a genuine 424B2; use Set Model override</td></tr>
+      <tr><td>Export JSON has null fields</td><td>Fields rejected or not found</td><td>Review and accept fields before approving; re-extract if needed</td></tr>
+      <tr><td>Schema fetch returns 502</td><td>PRISM server unreachable</td><td>Check VPN/network connection to 10.10.21.57</td></tr>
+      <tr><td>High AI cost (no cache hits)</td><td>First run or cache expired</td><td>Cache hits improve after running several filings from the same issuer/model combination</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="sub-title">DB Maintenance</h2>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button"># Backup the database
+cp data/db/edgar_extraction.db data/db/edgar_extraction_$(date +%Y%m%d).db
+
+# Vacuum to reclaim disk space after many deletes
+sqlite3 data/db/edgar_extraction.db "VACUUM;"
+
+# Check database size
+du -sh data/db/edgar_extraction.db</pre>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 11: Development Guide                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="dev-guide">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Development Guide</div>
+  <h1 class="section-title">11. Development Guide</h1>
+
+  <h2 class="sub-title">Adding a New Field Parser</h2>
+  <p>
+    Field parsers live in <code>backend/extract/field_parsers.py</code>. To add a parser for a
+    new PRISM field path:
+  </p>
+  <ol class="steps">
+    <li>Define a new function <code>parse_myfield(raw: str) -> SomeType | None</code>. Return <code>None</code> if the input is unparseable — the caller falls back to the LLM result.</li>
+    <li>Add the function to the <code>FIELD_PARSERS</code> dict at the bottom of the file, mapping the full PRISM dot-path to the function.</li>
+    <li>For array fields (e.g., underlyings), use the <code>[*]</code> wildcard notation; <code>label_mapper.get_parser()</code> does prefix matching.</li>
+  </ol>
+<pre><button class="copy-btn" onclick="copyPre(this)">Copy</button"># Example: add a parser for a new field
+def parse_leverage_factor(raw: str) -> float | None:
+    """Parse a leverage multiplier (e.g. '1.5x upside participation')."""
+    m = re.search(r"([\d.]+)\s*[xX]", raw)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            return None
+    return None
+
+# Add to FIELD_PARSERS dict:
+FIELD_PARSERS["product.leverageFactor"] = parse_leverage_factor</pre>
+
+  <h2 class="sub-title">Adding a New PRISM Model</h2>
+  <p>
+    When PRISM adds a new payout type, no Python code changes are needed — just configuration:
+  </p>
+  <ol class="steps">
+    <li>Activate the new schema via the Schema Manager UI (fetches from PRISM server).</li>
+    <li>The new model ID appears in the <code>GET /classify/models</code> response and in the classifier's model list automatically.</li>
+    <li>Optionally add a section YAML in <code>files/sections/</code> if sectioned extraction should cover the new fields.</li>
+    <li>Add cross-issuer field-level hints for any new fields that have special parsing requirements.</li>
+    <li>Add label map entries for common table labels that map to the new fields.</li>
+  </ol>
+
+  <h2 class="sub-title">Frontend Component Patterns</h2>
+  <p>
+    All API calls go through <code>frontend/src/api.js</code>. To add a new API call:
+  </p>
+  <ol class="steps">
+    <li>Add a new method to the <code>api</code> object in <code>api.js</code> following the existing pattern (fetch + error handling).</li>
+    <li>Components use <code>useState + useEffect</code> to load data on mount and <code>useCallback</code> for stable reload handlers.</li>
+    <li>The main view switch is in <code>App.jsx</code> — add a new view by extending the <code>mainView</code> state and the nav button array.</li>
+  </ol>
+
+  <h2 class="sub-title">Running in Development vs Production Mode</h2>
+  <table class="data-table">
+    <thead><tr><th>Aspect</th><th>Development</th><th>Production</th></tr></thead>
+    <tbody>
+      <tr><td>Backend</td><td><code>uvicorn main:app --reload</code> — hot-reload on file changes</td><td><code>uvicorn main:app --workers 1</code> — no reload, single worker (SQLite WAL handles concurrency)</td></tr>
+      <tr><td>Frontend</td><td><code>npm run dev</code> — Vite dev server with HMR</td><td><code>npm run build</code> → serve <code>frontend/dist/</code> as static files</td></tr>
+      <tr><td>CORS</td><td>Allowed: localhost:5173</td><td>Update <code>allow_origins</code> in <code>main.py</code> for the production origin</td></tr>
+      <tr><td>API key</td><td>Environment variable in terminal</td><td>Environment variable in the process (e.g., launchd plist, systemd, or .env file via python-dotenv)</td></tr>
+      <tr><td>Logs</td><td>Stdout + logs/app.log</td><td>logs/app.log only (redirect stdout to /dev/null or a secondary file)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</div><!-- end #main-content -->
+</div><!-- end #app-layout -->
+
+<button id="back-to-top" title="Back to top">&#8679;</button>
+
+<button id="chat-btn" title="Ask the AI assistant">&#128172;</button>
+<div id="chat-panel">
+  <div id="chat-header">
+    <span>Assistant</span>
+    <button id="chat-close">&#x2715;</button>
+  </div>
+  <div id="chat-messages">
+    <div class="chat-msg bot">Hi! I can answer technical questions about this tool. Ask me anything.</div>
+  </div>
+  <div id="chat-input-row">
+    <input id="chat-input" type="text" placeholder="Ask a question…" autocomplete="off">
+    <button id="chat-send">Send</button>
+  </div>
+</div>
+
+<script>
+// ── Copy-to-clipboard for code blocks ────────────────────────────────────────
+function copyPre(btn) {
+  const pre = btn.closest('pre');
+  const text = Array.from(pre.childNodes)
+    .filter(n => n.nodeType === Node.TEXT_NODE || (n.nodeName !== 'BUTTON' && n.nodeType === Node.ELEMENT_NODE))
+    .map(n => n.textContent)
+    .join('').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    btn.textContent = 'Failed';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+// ── Table of Contents active state ──────────────────────────────────────────
+const sections = document.querySelectorAll('.content-section, h2[id], h3[id]');
+const tocLinks = document.querySelectorAll('#toc a');
+
+function updateToc() {
+  let current = '';
+  sections.forEach(sec => {
+    const rect = sec.getBoundingClientRect();
+    if (rect.top <= 140) current = sec.id;
+  });
+  tocLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', updateToc, { passive: true });
+updateToc();
+
+// ── Back to top ──────────────────────────────────────────────────────────────
+const btt = document.getElementById('back-to-top');
+window.addEventListener('scroll', () => { btt.classList.toggle('visible', window.scrollY > 300); }, { passive: true });
+btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// ── Client-side search ───────────────────────────────────────────────────────
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+const searchPrev  = document.getElementById('search-prev');
+const searchNext  = document.getElementById('search-next');
+let marks = [], markIdx = 0;
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NAV', 'INPUT', 'BUTTON']);
+
+function clearMarks() {
+  document.querySelectorAll('mark.search-hit').forEach(m => {
+    const p = m.parentNode;
+    p.replaceChild(document.createTextNode(m.textContent), m);
+    p.normalize();
+  });
+  marks = []; markIdx = 0; searchCount.textContent = '';
+}
+
+function doSearch(term) {
+  clearMarks();
+  if (!term || term.length < 2) return;
+  const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const walker = document.createTreeWalker(
+    document.getElementById('main-content'), NodeFilter.SHOW_TEXT,
+    { acceptNode(node) {
+        if (!node.textContent.trim()) return NodeFilter.FILTER_SKIP;
+        let p = node.parentNode;
+        while (p) { if (SKIP_TAGS.has(p.tagName)) return NodeFilter.FILTER_SKIP; p = p.parentNode; }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+  const textNodes = [];
+  let n;
+  while ((n = walker.nextNode())) textNodes.push(n);
+
+  textNodes.forEach(node => {
+    if (!re.test(node.textContent)) return;
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(node.textContent)) !== null) {
+      frag.appendChild(document.createTextNode(node.textContent.slice(last, m.index)));
+      const mark = document.createElement('mark');
+      mark.className = 'search-hit'; mark.textContent = m[0];
+      frag.appendChild(mark); marks.push(mark); last = m.index + m[0].length;
+    }
+    frag.appendChild(document.createTextNode(node.textContent.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+
+  if (marks.length) { markIdx = 0; highlightCurrent(); searchCount.textContent = `1 / ${marks.length}`; }
+  else searchCount.textContent = 'No matches';
+}
+
+function highlightCurrent() {
+  marks.forEach((m, i) => m.classList.toggle('current', i === markIdx));
+  if (marks[markIdx]) marks[markIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+searchInput.addEventListener('input', () => doSearch(searchInput.value));
+searchNext.addEventListener('click', () => { if (!marks.length) return; markIdx = (markIdx + 1) % marks.length; highlightCurrent(); searchCount.textContent = `${markIdx + 1} / ${marks.length}`; });
+searchPrev.addEventListener('click', () => { if (!marks.length) return; markIdx = (markIdx - 1 + marks.length) % marks.length; highlightCurrent(); searchCount.textContent = `${markIdx + 1} / ${marks.length}`; });
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchNext.click(); if (e.key === 'Escape') { searchInput.value = ''; clearMarks(); } });
+
+// ── Support Chat Widget ──────────────────────────────────────────────────────
+const chatBtn = document.getElementById('chat-btn');
+const chatPanel = document.getElementById('chat-panel');
+const chatClose = document.getElementById('chat-close');
+const chatInput = document.getElementById('chat-input');
+const chatSend  = document.getElementById('chat-send');
+const chatMsgs  = document.getElementById('chat-messages');
+let chatHistory = [];
+
+chatBtn.addEventListener('click', () => chatPanel.classList.toggle('open'));
+chatClose.addEventListener('click', () => chatPanel.classList.remove('open'));
+
+function appendMsg(text, role, isError) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role + (isError ? ' error' : '');
+  div.textContent = text;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return div;
+}
+
+async function sendChat() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  chatInput.value = '';
+  chatSend.disabled = true;
+  appendMsg(msg, 'user');
+  const thinkingDiv = appendMsg('Thinking…', 'bot');
+  chatHistory.push({ role: 'user', content: msg });
+  try {
+    const resp = await fetch('http://localhost:8000/api/docs/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, history: chatHistory.slice(-10) }),
+    });
+    const data = await resp.json();
+    const reply = data.reply || 'No response.';
+    thinkingDiv.textContent = reply;
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch (e) {
+    thinkingDiv.textContent = 'Could not reach the backend. Is the server running?';
+    thinkingDiv.classList.add('error');
+    chatHistory.pop();
+  } finally {
+    chatSend.disabled = false;
+    chatInput.focus();
+  }
+}
+
+chatSend.addEventListener('click', sendChat);
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+</script>
+</body>
+</html>

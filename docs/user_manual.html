@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGAR Extraction — User Manual</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+#app-layout { display: flex; min-height: 100vh; }
+
+/* ── Sidebar TOC ──────────────────────────────────────────────────────────── */
+#toc {
+  width: 220px;
+  min-width: 220px;
+  background: #011151;
+  color: #cbd5e1;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 20px 0 40px;
+}
+#toc h2 {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  padding: 0 16px;
+  margin-bottom: 10px;
+}
+#toc ul { list-style: none; }
+#toc ul li a {
+  display: block;
+  padding: 5px 16px;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1.4;
+}
+#toc ul li a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+#toc ul li a.active { color: #00b4d8; background: rgba(0,180,216,0.12); }
+#toc .toc-sub a { padding-left: 28px; font-size: 0.72rem; color: #94a3b8; }
+#toc .toc-sub a:hover { color: #cbd5e1; }
+#toc-logo {
+  padding: 16px 16px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 12px;
+}
+#toc-logo span { font-size: 0.85rem; font-weight: 700; color: #fff; }
+#toc-logo small { display: block; font-size: 0.68rem; color: #64748b; margin-top: 2px; }
+
+/* ── Main Content ─────────────────────────────────────────────────────────── */
+#main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+#topbar {
+  background: #011151;
+  color: #fff;
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+#topbar h1 { font-size: 1rem; font-weight: 700; }
+#topbar-actions { display: flex; align-items: center; gap: 12px; }
+#topbar-actions a {
+  color: #00b4d8;
+  text-decoration: none;
+  font-size: 0.78rem;
+}
+#topbar-actions a:hover { text-decoration: underline; }
+
+/* ── Search bar ───────────────────────────────────────────────────────────── */
+#search-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+#search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.8rem;
+  width: 180px;
+}
+#search-input::placeholder { color: #94a3b8; }
+#search-count { font-size: 0.72rem; color: #94a3b8; white-space: nowrap; }
+#search-prev, #search-next {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 2px;
+}
+#search-prev:hover, #search-next:hover { color: #fff; }
+
+mark.search-hit { background: #fde68a; color: #1e293b; border-radius: 2px; }
+mark.search-hit.current { background: #f59e0b; }
+
+/* ── Content sections ─────────────────────────────────────────────────────── */
+.content-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 40px 20px;
+}
+.content-section:last-child { padding-bottom: 80px; }
+
+/* ── Breadcrumb ───────────────────────────────────────────────────────────── */
+.breadcrumb {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 16px;
+}
+.breadcrumb span { color: #cbd5e1; }
+.breadcrumb a { color: #00b4d8; text-decoration: none; }
+
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+h1.section-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #011151;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+h2.sub-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #011151;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  border-left: 4px solid #00b4d8;
+  padding-left: 12px;
+}
+h3.sub-sub-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin-top: 22px;
+  margin-bottom: 8px;
+}
+.section-divider {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 40px 0 32px;
+}
+
+p { margin-bottom: 12px; }
+p:last-child { margin-bottom: 0; }
+
+ul, ol {
+  margin: 8px 0 12px 22px;
+  line-height: 1.8;
+}
+li { margin-bottom: 4px; }
+
+/* ── Cards & Callouts ─────────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin: 14px 0;
+}
+.callout {
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 14px 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.callout-info    { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+.callout-warn    { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+.callout-tip     { background: #f0fdf4; border-left: 4px solid #22c55e; color: #14532d; }
+.callout-danger  { background: #fef2f2; border-left: 4px solid #ef4444; color: #7f1d1d; }
+.callout strong  { display: block; margin-bottom: 4px; }
+
+/* ── Status Badges ────────────────────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-ingested   { background: #e0f2fe; color: #0369a1; }
+.badge-classified { background: #dbeafe; color: #1d4ed8; }
+.badge-extracted  { background: #dcfce7; color: #15803d; }
+.badge-approved   { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+.badge-exported   { background: #f5f3ff; color: #6d28d9; }
+.badge-needs      { background: #fef9c3; color: #a16207; }
+.badge-table      { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.badge-reg        { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.badge-ai         { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+
+/* ── Step Lists ───────────────────────────────────────────────────────────── */
+.steps { counter-reset: step; list-style: none; margin: 12px 0; padding: 0; }
+.steps li {
+  counter-increment: step;
+  display: flex;
+  gap: 14px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+}
+.steps li::before {
+  content: counter(step);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #011151;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.82rem; }
+.data-table th {
+  background: #011151;
+  color: #fff;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+.data-table td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; }
+.data-table tr:nth-child(even) td { background: #f8fafc; }
+.data-table tr:hover td { background: #eff6ff; }
+
+/* ── Glossary ─────────────────────────────────────────────────────────────── */
+.glossary-item { margin-bottom: 14px; }
+.glossary-term { font-weight: 700; color: #011151; }
+.glossary-def  { color: #475569; margin-top: 2px; margin-left: 16px; }
+
+/* ── Inline code ──────────────────────────────────────────────────────────── */
+code {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.82em;
+  color: #7c3aed;
+}
+
+/* ── Back to top ──────────────────────────────────────────────────────────── */
+#back-to-top {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  background: #011151;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 100;
+  transition: background 0.2s;
+}
+#back-to-top:hover { background: #1e40af; }
+#back-to-top.visible { display: flex; }
+
+/* ── Chat Widget ──────────────────────────────────────────────────────────── */
+#chat-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #011151;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+#chat-btn:hover { background: #1e40af; }
+
+#chat-panel {
+  position: fixed;
+  bottom: 82px;
+  right: 24px;
+  width: 320px;
+  height: 420px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  display: none;
+  flex-direction: column;
+  z-index: 200;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+#chat-panel.open { display: flex; }
+#chat-header {
+  background: #011151;
+  color: #fff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+#chat-close { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; }
+#chat-close:hover { color: #fff; }
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.chat-msg { max-width: 90%; line-height: 1.5; }
+.chat-msg.user {
+  align-self: flex-end;
+  background: #011151;
+  color: #fff;
+  border-radius: 12px 12px 2px 12px;
+  padding: 8px 12px;
+}
+.chat-msg.bot {
+  align-self: flex-start;
+  background: #f1f5f9;
+  color: #1e293b;
+  border-radius: 12px 12px 12px 2px;
+  padding: 8px 12px;
+}
+.chat-msg.bot.error { color: #b91c1c; background: #fef2f2; }
+#chat-input-row {
+  padding: 10px 12px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 8px;
+}
+#chat-input {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  outline: none;
+}
+#chat-input:focus { border-color: #00b4d8; }
+#chat-send {
+  background: #011151;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+#chat-send:hover { background: #1e40af; }
+#chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #toc { display: none; }
+  .content-section { padding: 24px 18px; }
+  #topbar { padding: 12px 18px; }
+  #chat-panel { width: calc(100vw - 32px); right: 16px; bottom: 76px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app-layout">
+
+<!-- ── Sidebar TOC ──────────────────────────────────────────────────────── -->
+<nav id="toc" aria-label="Table of contents">
+  <div id="toc-logo">
+    <span>EDGAR Extraction</span>
+    <small>User Manual</small>
+  </div>
+  <ul>
+    <li><a href="#intro">1. Introduction</a></li>
+    <li><a href="#getting-started">2. Getting Started</a></li>
+    <li><a href="#filings-view">3. Filings View</a></li>
+    <ul class="toc-sub">
+      <li><a href="#filing-lifecycle">Filing Lifecycle</a></li>
+      <li><a href="#sidebar">Sidebar</a></li>
+      <li><a href="#filing-detail">Filing Detail</a></li>
+      <li><a href="#simple-view">Simple View (FieldTable)</a></li>
+      <li><a href="#expert-review">Expert Review</a></li>
+    </ul>
+    <li><a href="#expert-settings">4. Expert Settings</a></li>
+    <ul class="toc-sub">
+      <li><a href="#field-hints">Field Hints</a></li>
+      <li><a href="#section-prompts">Section Prompts</a></li>
+      <li><a href="#extraction-settings">Extraction Settings</a></li>
+      <li><a href="#label-map">Label Map</a></li>
+      <li><a href="#schema">Schema Manager</a></li>
+    </ul>
+    <li><a href="#admin">5. Admin</a></li>
+    <ul class="toc-sub">
+      <li><a href="#log-viewer">Log Viewer</a></li>
+      <li><a href="#cost-usage">Cost &amp; Usage</a></li>
+    </ul>
+    <li><a href="#workflows">6. Common Workflows</a></li>
+    <li><a href="#troubleshooting">7. Troubleshooting FAQ</a></li>
+    <li><a href="#glossary">8. Glossary</a></li>
+  </ul>
+</nav>
+
+<!-- ── Main Content ─────────────────────────────────────────────────────── -->
+<div id="main-content">
+
+<!-- Top bar -->
+<div id="topbar">
+  <h1>EDGAR Extraction &amp; PRISM Mapping — User Manual</h1>
+  <div id="topbar-actions">
+    <a href="architecture.html">Architecture</a>
+    <a href="tech_handbook.html">Tech Handbook</a>
+    <div id="search-container">
+      <input id="search-input" type="text" placeholder="Search manual…" autocomplete="off">
+      <span id="search-count"></span>
+      <button id="search-prev" title="Previous match">&#8593;</button>
+      <button id="search-next" title="Next match">&#8595;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: Introduction                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="intro">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Introduction</div>
+  <h1 class="section-title">1. Introduction</h1>
+  <p>
+    The <strong>EDGAR Extraction &amp; PRISM Mapping</strong> tool is an internal LPA application that
+    automates the process of pulling structured product data from SEC EDGAR filings and transforming it
+    into the PRISM data format. It runs entirely on your Mac — no internet connection is required beyond
+    the initial filing download and Claude API calls.
+  </p>
+
+  <h2 class="sub-title">What Does It Do?</h2>
+  <p>Think of it as a five-step pipeline:</p>
+  <ol class="steps">
+    <li><strong>Ingest.</strong> You search EDGAR for a 424B2 filing by issuer name or CUSIP, or paste an accession number directly. The tool downloads the HTML prospectus and stores it locally.</li>
+    <li><strong>Classify.</strong> Claude AI reads the first few pages of the filing and assigns it to a PRISM payout type (e.g., "Barrier Reverse Convertible", "Autocall Note"). This tells the system which fields to extract next.</li>
+    <li><strong>Extract.</strong> The system extracts all PRISM schema fields using three complementary methods: registry metadata (CUSIP, issuer name), HTML table parsing (Key Terms tables), and Claude AI for everything else. Each field is tagged with its source and a confidence score.</li>
+    <li><strong>Review.</strong> You review the extracted fields in the browser, accept or correct values, and approve the filing when satisfied.</li>
+    <li><strong>Export.</strong> The approved data is exported to JSON and CSV files ready for downstream PRISM ingestion.</li>
+  </ol>
+
+  <h2 class="sub-title">The EDGAR &rarr; PRISM Concept</h2>
+  <p>
+    SEC EDGAR contains thousands of 424B2 filings — the prospectus supplements that structured product
+    issuers file when they issue a new note. These filings contain the full economic and legal terms of
+    the product. PRISM is LPA's internal data model for structured products, with a well-defined JSON
+    schema covering all the key parameters (barriers, coupons, autocall terms, underlying assets, etc.).
+  </p>
+  <p>
+    The challenge is that every issuer (Barclays, JPMorgan, Citigroup, BofA, UBS, etc.) formats their
+    424B2 filings differently. This tool bridges the gap by combining deterministic HTML parsing (for
+    the Key Terms table that all issuers include) with AI extraction (for fields not in the table or
+    in issuer-specific formats).
+  </p>
+
+  <div class="callout callout-info">
+    <strong>Internal POC — Not for Production Use</strong>
+    This is a local test and demonstration system. All data stays on your Mac. No login, no cloud storage,
+    no sharing — just you, the browser, and a local Python server.
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: Getting Started                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="getting-started">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Getting Started</div>
+  <h1 class="section-title">2. Getting Started</h1>
+
+  <h2 class="sub-title">Opening the App</h2>
+  <p>The app runs as two local services. Both must be running:</p>
+  <ul>
+    <li><strong>Backend</strong> — FastAPI Python server on <code>http://localhost:8000</code></li>
+    <li><strong>Frontend</strong> — Vite React dev server on <code>http://localhost:5173</code></li>
+  </ul>
+  <p>Open your browser at <a href="http://localhost:5173" target="_blank">http://localhost:5173</a>.</p>
+
+  <div class="callout callout-warn">
+    <strong>Check the status indicator</strong>
+    In the top-right of the header you will see a coloured dot and "Backend OK" or "Backend down".
+    If it shows red/down, the Python backend is not running — check your terminal.
+    If it shows "API key missing", the <code>ANTHROPIC_API_KEY</code> environment variable is not set
+    and classify/extract will fail.
+  </div>
+
+  <h2 class="sub-title">Understanding the Layout</h2>
+  <p>The interface has three top-level views, switchable from the header navigation:</p>
+
+  <table class="data-table">
+    <thead><tr><th>View</th><th>Purpose</th><th>When to Use</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Filings</strong></td><td>List, ingest, classify, extract, review, and export filings</td><td>Day-to-day work</td></tr>
+      <tr><td><strong>Expert ⚙</strong></td><td>Configure extraction hints, section prompts, label maps, schema</td><td>When extraction quality needs tuning</td></tr>
+      <tr><td><strong>Admin</strong></td><td>View logs, track API usage and costs</td><td>Monitoring and troubleshooting</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: Filings View                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="filings-view">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Filings View</div>
+  <h1 class="section-title">3. Filings View</h1>
+  <p>
+    The Filings view is the main working area. It has a collapsible left sidebar (with the filings
+    list and ingest panel) and a large content area on the right showing the selected filing's detail.
+  </p>
+
+  <!-- Filing Lifecycle -->
+  <h2 class="sub-title" id="filing-lifecycle">Filing Lifecycle &amp; Status Badges</h2>
+  <p>
+    Each filing moves through a defined sequence of statuses. The current status is always shown
+    as a coloured badge on the filing card and in the detail header.
+  </p>
+
+  <table class="data-table">
+    <thead><tr><th>Status Badge</th><th>Meaning</th><th>Next Action</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="status-badge badge-ingested">ingested</span></td>
+        <td>Filing HTML downloaded and stored. No AI processing yet.</td>
+        <td>Click <strong>Classify</strong></td>
+      </tr>
+      <tr>
+        <td><span class="status-badge badge-classified">classified</span></td>
+        <td>AI assigned a PRISM payout type with confidence &ge; 75%.</td>
+        <td>Click <strong>Extract</strong></td>
+      </tr>
+      <tr>
+        <td><span class="status-badge badge-needs">needs review</span></td>
+        <td>Classification confidence was below 75% or result was "unknown". Human review required.</td>
+        <td>Use <strong>Set Model</strong> to override, then Extract</td>
+      </tr>
+      <tr>
+        <td><span class="status-badge badge-extracted">extracted</span></td>
+        <td>All PRISM fields extracted. Ready for human review.</td>
+        <td>Review fields, then <strong>Approve</strong></td>
+      </tr>
+      <tr>
+        <td><span class="status-badge badge-approved">approved</span></td>
+        <td>Human reviewer accepted the extraction. Ready to export.</td>
+        <td>Click <strong>Export</strong></td>
+      </tr>
+      <tr>
+        <td><span class="status-badge badge-exported">exported</span></td>
+        <td>JSON + CSV files generated in <code>data/exports/</code>.</td>
+        <td>Done — files ready for downstream PRISM ingestion</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <strong>Resetting a filing</strong>
+    The <strong>Reset ↺</strong> button (visible on classified/needs_review filings) reverts the filing
+    to "ingested" status, clearing all classification data. This is blocked once extraction has run —
+    you must re-extract or unapprove first.
+  </div>
+
+  <!-- Sidebar -->
+  <h2 class="sub-title" id="sidebar">Sidebar — Filings List &amp; Ingest Panel</h2>
+
+  <h3 class="sub-sub-title">Filings List Tab</h3>
+  <p>
+    The filings list shows all filings in the local database, newest first. You can:
+  </p>
+  <ul>
+    <li><strong>Search</strong> — the search box filters by CUSIP, issuer name, or accession number in real time.</li>
+    <li><strong>Filter by status</strong> — use the status dropdown to show only filings at a specific stage.</li>
+    <li><strong>Select a filing</strong> — click any filing card to open its detail in the main area.</li>
+    <li><strong>Refresh</strong> — the ↻ button reloads the list from the backend.</li>
+  </ul>
+
+  <h3 class="sub-sub-title">Ingest Panel Tab</h3>
+  <p>Use this panel to bring new filings into the system. There are two methods:</p>
+
+  <div class="card">
+    <strong>Method 1 — EDGAR Search</strong>
+    <p style="margin-top:8px">
+      Fill in one or more of the search fields (search term, entity name, CUSIP, date range) and click
+      <strong>Search EDGAR</strong>. The tool queries EDGAR's full-text search API and returns matching
+      424B2 filings. Click <strong>Ingest</strong> on any result to download it.
+    </p>
+    <p style="margin-top:8px; font-size:0.82rem; color:#64748b">
+      EDGAR search uses the EFTS (EDGAR Full-Text Search) API. Results are limited to 424B2 form type.
+      You can combine a keyword (e.g., "barrier reverse convertible") with an entity name (e.g., "Barclays")
+      to narrow down results.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Method 2 — Direct Accession Number</strong>
+    <p style="margin-top:8px">
+      If you already know the accession number (format: <code>0001234567-24-123456</code>), paste it
+      into the "Accession Number" field and click <strong>Ingest Filing</strong>. This skips the search
+      and downloads the specific filing directly.
+    </p>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>EDGAR rate limits</strong>
+    EDGAR enforces a rate limit of 10 requests/second per IP. The tool already adds a 200ms delay
+    between requests. For bulk ingestion, prefer off-peak hours (21:00–06:00 US Eastern time).
+  </div>
+
+  <!-- Filing Detail -->
+  <h2 class="sub-title" id="filing-detail">Filing Detail</h2>
+  <p>
+    Clicking a filing in the sidebar opens its detail view. The detail panel shows:
+  </p>
+
+  <h3 class="sub-sub-title">Header Information</h3>
+  <ul>
+    <li><strong>Status badge</strong> — current lifecycle status</li>
+    <li><strong>CUSIP</strong> — 9-character product identifier from EDGAR registry</li>
+    <li><strong>Issuer</strong> — the structured product issuer (e.g., "Barclays Bank PLC")</li>
+    <li><strong>Filing date</strong> — the date the 424B2 was filed with the SEC</li>
+    <li><strong>Accession number</strong> — unique EDGAR identifier</li>
+    <li><strong>PRISM model</strong> — the classified payout type (visible after classification)</li>
+    <li><strong>Classification confidence</strong> — Claude's confidence in the payout type assignment</li>
+    <li><strong>Product title</strong> — exact product name extracted from the cover page</li>
+  </ul>
+
+  <h3 class="sub-sub-title">KPI Strip</h3>
+  <p>
+    Below the header, a row of coloured chips shows timing and token metrics for each completed
+    pipeline step:
+  </p>
+  <ul>
+    <li><strong>Ingest</strong> (blue) — time to download and save the filing HTML</li>
+    <li><strong>Classify</strong> (violet) — wall-clock time, token counts, and USD cost of the classification call(s). If stage 2 was triggered, the call count shows "2 calls".</li>
+    <li><strong>Extract</strong> (green) — time, tokens, and cost of the extraction. In sectioned mode, shows the number of sections processed.</li>
+  </ul>
+
+  <h3 class="sub-sub-title">Action Buttons</h3>
+  <p>The available action buttons depend on the filing's current status:</p>
+  <table class="data-table">
+    <thead><tr><th>Button</th><th>Visible When</th><th>What It Does</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Classify</strong></td><td>ingested, classified, needs_review</td><td>Runs two-stage Claude classification. Overwrites previous result.</td></tr>
+      <tr><td><strong>Set Model</strong></td><td>After classification</td><td>Opens a dropdown to manually override the PRISM model assignment.</td></tr>
+      <tr><td><strong>Reset ↺</strong></td><td>classified, needs_review</td><td>Clears classification and returns to "ingested" status.</td></tr>
+      <tr><td><strong>Extract</strong></td><td>classified</td><td>Runs hybrid extraction (Tier 0 + 1 + 2). May take 15–60 seconds.</td></tr>
+      <tr><td><strong>Re-Extract</strong></td><td>extracted, approved</td><td>Deletes previous results and runs extraction again. Useful after updating hints or label maps.</td></tr>
+      <tr><td><strong>View Filing</strong></td><td>Always (after ingest)</td><td>Opens the raw 424B2 HTML in an overlay. Used for manual reference.</td></tr>
+      <tr><td><strong>Approve</strong></td><td>extracted</td><td>Marks the filing as approved; auto-accepts all pending fields.</td></tr>
+      <tr><td><strong>Unapprove</strong></td><td>approved</td><td>Returns to "extracted" status for further editing.</td></tr>
+      <tr><td><strong>Export</strong></td><td>approved</td><td>Generates JSON + CSV in <code>data/exports/</code>.</td></tr>
+      <tr><td><strong>Delete</strong></td><td>Always</td><td>Permanently removes the filing record and local files. Irreversible.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-sub-title">Classification Override (Set Model)</h3>
+  <p>
+    When the AI classifier produces a wrong or uncertain result, you can use <strong>Set Model</strong>
+    to manually assign the correct PRISM payout type. A dropdown appears with all valid PRISM model
+    IDs from the current schema. Select the correct type and confirm.
+  </p>
+  <p>
+    The override is recorded in the <code>classification_feedback</code> table, which feeds back into
+    future classification prompts as few-shot examples — helping the AI learn from corrections.
+  </p>
+
+  <!-- Simple View -->
+  <h2 class="sub-title" id="simple-view">Simple View — FieldTable</h2>
+  <p>
+    After extraction, the default view shows a table of all extracted PRISM fields. Each row has:
+  </p>
+  <ul>
+    <li><strong>Field name</strong> — the dot-path PRISM field identifier (e.g., <code>barrier.triggerDetails.triggerLevel</code>)</li>
+    <li><strong>Source badge</strong> — how the value was obtained:
+      <ul>
+        <li><span class="status-badge badge-table">TABLE</span> — parsed from the Key Terms HTML table (highest trust, confidence 0.97)</li>
+        <li><span class="status-badge badge-reg">REG</span> — sourced from EDGAR registry metadata (certainty 1.0 — CUSIP, issuer)</li>
+        <li><span class="status-badge badge-ai">AI</span> — extracted by Claude LLM (confidence varies)</li>
+      </ul>
+    </li>
+    <li><strong>Confidence bar</strong> — coloured bar and percentage. Fields below 80% are highlighted in amber as low-confidence.</li>
+    <li><strong>Value</strong> — the extracted value (or a "Not found" indicator)</li>
+    <li><strong>Review status</strong> — pending / accepted / corrected / rejected</li>
+    <li><strong>Edit &amp; Accept/Reject buttons</strong> — click to review the field inline</li>
+  </ul>
+
+  <h3 class="sub-sub-title">Reviewing a Field Inline</h3>
+  <ol class="steps">
+    <li>Click the <strong>Edit</strong> icon on a field row to open an inline editor.</li>
+    <li>Modify the value if needed. The source excerpt (text from the filing that the AI used) is shown for reference.</li>
+    <li>Click <strong>Accept</strong> to confirm the value (sets review_status to "accepted").</li>
+    <li>Click <strong>Correct</strong> after editing to save the changed value (sets review_status to "corrected").</li>
+    <li>Click <strong>Reject</strong> to mark the field as rejected (value won't appear in export).</li>
+  </ol>
+
+  <!-- Expert Review -->
+  <h2 class="sub-title" id="expert-review">Expert Review (Side-by-Side)</h2>
+  <p>
+    Toggle the <strong>Expert View</strong> button to switch to a split-screen layout: the field table
+    on the left and the actual 424B2 HTML filing on the right, displayed in an iframe.
+  </p>
+  <ul>
+    <li><strong>Selecting a field</strong> — click any field row in the left pane. If Claude provided a source excerpt, the corresponding text is highlighted in the filing HTML on the right using scroll-and-highlight injection.</li>
+    <li><strong>Resizable divider</strong> — drag the vertical divider between the two panes left or right to redistribute screen space. The split is clamped between 15% and 85%.</li>
+    <li><strong>Filing viewer</strong> — the right pane renders the actual 424B2 HTML (with inline styles preserved). All images downloaded during ingest are served correctly. You can scroll through the full document while a field is selected.</li>
+  </ul>
+
+  <div class="callout callout-tip">
+    <strong>When to use Expert Review</strong>
+    Expert Review is most useful when verifying AI-extracted fields (<span class="status-badge badge-ai">AI</span>
+    badge) or correcting uncertain values. The source highlight makes it easy to see exactly what text
+    Claude used and whether the interpretation was correct.
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 4: Expert Settings                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="expert-settings">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Expert Settings</div>
+  <h1 class="section-title">4. Expert Settings</h1>
+  <p>
+    Click <strong>Expert ⚙</strong> in the top navigation to enter the Expert Settings view.
+    This area contains five tabs for tuning the extraction system. Changes here affect all future
+    extractions — no server restart is needed.
+  </p>
+
+  <!-- Field Hints -->
+  <h2 class="sub-title" id="field-hints">Tab: Field Hints</h2>
+  <p>
+    Field Hints control the guidance given to Claude during extraction. There are three levels,
+    applied in order from most general to most specific.
+  </p>
+
+  <h3 class="sub-sub-title">Cross-Issuer Hints</h3>
+  <p>
+    The top panel shows <strong>cross-issuer field-level rules</strong> from
+    <code>files/hints/cross_issuer_field_hints.yaml</code>. These rules are injected into every
+    extraction prompt regardless of issuer. Examples:
+  </p>
+  <ul>
+    <li>Synonyms for <code>barrier.triggerDetails.triggerLevel</code> (e.g., "Downside Threshold", "Knock-In Level")</li>
+    <li>Format rules for <code>coupon.rate</code> (always output as decimal, e.g. 0.0875 not 8.75%)</li>
+    <li>Cautions for fields that look similar across product types</li>
+  </ul>
+  <p>
+    The cross-issuer hints file is a YAML file. You can edit it here in the UI and save. Changes are
+    picked up immediately on the next extraction call.
+  </p>
+
+  <h3 class="sub-sub-title">Per-Issuer Hints</h3>
+  <p>
+    The issuer selector dropdown lists all issuers that have a YAML hint file in
+    <code>files/hints/</code> (e.g., <code>issuer_Barclays.yaml</code>, <code>issuer_JPMorgan.yaml</code>).
+    Select an issuer to view and edit its hints.
+  </p>
+  <p>Key fields in an issuer hint file:</p>
+  <table class="data-table">
+    <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>aliases.name_match_patterns</code></td><td>List of strings used to match the issuer name from EDGAR registry (e.g., ["Barclays", "Barclays Capital"])</td></tr>
+      <tr><td><code>key_terms_table_heading</code></td><td>The exact heading text of the Key Terms table for this issuer. Used by html_extractor to find the right table.</td></tr>
+      <tr><td><code>table_labels</code></td><td>Per-issuer label → PRISM field path overrides (highest priority in label resolution)</td></tr>
+      <tr><td><code>section_headings</code></td><td>Section headings used to anchor the text window for LLM extraction</td></tr>
+      <tr><td><code>field_hints</code></td><td>Per-field synonyms, label aliases, and format notes for this issuer</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-sub-title">Per-Field Instructions</h3>
+  <p>
+    Within a per-issuer hint, individual <code>field_hints</code> entries give Claude specific
+    instructions for a single PRISM field for that issuer. For example, Barclays uses the label
+    "Kick-In Barrier" for the barrier level — you can add that as a synonym for
+    <code>barrier.triggerDetails.triggerLevel</code>.
+  </p>
+
+  <!-- Section Prompts -->
+  <h2 class="sub-title" id="section-prompts">Tab: Section Prompts</h2>
+  <p>
+    Section Prompts are used when <strong>Sectioned Extraction</strong> mode is enabled (see Extraction
+    Settings). Instead of one large LLM call for all fields, the system makes multiple smaller calls,
+    one per logical section of the PRISM schema.
+  </p>
+  <p>The sections are:</p>
+  <ul>
+    <li><code>identifiers</code> — CUSIP, ISIN, product code</li>
+    <li><code>product</code> — product name, denomination, notional, maturity date, currency</li>
+    <li><code>underlying_terms</code> — underlying assets, initial/final levels</li>
+    <li><code>protection</code> — barrier level, observation type, downside risk</li>
+    <li><code>autocall</code> — call level, observation frequency, early redemption</li>
+    <li><code>coupon</code> — coupon rate, barrier, frequency, payment schedule</li>
+    <li><code>parties</code> — issuer, guarantor, calculation agent</li>
+  </ul>
+  <p>
+    Each section has a YAML config with a system prompt snippet and field list. You can edit these
+    prompts in the Section Prompts tab. This is an advanced feature — the default single-call mode
+    is suitable for most use cases.
+  </p>
+
+  <!-- Extraction Settings -->
+  <h2 class="sub-title" id="extraction-settings">Tab: Extraction Settings</h2>
+  <p>
+    This tab controls runtime extraction parameters. All settings are saved to
+    <code>files/runtime_settings.yaml</code> and take effect immediately without a server restart.
+  </p>
+
+  <table class="data-table">
+    <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Claude Model</strong></td><td>claude-sonnet-4-6</td><td>The Claude model used for all classify and extract calls. Choose from the registered models. Affects both cost and quality.</td></tr>
+      <tr><td><strong>Sectioned Extraction</strong></td><td>Off</td><td>When enabled, extraction is split into 7 separate Claude calls (one per section). Slower but can improve results on long or complex filings.</td></tr>
+      <tr><td><strong>Classification Gate Confidence</strong></td><td>0.80</td><td>Filings with classification confidence below this threshold are blocked from extraction until manually confirmed. Prevents wasting budget on wrong product types.</td></tr>
+      <tr><td><strong>Section Merge Delta</strong></td><td>0.15</td><td>(Sectioned mode only) Minimum confidence improvement required for a section result to overwrite a value from a previous section.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-info">
+    <strong>Model pricing</strong>
+    The model selector shows pricing for each available model. Claude Sonnet 4.6 is the default and
+    provides the best balance of quality and cost for this use case. The Cost &amp; Usage tab shows
+    actual spend per model and can help you evaluate alternatives.
+  </div>
+
+  <!-- Label Map -->
+  <h2 class="sub-title" id="label-map">Tab: Label Map</h2>
+  <p>
+    The Label Map is a critical component of Tier 1 (HTML table) extraction. It maps label text from
+    the Key Terms table (e.g., "Maturity Date:", "Downside Threshold:") to PRISM field paths
+    (e.g., <code>structuredProductsGeneric.maturityDate</code>).
+  </p>
+  <p>There are three label sources merged in priority order (higher = wins on conflict):</p>
+  <ol>
+    <li><strong>Cross-issuer baseline</strong> (<code>files/label_map_cross_issuer.yaml</code>) — hand-curated, read-only in the UI</li>
+    <li><strong>User entries</strong> (<code>files/label_map_user.yaml</code>) — added via this tab</li>
+    <li><strong>Per-issuer overrides</strong> (<code>table_labels</code> in the issuer's YAML hints) — highest priority</li>
+  </ol>
+
+  <h3 class="sub-sub-title">Miss Log</h3>
+  <p>
+    The <strong>Miss Log</strong> panel (left side) shows labels that appeared in Key Terms tables
+    but could not be resolved to any PRISM field path. For each miss:
+  </p>
+  <ul>
+    <li><strong>Label</strong> — the raw label text as seen in the HTML</li>
+    <li><strong>Count</strong> — how many times this label was seen across all filings</li>
+    <li><strong>Sample value</strong> — an example value from the table (helps you understand what the field contains)</li>
+    <li><strong>Issuer</strong> — the most recent issuer where this label appeared</li>
+  </ul>
+  <p>
+    Click the label to pre-fill it in the "Add Mapping" form. Then type the correct PRISM field path
+    and click <strong>Add</strong>. This saves the mapping to <code>label_map_user.yaml</code>.
+  </p>
+  <p>
+    You can also click <strong>Dismiss</strong> to hide a miss from the log (e.g., for labels that
+    you've decided not to map, such as footnote references or headers).
+  </p>
+
+  <h3 class="sub-sub-title">Mapping Panel</h3>
+  <p>
+    The right side shows all existing mappings. The baseline (cross-issuer) entries are shown in grey
+    and cannot be removed here. User-added entries have a delete (×) button. You can also use this
+    panel to add new mappings directly without going through the Miss Log.
+  </p>
+
+  <div class="callout callout-tip">
+    <strong>When to add a mapping</strong>
+    Add a mapping when you see a label in the Miss Log that clearly corresponds to a PRISM field,
+    but the tool didn't know how to connect them. After adding, re-run extraction on affected filings
+    to pick up the new mapping.
+  </div>
+
+  <!-- Schema Manager -->
+  <h2 class="sub-title" id="schema">Tab: Schema Manager</h2>
+  <p>
+    The Schema Manager allows you to update the PRISM JSON schema without restarting the server.
+    The PRISM schema (<code>schemas/prism/prism-v1.schema.json</code>) defines all payout types
+    and their field structures. When PRISM evolves, you can fetch and review the new schema before
+    activating it.
+  </p>
+
+  <h3 class="sub-sub-title">Checking for Updates</h3>
+  <ol class="steps">
+    <li>Click <strong>Fetch Latest Schema</strong>. The backend fetches from the configured PRISM schema URL (<code>http://10.10.21.57:30080/api/schema/json</code>) and stores it in <code>schemas/prism/pending/</code>.</li>
+    <li>The diff is computed automatically and displayed in the UI.</li>
+  </ol>
+
+  <h3 class="sub-sub-title">Reading the Diff</h3>
+  <p>The diff classifies every change by severity:</p>
+  <table class="data-table">
+    <thead><tr><th>Severity</th><th>Meaning</th><th>Action Required</th></tr></thead>
+    <tbody>
+      <tr><td><strong style="color:#dc2626">Breaking</strong></td><td>A field was removed or its type changed incompatibly. Existing extracted data may be invalid.</td><td>Review all affected filings before activating.</td></tr>
+      <tr><td><strong style="color:#d97706">Caution</strong></td><td>An enum value was added or a field was made more permissive. Unlikely to break, but check.</td><td>Review the specific change.</td></tr>
+      <tr><td><strong style="color:#16a34a">Safe</strong></td><td>A new field was added or a description changed. No impact on existing data.</td><td>Safe to activate immediately.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-sub-title">Activating a New Schema</h3>
+  <p>
+    After reviewing the diff, click <strong>Activate</strong> to replace the active schema.
+    The old schema is automatically archived to <code>schemas/prism/archive/</code> with a timestamp.
+    The schema loader reloads immediately — no server restart needed. All future classifications
+    and extractions will use the new schema.
+  </p>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 5: Admin                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="admin">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Admin</div>
+  <h1 class="section-title">5. Admin</h1>
+
+  <!-- Log Viewer -->
+  <h2 class="sub-title" id="log-viewer">Tab: Log Viewer</h2>
+  <p>
+    The Log Viewer shows entries from the application log file (<code>logs/app.log</code>). Each
+    log line shows the timestamp, level (INFO / WARNING / ERROR), module name, and message.
+  </p>
+
+  <h3 class="sub-sub-title">Filtering Logs</h3>
+  <ul>
+    <li><strong>Level filter</strong> — show All, INFO+, WARNING+, or ERROR only</li>
+    <li><strong>Module filter</strong> — type a module name substring (e.g., "extractor", "classifier", "html") to see only messages from that component</li>
+    <li><strong>Line count</strong> — adjust how many recent entries to retrieve (default 200)</li>
+  </ul>
+
+  <h3 class="sub-sub-title">Downloading the Log</h3>
+  <p>
+    The <strong>Download Log</strong> button downloads the full <code>app.log</code> file as a plain
+    text file. Useful for sharing with support or analysing long runs in a text editor.
+  </p>
+
+  <!-- Cost & Usage -->
+  <h2 class="sub-title" id="cost-usage">Tab: Cost &amp; Usage</h2>
+  <p>
+    The Cost &amp; Usage tab shows Claude API spending and token usage across all filings. Data is
+    read from the <code>api_usage_log</code> database table, which records every Claude API call.
+  </p>
+
+  <h3 class="sub-sub-title">Summary Cards</h3>
+  <table class="data-table">
+    <thead><tr><th>Card</th><th>What It Shows</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Total cost</strong></td><td>Lifetime USD spend on all Claude API calls</td></tr>
+      <tr><td><strong>This week</strong></td><td>Rolling 7-day spend</td></tr>
+      <tr><td><strong>This month</strong></td><td>Rolling 30-day spend</td></tr>
+      <tr><td><strong>Filings processed</strong></td><td>Total distinct filings that consumed API budget</td></tr>
+      <tr><td><strong>Cost per filing</strong></td><td>Average USD per filing (classify + extract)</td></tr>
+      <tr><td><strong>Cache hit rate</strong></td><td>Percentage of input tokens served from prompt cache (saves ~90% vs full input price)</td></tr>
+      <tr><td><strong>Cache savings</strong></td><td>USD saved through prompt caching</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-sub-title">By Step Breakdown</h3>
+  <p>
+    A table showing cost broken down by pipeline step:
+    <code>classify_stage1</code>, <code>classify_stage2</code>, <code>extract</code>,
+    and individual section calls in sectioned mode. Each row shows total cost, number of calls,
+    average cost per call, and cache savings.
+  </p>
+
+  <h3 class="sub-sub-title">Timeline Chart</h3>
+  <p>
+    A bar chart of spending over time, bucketed by day, week, or month. Each bar is split into
+    classify (violet) and extract (green) costs. Use this to track how spending evolves as you
+    process more filings.
+  </p>
+
+  <h3 class="sub-sub-title">Model Comparison</h3>
+  <p>
+    Shows what your actual usage would have cost on each available Claude model, calculated from
+    your real token counts. Useful for evaluating whether switching models would save money.
+  </p>
+
+  <h3 class="sub-sub-title">Model Selector</h3>
+  <p>
+    You can change the active Claude model directly from this tab. This is equivalent to changing
+    it in Extraction Settings. The change takes effect immediately.
+  </p>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 6: Common Workflows                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="workflows">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Common Workflows</div>
+  <h1 class="section-title">6. Common Workflows</h1>
+
+  <h2 class="sub-title">Workflow: Ingest and Extract a New Barclays Filing</h2>
+  <ol class="steps">
+    <li>Click <strong>Filings</strong> in the top nav, then the <strong>Ingest</strong> tab in the sidebar.</li>
+    <li>In the EDGAR Search box, type "Barclays" as the entity name and optionally a product keyword like "barrier reverse convertible". Set a date range if needed. Click <strong>Search EDGAR</strong>.</li>
+    <li>Browse the results. When you find the target filing, note the accession number and click <strong>Ingest</strong>.</li>
+    <li>The filing appears in the filings list with status <span class="status-badge badge-ingested">ingested</span>. Click it.</li>
+    <li>Click <strong>Classify</strong>. Wait 5–15 seconds. The status changes to <span class="status-badge badge-classified">classified</span> and the PRISM model is shown.</li>
+    <li>If the model looks correct, click <strong>Extract</strong>. Wait 15–60 seconds.</li>
+    <li>The field table appears. Review fields with <span class="status-badge badge-ai">AI</span> badge and low confidence. Use Expert Review for side-by-side verification.</li>
+    <li>Click <strong>Approve</strong>. Then <strong>Export</strong> to generate JSON + CSV.</li>
+  </ol>
+
+  <h2 class="sub-title">Workflow: Why Are Some Fields Showing AI Badge Instead of TABLE?</h2>
+  <p>
+    The <span class="status-badge badge-table">TABLE</span> badge means the field was extracted from
+    the Key Terms HTML table — deterministically, without AI. If a field shows
+    <span class="status-badge badge-ai">AI</span> instead, it means either:
+  </p>
+  <ul>
+    <li>The field was not present in the Key Terms table (it may be in a different section of the filing)</li>
+    <li>The label existed in the table but couldn't be mapped to a PRISM field path — check the Miss Log in the Label Map tab</li>
+    <li>The label was mapped but the parser returned None (value was in an unexpected format)</li>
+  </ul>
+  <p><strong>Steps to improve TABLE coverage:</strong></p>
+  <ol class="steps">
+    <li>Go to <strong>Expert ⚙ &rarr; Label Map</strong>. Check the Miss Log for any labels from this filing's issuer.</li>
+    <li>For each unmatched label that should map to a PRISM field, click the label, select the correct PRISM path, and click <strong>Add</strong>.</li>
+    <li>Go back to the filing and click <strong>Re-Extract</strong>. The new mappings are picked up immediately.</li>
+    <li>If the label was not in the Key Terms table at all, check the issuer's <code>key_terms_table_heading</code> in the Field Hints. If it's wrong, the extractor may be scanning the wrong table.</li>
+  </ol>
+
+  <h2 class="sub-title">Workflow: A Field Value Is Wrong — How Do I Correct It?</h2>
+  <ol class="steps">
+    <li>In the field table, find the incorrect field. Check its source badge — this tells you where the wrong value came from.</li>
+    <li>Click the <strong>Edit</strong> icon on the field row.</li>
+    <li>Read the source excerpt shown below the editor — this is the text Claude used. If the excerpt itself is wrong, the issue is in the filing or the hints.</li>
+    <li>Type the correct value in the editor and click <strong>Correct</strong>. The field is saved with <code>review_status = corrected</code>.</li>
+    <li>If the same error occurs repeatedly across filings from the same issuer, consider adding or updating a Field Hint (Expert ⚙ &rarr; Field Hints) to guide Claude to the right interpretation.</li>
+  </ol>
+
+  <h2 class="sub-title">Workflow: A New Label Appeared in the Miss Log — How Do I Map It?</h2>
+  <ol class="steps">
+    <li>Go to <strong>Expert ⚙ &rarr; Label Map</strong>.</li>
+    <li>In the Miss Log panel, find the new label. Note the sample value — this tells you what the field contains.</li>
+    <li>Look up the corresponding PRISM field path. You can refer to the active schema or the Tech Handbook's field reference.</li>
+    <li>Click the label to pre-fill the mapping form.</li>
+    <li>Type or paste the PRISM field path (e.g., <code>coupon.rate</code>) and click <strong>Add Mapping</strong>.</li>
+    <li>Go to the affected filing(s) and click <strong>Re-Extract</strong>.</li>
+  </ol>
+
+  <h2 class="sub-title">Workflow: The PRISM Schema Was Updated — What Do I Do?</h2>
+  <ol class="steps">
+    <li>Go to <strong>Expert ⚙ &rarr; Schema</strong>.</li>
+    <li>Click <strong>Fetch Latest Schema</strong>. The backend downloads the latest schema from the PRISM server.</li>
+    <li>Read the diff carefully. Pay attention to any <strong style="color:#dc2626">Breaking</strong> changes — these mean fields were removed or types changed.</li>
+    <li>If there are breaking changes, assess the impact on existing approved filings before proceeding.</li>
+    <li>If you are satisfied, click <strong>Activate</strong>. The old schema is archived and the new one is loaded immediately.</li>
+    <li>For filings that were extracted with the old schema, consider re-extracting to populate any new fields.</li>
+  </ol>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 7: Troubleshooting FAQ                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="troubleshooting">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Troubleshooting</div>
+  <h1 class="section-title">7. Troubleshooting FAQ</h1>
+
+  <div class="card">
+    <strong>The backend status shows "Backend down" (red dot)</strong>
+    <p style="margin-top:8px">
+      The FastAPI server is not running or not reachable on port 8000. Check your terminal window
+      running uvicorn. Common causes: the virtual environment is not activated, the server crashed
+      (check <code>logs/app.log</code>), or another process is using port 8000.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>"API key missing" warning in the header</strong>
+    <p style="margin-top:8px">
+      The <code>ANTHROPIC_API_KEY</code> environment variable is not set. You cannot classify or
+      extract without it. Set it before starting the backend:
+      <code>export ANTHROPIC_API_KEY="sk-ant-..."</code>
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Classification returned "unknown" or "needs review"</strong>
+    <p style="margin-top:8px">
+      This happens when Claude's confidence was below 0.60 (forced to "unknown") or between 0.60
+      and 0.75 ("needs review"). Use <strong>Set Model</strong> to manually assign the correct
+      PRISM payout type. The manual correction feeds back into future classification prompts as
+      a few-shot example.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Extraction is blocked with "Classification confidence too low"</strong>
+    <p style="margin-top:8px">
+      The classification confidence is below the gate threshold (default 0.80). This prevents
+      spending extraction budget on filings that may be classified into the wrong model.
+      Use <strong>Set Model</strong> to manually confirm the correct model, or lower the gate
+      threshold in Extraction Settings.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Many fields show "Not found" after extraction</strong>
+    <p style="margin-top:8px">
+      Possible causes: (1) The filing is classified into the wrong PRISM model — the schema
+      expects different fields than what the filing actually contains. (2) The text window was
+      not anchored on the Key Terms section — check if the issuer's <code>section_headings</code>
+      are configured in Field Hints. (3) The filing is very long and the relevant section was
+      beyond the 120K character limit — try enabling Sectioned Extraction mode.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>HTML table extraction is not finding any fields (all AI badge)</strong>
+    <p style="margin-top:8px">
+      The Key Terms table was not found in the HTML. Check: (1) Is the issuer's
+      <code>key_terms_table_heading</code> set correctly in Field Hints? (2) Use Expert Review
+      to open the filing HTML and verify the heading text of the Key Terms table. (3) The issuer
+      may use a non-standard heading — add the correct heading to the issuer YAML hints.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Export button is greyed out</strong>
+    <p style="margin-top:8px">
+      The filing must be in "approved" status before exporting. Click <strong>Approve</strong>
+      first (all pending fields are auto-accepted on approval).
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Ingest fails with "Filing not found on EDGAR"</strong>
+    <p style="margin-top:8px">
+      The accession number may be wrong, or the filing may not be a 424B2 form. Verify the
+      accession number on the SEC EDGAR website. Also check EDGAR rate limit logs — if the
+      backend is making too many requests, EDGAR may temporarily block the IP.
+    </p>
+  </div>
+
+  <div class="card">
+    <strong>Schema fetch fails with "502 Bad Gateway"</strong>
+    <p style="margin-top:8px">
+      The PRISM schema server at <code>10.10.21.57:30080</code> is not reachable. Ensure you
+      are connected to the LPA network or VPN. Check the Admin Log Viewer for the detailed error.
+    </p>
+  </div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 8: Glossary                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="content-section" id="glossary">
+  <div class="breadcrumb"><a href="#">Home</a> <span>/</span> Glossary</div>
+  <h1 class="section-title">8. Glossary</h1>
+
+  <div class="glossary-item">
+    <div class="glossary-term">424B2</div>
+    <div class="glossary-def">
+      The SEC form type used for prospectus supplements of structured products. Every new note
+      issuance is accompanied by a 424B2 filing that describes the product's full economic and
+      legal terms. All filings in this tool are 424B2 documents.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">EDGAR</div>
+    <div class="glossary-def">
+      Electronic Data Gathering, Analysis, and Retrieval — the SEC's public filing system.
+      All US-registered securities filings are submitted to and hosted by EDGAR.
+      The base URL is <code>https://www.sec.gov/cgi-bin/browse-edgar</code>.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">CUSIP</div>
+    <div class="glossary-def">
+      Committee on Uniform Securities Identification Procedures — a 9-character alphanumeric
+      identifier assigned to each individual security. Every structured note has a unique CUSIP.
+      The tool uses CUSIPs to look up the expected PRISM model from the CUSIP mapping spreadsheet.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">PRISM</div>
+    <div class="glossary-def">
+      LPA's internal data model for structured financial products. PRISM defines a JSON schema
+      with specific fields and types for each payout type (Barrier Reverse Convertible, Autocall Note, etc.).
+      The goal of this tool is to populate PRISM-format JSON from raw 424B2 filings.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Payout Type / PRISM Model</div>
+    <div class="glossary-def">
+      A classification of structured products by their payoff structure. Examples:
+      "barrierReverseConvertible", "autocallNote", "participationNote".
+      Each model has its own set of PRISM fields. The classifier assigns one model per filing.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Tier 0 Extraction (Registry)</div>
+    <div class="glossary-def">
+      The highest-confidence extraction tier. Populates fields that are already known from
+      EDGAR registry metadata — specifically CUSIP and issuer name. Confidence = 1.0.
+      No document parsing required.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Tier 1 Extraction (HTML Table)</div>
+    <div class="glossary-def">
+      The second extraction tier. Parses the structured Key Terms HTML table present in most
+      424B2 filings, maps label text to PRISM field paths using the label map, and converts
+      raw cell text to typed values using field parsers. Confidence = 0.97. Deterministic and fast.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Tier 2 Extraction (LLM)</div>
+    <div class="glossary-def">
+      The third extraction tier. Sends the filing text and PRISM schema to Claude AI via a
+      structured tool call. Claude populates all schema fields it can find, with per-field
+      confidence scores and source excerpts. Handles fields not covered by Tiers 0/1.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Accession Number</div>
+    <div class="glossary-def">
+      EDGAR's unique identifier for a filing submission. Format: <code>XXXXXXXXXX-YY-ZZZZZZ</code>
+      (10-digit CIK, 2-digit year, 6-digit sequence). Used to locate the filing on EDGAR and
+      as the local folder name (dashes removed).
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Label Map</div>
+    <div class="glossary-def">
+      A configuration file mapping raw Key Terms table label text (e.g., "Maturity Date:")
+      to PRISM dot-path field identifiers (e.g., <code>structuredProductsGeneric.maturityDate</code>).
+      Three layers: cross-issuer baseline, user additions, and per-issuer overrides.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Miss Log</div>
+    <div class="glossary-def">
+      A database log of label strings that appeared in Key Terms tables but could not be
+      resolved to any PRISM field path. Surfaced in the Expert Label Map tab to guide
+      the user in adding new mappings.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Prompt Caching</div>
+    <div class="glossary-def">
+      An Anthropic API feature where the static portion of a prompt (system prompt, schema,
+      hints) is cached on Anthropic's servers after the first call. Subsequent calls that
+      reuse the same prefix only pay the cache-read rate (0.10× the regular input rate),
+      reducing extraction cost by ~80–90% on repeated runs.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Confidence Score</div>
+    <div class="glossary-def">
+      A 0.0–1.0 score indicating certainty of an extracted value. Registry fields always
+      score 1.0. HTML table fields score 0.97. LLM fields are self-reported by Claude:
+      1.0 = verbatim quote, 0.7 = inferred from context, 0.4 = estimated.
+      Fields below 0.80 are highlighted in amber in the UI.
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">KPI Strip</div>
+    <div class="glossary-def">
+      The row of coloured metric chips shown below the filing header in the detail view.
+      KPI = Key Performance Indicator. Shows timing, token counts, and USD cost for each
+      pipeline step (Ingest, Classify, Extract).
+    </div>
+  </div>
+
+  <div class="glossary-item">
+    <div class="glossary-term">Sectioned Extraction</div>
+    <div class="glossary-def">
+      An optional extraction mode where the schema is split into logical sections (identifiers,
+      product terms, barrier, autocall, coupon, parties) and each section gets its own Claude
+      call. More expensive but can improve results on complex or long filings.
+    </div>
+  </div>
+</div>
+
+</div><!-- end #main-content -->
+</div><!-- end #app-layout -->
+
+<!-- Back to top -->
+<button id="back-to-top" title="Back to top">&#8679;</button>
+
+<!-- Support Chat Widget -->
+<button id="chat-btn" title="Ask the AI assistant">&#128172;</button>
+<div id="chat-panel">
+  <div id="chat-header">
+    <span>Assistant</span>
+    <button id="chat-close">&#x2715;</button>
+  </div>
+  <div id="chat-messages">
+    <div class="chat-msg bot">Hi! I can answer questions about using this tool. Ask me anything.</div>
+  </div>
+  <div id="chat-input-row">
+    <input id="chat-input" type="text" placeholder="Ask a question…" autocomplete="off">
+    <button id="chat-send">Send</button>
+  </div>
+</div>
+
+<script>
+// ── Table of Contents active state ──────────────────────────────────────────
+const sections = document.querySelectorAll('.content-section, h2[id], h3[id]');
+const tocLinks = document.querySelectorAll('#toc a');
+
+function updateToc() {
+  let current = '';
+  sections.forEach(sec => {
+    const rect = sec.getBoundingClientRect();
+    if (rect.top <= 140) current = sec.id;
+  });
+  tocLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', updateToc, { passive: true });
+updateToc();
+
+// ── Back to top ──────────────────────────────────────────────────────────────
+const btt = document.getElementById('back-to-top');
+window.addEventListener('scroll', () => {
+  btt.classList.toggle('visible', window.scrollY > 300);
+}, { passive: true });
+btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// ── Client-side search ───────────────────────────────────────────────────────
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+const searchPrev  = document.getElementById('search-prev');
+const searchNext  = document.getElementById('search-next');
+
+let marks = [];
+let markIdx = 0;
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NAV', 'INPUT']);
+
+function clearMarks() {
+  document.querySelectorAll('mark.search-hit').forEach(m => {
+    const parent = m.parentNode;
+    parent.replaceChild(document.createTextNode(m.textContent), m);
+    parent.normalize();
+  });
+  marks = [];
+  markIdx = 0;
+  searchCount.textContent = '';
+}
+
+function doSearch(term) {
+  clearMarks();
+  if (!term || term.length < 2) return;
+  const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const walker = document.createTreeWalker(
+    document.getElementById('main-content'),
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        if (!node.textContent.trim()) return NodeFilter.FILTER_SKIP;
+        let p = node.parentNode;
+        while (p) {
+          if (SKIP_TAGS.has(p.tagName)) return NodeFilter.FILTER_SKIP;
+          p = p.parentNode;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+  const textNodes = [];
+  let n;
+  while ((n = walker.nextNode())) textNodes.push(n);
+
+  textNodes.forEach(node => {
+    if (!re.test(node.textContent)) return;
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(node.textContent)) !== null) {
+      frag.appendChild(document.createTextNode(node.textContent.slice(last, m.index)));
+      const mark = document.createElement('mark');
+      mark.className = 'search-hit';
+      mark.textContent = m[0];
+      frag.appendChild(mark);
+      marks.push(mark);
+      last = m.index + m[0].length;
+    }
+    frag.appendChild(document.createTextNode(node.textContent.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+
+  if (marks.length) {
+    markIdx = 0;
+    highlightCurrent();
+    searchCount.textContent = `1 / ${marks.length}`;
+  } else {
+    searchCount.textContent = 'No matches';
+  }
+}
+
+function highlightCurrent() {
+  marks.forEach((m, i) => m.classList.toggle('current', i === markIdx));
+  if (marks[markIdx]) marks[markIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+searchInput.addEventListener('input', () => doSearch(searchInput.value));
+searchNext.addEventListener('click', () => {
+  if (!marks.length) return;
+  markIdx = (markIdx + 1) % marks.length;
+  highlightCurrent();
+  searchCount.textContent = `${markIdx + 1} / ${marks.length}`;
+});
+searchPrev.addEventListener('click', () => {
+  if (!marks.length) return;
+  markIdx = (markIdx - 1 + marks.length) % marks.length;
+  highlightCurrent();
+  searchCount.textContent = `${markIdx + 1} / ${marks.length}`;
+});
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchNext.click();
+  if (e.key === 'Escape') { searchInput.value = ''; clearMarks(); }
+});
+
+// ── Support Chat Widget ──────────────────────────────────────────────────────
+const chatBtn    = document.getElementById('chat-btn');
+const chatPanel  = document.getElementById('chat-panel');
+const chatClose  = document.getElementById('chat-close');
+const chatInput  = document.getElementById('chat-input');
+const chatSend   = document.getElementById('chat-send');
+const chatMsgs   = document.getElementById('chat-messages');
+
+let chatHistory = [];
+
+chatBtn.addEventListener('click', () => chatPanel.classList.toggle('open'));
+chatClose.addEventListener('click', () => chatPanel.classList.remove('open'));
+
+function appendMsg(text, role, isError) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role + (isError ? ' error' : '');
+  div.textContent = text;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return div;
+}
+
+async function sendChat() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  chatInput.value = '';
+  chatSend.disabled = true;
+
+  appendMsg(msg, 'user');
+  const thinkingDiv = appendMsg('Thinking…', 'bot');
+
+  chatHistory.push({ role: 'user', content: msg });
+
+  try {
+    const resp = await fetch('http://localhost:8000/api/docs/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, history: chatHistory.slice(-10) }),
+    });
+    const data = await resp.json();
+    const reply = data.reply || 'No response.';
+    thinkingDiv.textContent = reply;
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch (e) {
+    thinkingDiv.textContent = 'Could not reach the backend. Is the server running?';
+    thinkingDiv.classList.add('error');
+    chatHistory.pop();
+  } finally {
+    chatSend.disabled = false;
+    chatInput.focus();
+  }
+}
+
+chatSend.addEventListener('click', sendChat);
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+</script>
+</body>
+</html>

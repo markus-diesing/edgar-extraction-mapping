@@ -1,0 +1,32 @@
+
+> edgar-extraction-ui@0.1.0 dev
+> vite
+
+
+  VITE v6.4.1  ready in 382 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+9:00:38 AM [vite] (client) hmr update /src/components/StatusBadge.jsx
+7:55:36 AM [vite] (client) hmr update /src/App.jsx, /src/components/FilingDetail.jsx, /src/components/HintsEditor.jsx, /src/components/IngestPanel.jsx, /src/components/ExtractionSettings.jsx, /src/components/SectionPromptsEditor.jsx, /src/components/FieldTable.jsx
+7:55:42 AM [vite] (client) hmr update /src/App.jsx
+7:55:46 AM [vite] (client) hmr update /src/App.jsx
+7:55:50 AM [vite] (client) hmr update /src/App.jsx
+7:55:55 AM [vite] (client) hmr update /src/App.jsx
+1:16:28 PM [vite] (client) hmr update /src/components/HintsEditor.jsx
+2:30:43 PM [vite] (client) hmr update /src/components/FieldTable.jsx
+2:30:51 PM [vite] (client) hmr update /src/components/FieldTable.jsx
+2:42:05 PM [vite] (client) hmr update /src/App.jsx, /src/components/FilingDetail.jsx, /src/components/HintsEditor.jsx, /src/components/IngestPanel.jsx, /src/components/ExtractionSettings.jsx, /src/components/SectionPromptsEditor.jsx, /src/components/FieldTable.jsx, /src/components/AdminLogViewer.jsx, /src/components/AdminUsage.jsx
+2:43:51 PM [vite] (client) hmr update /src/App.jsx
+2:43:56 PM [vite] (client) hmr update /src/App.jsx
+2:44:01 PM [vite] (client) hmr update /src/App.jsx
+3:22:40 PM [vite] (client) hmr update /src/components/ExpertReview.jsx
+3:57:46 PM [vite] (client) hmr update /src/App.jsx, /src/components/FilingDetail.jsx, /src/components/HintsEditor.jsx, /src/components/IngestPanel.jsx, /src/components/ExtractionSettings.jsx, /src/components/SectionPromptsEditor.jsx, /src/components/FieldTable.jsx, /src/components/AdminLogViewer.jsx, /src/components/AdminUsage.jsx, /src/components/LabelMapEditor.jsx
+3:59:37 PM [vite] (client) hmr update /src/App.jsx
+3:59:41 PM [vite] (client) hmr update /src/App.jsx
+3:59:45 PM [vite] (client) hmr update /src/App.jsx
+4:18:31 PM [vite] (client) hmr update /src/components/FieldTable.jsx
+4:18:35 PM [vite] (client) hmr update /src/components/FieldTable.jsx
+4:18:47 PM [vite] (client) hmr update /src/components/IngestPanel.jsx
+4:18:54 PM [vite] (client) hmr update /src/components/AdminLogViewer.jsx
+4:18:59 PM [vite] (client) hmr update /src/components/AdminLogViewer.jsx

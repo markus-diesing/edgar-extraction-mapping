@@ -2,7 +2,7 @@
 
 **Author:** Markus / Claude Code
 **Date:** 2026-03-22
-**Status:** Strategic proposal — open questions pending answer before implementation
+**Status:** Strategy confirmed — open questions resolved 2026-03-22; see bottom of file
 
 ---
 
@@ -148,39 +148,49 @@ Layer the options as complementary capabilities:
 
 ---
 
-## Open Questions (to be answered before implementation)
+## Open Questions — Resolved 2026-03-22
 
-These questions determine the shape of the implementation:
+**Q1 — Who authors new model schemas?**
+The PRISM team. The classificationHints format specification must be agreed with that team before they begin populating it. We define the format; they write the content when each model is added.
 
-**Q1 — Who authors new model schemas, and does documentation come with them?**
-When the PRISM team adds a model, do they provide a description, term sheet, or naming conventions alongside the JSON schema? If yes, that documentation is the raw material for classificationHints and the human effort per new model is close to zero.
+**Q2 — Is any initial human annotation acceptable?**
+Yes. ~15 min per model by the schema author is an acceptable cost. The PRISM team is the right author — they know the product type.
 
-**Q2 — Is any initial human annotation acceptable per new model?**
-There is a meaningful difference between "someone spends 15 minutes writing hints when model X is added" and "the system must handle model X with no human involvement at all". The first is achievable immediately. The second requires active learning and months of data accumulation.
+**Q3 — Frequency of new PRISM models?**
+**Approximately weekly, near-term.** The PRISM team is actively expanding coverage. All 196 payout types in `Payout_to_Features.xlsx` (and more) are expected to be covered in the short term. This is not a multi-month horizon.
 
-**Q3 — What is the expected frequency of new PRISM models?**
-Monthly? Quarterly? Annually? This affects whether the one-time-per-model annotation effort is negligible or burdensome.
+**Q4 — What happens when a filing matches no current model?**
+Route to `needs_review`. The three-state status system (B1/B2) is the safeguard. A filing of an as-yet-unmodelled type is flagged for human review rather than forced into a wrong model. As the schema expands weekly, this state becomes increasingly rare.
 
-**Q4 — What happens when a filing matches no current PRISM model?**
-Should the system output "no matching model — candidate for new model definition"? Or is the assumption that PRISM always covers what EDGAR contains? If structured products evolve faster than PRISM does, a graceful "I don't know" path is needed.
+**Q5 — Is classification by product type or issuer naming?**
+Product type (structural). Issuer-specific vocabulary is handled by the feature extraction layer (22-dimension vector) and few-shot examples in classificationHints. These are the LLM's bridge between different issuers' naming conventions and the structural PRISM model.
 
-**Q5 — Is classification primarily about product type, or also about issuer-specific naming?**
-Two Barclays Phoenix Notes and one JPMorgan Contingent Income Note may be structurally identical PRISM models described in completely different vocabulary. At what point is a new product genuinely a new PRISM model vs. a renamed variant of an existing one?
+**Q6 — Acceptable classification error rate on first encounter?**
+New models flag for review for the first N filings. Acceptable. This is exactly what the `needs_classification_review` state in B1/B2 is designed for.
 
-**Q6 — What is the acceptable classification error rate for a new model on first encounter?**
-A brand-new model with only schema hints and no historical examples will have higher misclassification risk on the first few filings. Is "flag for manual review for the first N filings of a new model type" an acceptable policy?
+---
+
+## Consequences for Implementation Sequencing
+
+The weekly expansion cadence has two critical architectural implications:
+
+1. **The classifier must load models dynamically from the schema at runtime.** Hardcoding model names or their characteristics into `classifier.py` would require a code change every week. Instead: at classify-time, load the current schema, enumerate all models and their classificationHints, build the classification prompt from that data. A new model added to the schema is automatically picked up on next run — no code change, no redeploy.
+
+2. **The classificationHints format specification is the deliverable for the team discussion, not the implementation.** We design the format + provide one or two worked examples from existing models. The PRISM team populates it for each model they add. That contract must be agreed before they begin populating models at weekly cadence — otherwise we'll be retrofitting format across many already-added models.
 
 ---
 
 ## Relationship to Existing Open Tasks
 
-This strategy directly drives or informs:
-
-- **A1** — Add `classificationHints` to `prism-v1.schema.json` (9 existing models + 2 missing)
-- **A2** — Add two missing payout models (`yieldEnhancementAutocallBufferCoupon`, `participationBufferDigital`)
-- **B1/B2/B3** — Classification review gate and confirmation workflow (needed for the "flag new model type for review" policy)
-- The xlsx can be formally deprecated once A1 and A2 are complete and validated on a test batch
+| Task | Status update |
+|------|--------------|
+| **A1** — Add classificationHints to existing 9 models | **Blocked on team discussion** — format must be agreed first; then team populates |
+| **A2** — Add 2 missing models | **Subsumed** — schema expansion is ongoing; these 2 models are among many being added |
+| **B1/B2/B3** — Three-state classification gate | **Unblocked** — highest immediate priority; independent of schema content |
+| **New: Dynamic schema loading** | **Unblocked** — replaces any hardcoded model list; essential for weekly cadence |
+| **New: Stage 1 feature extraction prompt** | **Unblocked** — 22-dimension vector extraction; schema-agnostic; builds now |
+| **New: classificationHints format spec** | **Unblocked** — the deliverable for the team meeting; we draft it |
 
 ---
 
-*Next step: answer Q1–Q6 above, then proceed to implement Option 1 (classificationHints) as the foundation.*
+*Strategy confirmed. Next actions: B1+B2 backend (immediate), dynamic schema loading (immediate), classificationHints format spec draft (for team discussion).*

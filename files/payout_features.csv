@@ -1,0 +1,197 @@
+NAME,PRODUCT_SUB_TYPE,WRAPPER_GROUP,COUPON_TYPE,HAS_COUPON_BARRIER,HAS_COUPON,HAS_COUPON_MEMORY,CALL_TYPE,HAS_CALL_PREMIUM,HAS_STEP_UP_AUTO_CALL_HURDLE,HAS_STEP_DOWN_AUTO_CALL_HURDLE,HAS_UPSIDE_PARTICIPATION,HAS_MAXIMUM_RETURN,HAS_DIGITAL_RETURN,HAS_UPSIDE_ABOVE_DIGITAL_RETURN,HAS_UPSIDE_KNOCKOUT,HAS_ABSOLUTE_RETURN,HAS_GEARED_DOWNSIDE,DOWNSIDE_PROTECTION_TYPE,HAS_BEARISH,HAS_RAINBOW,HAS_LOOK_BACK,HAS_REBATE,MULTIPLE_FINAL_VALUATION_DATES_STYLE,HAS_FIXED_TO_FLOAT_TERMS,HAS_ONE_STAR
+Floor Capped Allocation CD,PROTECTION,CD,,False,False,False,NONE,False,False,False,True,False,False,False,False,False,False,FLOOR,False,True,False,False,,False,False
+Buffer Dual Directional Issuer-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Bearish Auto-Callable Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,False,NONE,True,False,False,False,,False,False
+Buffer Auto-Callable Drawdown Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Floor Dual Directional Capped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,True,False,FLOOR,False,False,False,False,,False,False
+Issuer-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,ISSUER_CALLABLE,False,False,False,True,False,False,False,False,False,False,NONE,False,False,False,False,,False,False
+Buffer Issuer-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Floor Issuer-Callable Uncapped Growth CD,PROTECTION,CD,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor High Watermark Uncapped CD,PROTECTION,CD,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,HIGH_WATER_MARK,False,False
+Floor Synthetic Convertible Fixed Yield Note,PROTECTION,NOTE,FIXED,False,True,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,AVERAGING,False,False
+Floor Synthetic Convertible Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,AVERAGING,False,False
+Floor Auto-Callable CD,PROTECTION,CD,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Digital Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,True,True,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Fixed to Floating Yield CD,PROTECTION,CD,FLOATING,False,False,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,True,False
+Geared Buffer Issuer-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Floor Issuer-Callable Contingent Yield Note,PROTECTION,NOTE,CONTINGENT,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Auto-Callable Step-Up Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,AUTO_WITH_STEP,True,True,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Auto-Callable Step-Up Uncapped Growth CD,PROTECTION,CD,,False,False,False,AUTO_WITH_STEP,True,True,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Contingent Yield CD,PROTECTION,CD,CONTINGENT,True,True,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Issuer-Callable Contingent Yield CD,PROTECTION,CD,CONTINGENT,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Issuer-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Capped Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,,False,False,False,True,True,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Floor Average Uncapped Growth CD,PROTECTION,CD,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,AVERAGING,False,False
+Barrier Auto-Callable Step-Down One-Star Note,GROWTH,NOTE,,False,False,False,AUTO_WITH_STEP,True,False,True,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,True
+Barrier One Star Auto-Callable Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,True
+Barrier One-Star Issuer-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,True
+Barrier One-Star Auto-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,True
+Barrier One-Star Auto-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,True
+Geared Buffer Dual Directional Digital Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,False,False,True,True,BUFFER,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Down Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_WITH_STEP,True,False,True,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Fixed Yield Note,PROTECTION,NOTE,FIXED,False,True,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Contingent Yield Note,PROTECTION,NOTE,CONTINGENT,True,True,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Uncapped Growth Allocation Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,BARRIER,False,True,False,False,,False,False
+Floor Rebate Note,PROTECTION,NOTE,,False,False,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,True,,False,False
+Floor Fixed to Floating Yield Note,PROTECTION,NOTE,FIXED,False,True,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,True,False
+Floor Issuer-Callable Fixed to Leveraged Uncapped Floating Yield Note,PROTECTION,NOTE,FLOATING,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,True,False
+Floor Floating Yield Note,PROTECTION,NOTE,FLOATING,False,False,False,,False,False,False,False,False,False,False,False,False,False,FULL,False,False,False,False,,False,False
+Floating Yield Note,YIELD,NOTE,FLOATING,False,False,False,,False,False,False,False,False,False,False,False,False,False,,False,False,False,False,,False,False
+Issuer-Callable Floating Yield Note,YIELD,NOTE,FLOATING,False,False,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,,False,False,False,False,,False,False
+Buffer Issuer-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Buffer High Watermark Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,BUFFER,False,False,False,False,HIGH_WATER_MARK,False,False
+Barrier Auto-Callable Digital Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,True,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Digital CD,PROTECTION,CD,NONE,False,False,False,,False,False,False,False,False,True,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Dual Directional Floor Rebate Note,PROTECTION,NOTE,NONE,False,False,False,NONE,False,False,False,True,False,False,False,True,True,False,FLOOR,False,False,False,True,,False,False
+Floor Auto-Callable Step-Up Note,PROTECTION,NOTE,,False,False,False,AUTO_CALLABLE,True,True,False,False,False,True,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Auto-Callable Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Geared Buffer Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Barrier Issuer-Callable Fixed to Leveraged Capped Floating Yield Note,YIELD,NOTE,FLOATING,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,,,False,False
+Geared Buffer Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,NONE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Buffer Lookback Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,BUFFER,False,False,True,False,,False,False
+Floor Fixed Yield Uncapped Growth Note,PROTECTION,NOTE,FIXED,False,True,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Dual Directional Floor Uncapped Growth Note,PROTECTION,NOTE,NONE,False,False,False,,False,False,False,True,False,False,False,False,True,False,FLOOR,False,False,False,False,,False,False
+Issuer-Callable Fixed to Leveraged Capped Floating Yield CD,PROTECTION,CD,FLOATING,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,,,False,False
+Buffer Dual Directional Digital Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,True,False,True,False,BUFFER,False,False,False,False,,False,False
+Dual Directional Barrier Auto-Callable Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,False,False,False,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Dual Directional Buffer Capped Growth Note,GROWTH,NOTE,NONE,False,False,False,,False,False,False,True,True,False,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Floor Auto-Callable Contingent Yield Note,PROTECTION,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Buffer Digital Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,,False,False,False,False,False,True,True,False,False,False,BUFFER,False,False,False,False,,False,False
+Barrier Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Contingent Yield Uncapped Growth CD,PROTECTION,CD,CONTINGENT,True,True,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Dual Directional Barrier Auto-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Fixed Yield Reverse Range Accrual Note,YIELD,NOTE,FIXED,False,True,False,,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FULL,False,False,False,False,,False,False
+Geared Buffer Range Accrual Note,YIELD,NOTE,ACCRUAL,True,True,False,,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Bearish Floor Capped Growth Note,PROTECTION,NOTE,NONE,False,False,False,NONE,False,False,False,False,True,False,False,False,False,False,FLOOR,True,False,False,False,,False,False
+Barrier Auto-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Issuer-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Buffer Dual Directional Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Dual Directional Geared Buffer Capped Growth Note,GROWTH,NOTE,NONE,False,False,False,,False,False,False,True,True,False,False,False,True,True,BUFFER,False,False,False,False,,False,False
+Allocation Auto-Callable Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,False,FULL,False,True,False,False,,False,False
+Geared Buffer Issuer-Callable Range Accrual Note,YIELD,NOTE,ACCRUAL,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Barrier Digital Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Issuer-Callable Range Accrual Note,YIELD,NOTE,ACCRUAL,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Floor Auto-Callable Capped Growth CD,PROTECTION,CD,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,True,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Up Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,True,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Auto-Callable Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,False,FULL,False,False,False,False,,False,False
+Auto-Callable Digital Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,True,False,False,False,NONE,False,False,False,False,,False,False
+Barrier Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Issuer-Callable Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Up Note,GROWTH,NOTE,NONE,False,False,False,AUTO_WITH_STEP,True,True,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Geared Buffer Digital Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,NONE,False,False,False,False,False,True,True,False,False,True,BUFFER,False,False,False,False,,False,False
+Floor Bearish Rebate Note,PROTECTION,NOTE,NONE,False,False,False,NONE,False,False,False,False,False,False,False,True,True,False,FLOOR,False,False,False,True,,False,False
+Buffer Digital Plus Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,True,False,False,False,BUFFER,False,False,False,False,,False,False
+Buffer High Watermark Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,BUFFER,False,False,False,,HIGH_WATER_MARK,False,False
+Dual Directional Buffer Digital Growth Note,GROWTH,NOTE,NONE,False,False,False,NONE,False,False,False,False,False,True,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Dual Directional Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,True,False,,False,False,False,,,False,False
+Auto-callable Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,True,True,False,False,False,FULL,False,False,False,False,,False,False
+Buffer Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,,,False,False
+Barrier Capped Growth Allocation Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,BARRIER,False,True,False,False,,False,False
+Buffer Auto-Callable Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Floor Auto-Callable Step-Up Growth Note,PROTECTION,CD,NONE,False,False,False,AUTO_WITH_STEP,True,True,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Down Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,True,False,False,True,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Up Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_WITH_STEP,True,True,False,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Allocation Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,,False,False,False,True,False,False,False,False,False,False,BUFFER,False,True,False,False,,False,False
+Barrier Dual Directional Digital Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Dual Directional Barrier Auto-Callable Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Floor Digital Note,PROTECTION,NOTE,NONE,False,False,False,,False,False,False,False,False,True,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Dual Directional Floor Auto-Callable Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,True,False,FLOOR,False,False,False,,,False,False
+Barrier Auto-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Auto-Callable Memory Yield Note,PROTECTION,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,,,False,False
+Floor Uncapped Growth CD,PROTECTION,CD,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Fixed Yield Uncapped Growth CD,PROTECTION,CD,FIXED,False,True,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Average Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,,AVERAGING,False,False
+Geared Buffered Auto-Callable Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Barrier Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Auto-Callable Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,False,False,False,False,FULL,False,False,False,False,,False,False
+Floor Auto-Callable Note,PROTECTION,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,,,False,False
+Geared Buffer Dual Directional Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,True,True,BUFFER,False,False,False,,,False,False
+Floor Issuer-Callable Fixed Yield Note,PROTECTION,NOTE,FIXED,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,,,False,False
+Dual Directional Barrier Digital Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,NONE,False,False,False,False,False,True,True,False,True,False,BARRIER,False,False,False,False,,False,False
+Floor Capped Growth CD,PROTECTION,CD,,False,False,False,,False,False,False,True,True,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Dual Directional Buffer Auto-Callable Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Geared Buffer Auto-Callable Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Geared Barrier Auto-Callable Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,False,False,False,True,BARRIER,False,False,False,False,,False,False
+Bearish Buffer Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,True,False,NONE,True,False,False,False,,False,False
+Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,FULL,False,False,False,False,,False,False
+Geared Buffer Auto-Callable Digital Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Buffer Dual Directional Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Geared Buffer Auto-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,True,BUFFER,False,False,False,,,False,False
+Floor Issuer-Callable Fixed Yield CD,PROTECTION,CD,FIXED,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FULL,False,False,False,,,False,False
+Floor Issuer-Callable Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,,,False,False
+Dual Directional Buffer Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,,False,False,False,True,False,False,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Bearish Floor Auto-Callable Knock Out Note,PROTECTION,NOTE,,False,False,False,,False,False,False,False,False,False,False,True,False,False,FLOOR,True,False,False,False,,False,False
+Geared Buffer Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Barrier Auto-Callable Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Barrier Dual Directional Auto-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,True,False,BARRIER,True,False,False,,,False,False
+Buffer Auto-Callable Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,,,False,False
+Buffer Auto-Callable Contingent Yield Uncapped Growth Note,GROWTH,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,False,False,BUFFER,False,False,False,,,False,False
+Issuer-Callable Fixed to Leveraged Capped Floating Yield Note,PROTECTION,NOTE,FLOATING,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,FULL,False,False,False,,,False,False
+Barrier Issuer-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Geared Buffer Issuer-Callable Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,,,False,False
+Barrier Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Issuer-Callable Note,PROTECTION,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,,,False,False
+Buffer Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Bearish Buffer Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,True,False,False,False,False,False,BUFFER,True,False,False,False,,False,False
+Barrier Auto-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,True,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Geared Buffer Digital Note,GROWTH,NOTE,NONE,False,False,False,NONE,False,False,False,False,False,True,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Buffer Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,,,False,False
+Geared Buffer Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Barrier Issuer-Callable Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Auto-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Barrier Digital Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,True,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Auto-Callable Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,AUTO_CALLABLE,True,True,False,True,False,True,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Dual Directional Geared Buffer Auto-Callable Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,True,False,False,False,False,True,True,BUFFER,False,False,False,False,,False,False
+Bearish Geared Buffer Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,True,False,False,False,False,True,BUFFER,True,False,False,False,,False,False
+Geared Buffer Issuer-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Geared Buffer Issuer-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,,,False,False
+Bearish Floor Geared Buffer Capped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,True,True,BUFFER,True,False,False,,,False,False
+Barrier Floating Yield Note,YIELD,NOTE,FLOATING,False,True,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Floor Capped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Dual Directional Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Allocation Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,FULL,False,True,False,False,,False,False
+Buffer Capped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Buffer Auto-Callable Range Accrual Note,YIELD,NOTE,ACCRUAL,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Geared Buffer Auto-Callable Step-Down Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,True,False,False,True,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Down Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_WITH_STEP,False,False,True,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Barrier Issuer-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,ISSUER_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Buffer Dual Directional Auto-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,False,False,False,True,False,False,False,False,True,False,BUFFER,True,False,False,,,False,False
+Barrier Auto-Callable Memory Yield Uncapped Growth Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,False,False,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Dual Directional Floor Uncapped Growth CD,PROTECTION,CD,NONE,False,False,False,,False,False,False,True,False,False,False,False,True,False,FLOOR,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Down Uncapped Digital Note,GROWTH,NOTE,,False,False,False,AUTO_WITH_STEP,True,False,True,False,False,True,True,False,False,False,BARRIER,False,False,False,,,False,False
+Buffer Digital Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Barrier Dual Directional Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Geared Buffer Auto-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Step Up Auto-callable Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,True,False,True,False,True,True,False,False,False,FULL,False,False,False,False,,False,False
+Barrier Auto-Callable Fixed Yield Note,YIELD,NOTE,FIXED,False,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Barrier Lookback Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,False,False,BARRIER,False,False,True,False,,False,False
+Buffer Auto-Callable Digital Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,AUTO_CALLABLE,True,False,False,False,False,True,True,False,False,False,BUFFER,False,False,False,False,,False,False
+Buffer Auto-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,False,True,False,True,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Barrier Fixed to Floating Yield Note,YIELD,NOTE,FLOATING,False,True,False,,False,False,False,False,False,False,False,False,False,False,BARRIER,False,False,False,,,False,False
+Floor Bearish Note,PROTECTION,NOTE,,False,False,False,,False,False,False,False,False,False,False,False,True,False,FLOOR,True,False,False,,,False,False
+Dual Directional Floor Digital Rebate Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,True,False,True,True,False,FLOOR,False,False,False,True,,False,False
+Geared Buffer Auto-Callable Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,True,BUFFER,False,False,False,False,,False,False
+Geared Buffer Dual Directional Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,True,True,BUFFER,False,False,False,False,,False,False
+Floor Contingent Yield Uncapped Growth Note,PROTECTION,NOTE,CONTINGENT,True,True,False,,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Dual Directional Digital Uncapped Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,True,False,True,False,BARRIER,False,False,False,False,,False,False
+Floor Auto-Callable Contingent Yield CD,PROTECTION,CD,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,FLOOR,True,False,False,,,False,False
+Floor Floating Yield CD,PROTECTION,CD,FLOATING,False,True,False,,False,False,False,False,False,False,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Buffer Auto-Callable Step-Down Note,GROWTH,NOTE,,False,False,False,AUTO_CALLABLE,True,False,True,False,False,False,False,False,False,False,BUFFER,False,False,False,,,False,False
+Floor Optimal Entry Capped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,True,False,False,False,False,False,FLOOR,False,False,True,,,False,False
+Buffer Auto-Callable Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,False,False,BUFFER,False,False,False,False,,False,False
+Barrier Auto-Callable Step-Up Memory Yield Note,YIELD,NOTE,CONTINGENT,True,True,True,AUTO_CALLABLE,False,True,False,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Barrier Auto-Callable Contingent Yield Note with Growth,GROWTH,NOTE,CONTINGENT,True,True,False,AUTO_CALLABLE,False,False,False,True,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Digital Uncapped Growth Note,GROWTH,NOTE,NONE,False,False,False,NONE,False,False,False,False,False,True,True,False,False,False,NONE,False,False,False,False,,False,False
+Buffer Dual Directional Digital Growth Note,GROWTH,NOTE,,False,False,False,,False,False,False,False,False,True,False,False,True,False,BUFFER,False,False,False,False,,False,False
+Auto-Callable Step-Up Note,GROWTH,NOTE,NONE,False,False,False,AUTO_WITH_STEP,True,True,False,False,False,True,False,False,False,False,FULL,False,False,False,False,,False,False
+Dual Directional Floor Rebate CD,PROTECTION,CD,NONE,False,False,False,NONE,False,False,False,True,False,False,False,False,True,False,FLOOR,False,False,False,True,,False,False
+Barrier Auto-Callable Step-Down Contingent Yield Note,YIELD,NOTE,CONTINGENT,True,True,False,AUTO_WITH_STEP,False,False,True,False,False,False,False,False,False,False,BARRIER,False,False,False,False,,False,False
+Floor Auto-Callable Uncapped Growth CD,PROTECTION,CD,,False,False,False,AUTO_CALLABLE,True,True,False,True,False,True,False,False,False,False,FLOOR,False,False,False,False,,False,False
+Barrier Dual Directional Issuer-Callable Uncapped Growth Note,GROWTH,NOTE,,False,False,False,ISSUER_CALLABLE,True,False,False,True,False,False,False,False,True,False,BARRIER,False,False,False,False,,False,False
+Dual Directional Floor Capped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,True,False,FLOOR,False,False,False,False,,False,False
+Floor Dual Directional Uncapped Growth Note,PROTECTION,NOTE,,False,False,False,,False,False,False,True,False,False,False,False,True,False,FLOOR,False,False,False,False,,False,False
+Floor Dual Directional Auto-Callable Rebate Note,PROTECTION,NOTE,,False,False,False,AUTO_CALLABLE,False,False,False,False,False,False,False,False,True,False,FLOOR,False,False,False,True,,False,False
+Floor Rebate Growth Note,GROWTH,NOTE,,False,False,False,NONE,False,False,False,True,False,False,False,False,False,False,FLOOR,False,False,False,True,,False,False

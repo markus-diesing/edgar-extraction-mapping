@@ -1,6 +1,6 @@
 # Open Tasks
 
-**Last updated:** 2026-03-22
+**Last updated:** 2026-03-22 (revised after PRISM expansion cadence clarification)
 **Source:** Requirements audit + session review + strategic planning
 
 Tasks are grouped by priority. Each entry notes its source document and estimated effort.
@@ -9,17 +9,18 @@ Tasks are grouped by priority. Each entry notes its source document and estimate
 
 ## 🔴 A — Critical (blocks accuracy or core workflow)
 
-### A1 — Add `classificationHints` to `prism-v1.schema.json`
-**Source:** `CLASSIFICATION_HINTS_SPEC.md` (full spec), `CLASSIFICATION_ANALYSIS_AND_ROADMAP.md` item 5, `PLAN_MODEL_SCALING_STRATEGY.md`
-**Effort:** ~2 h (schema editing, no code changes)
-**What:** Add a `classificationHints` block to each of the 9 existing models in the schema's `oneOf` array. The spec in `CLASSIFICATION_HINTS_SPEC.md` defines the exact structure and provides draft content for every model. Once populated, the classifier prompt is built from schema knowledge rather than external files.
-**Why it matters:** Single highest-leverage change available. Renders the CUSIP xlsx unnecessary for classification of known models. Foundation for adding new models cleanly.
+### A1 — Define `classificationHints` format spec and bring to team discussion
+**Source:** `PLAN_MODEL_SCALING_STRATEGY.md` Option 1, `CLASSIFICATION_HINTS_SPEC.md`
+**Effort:** ~2 h (format design + 2 worked examples from existing models)
+**What:** Draft the exact JSON structure for the `classificationHints` block — description, title_keywords, feature_indicators (drawn from 22-dimension Payout_to_Features vocabulary), discriminating_fields, counter_indicators. Provide worked examples for 1–2 existing models. Bring to the PRISM schema team so they adopt the format as they expand models weekly.
+**Why this sequencing matters:** The PRISM team is adding models at ~weekly cadence. Every model added *before* the format is agreed needs to be retrofitted. The sooner the format is locked, the less backfill is needed.
+**Note:** We draft the spec; the PRISM team populates it per model when they author each schema. ~15 min/model on their side.
 
-### A2 — Add two missing PRISM payout models to schema
-**Source:** `CLASSIFICATION_ANALYSIS_AND_ROADMAP.md` item 6
-**Effort:** ~2 h (schema + hints content for both models)
-**What:** Add `yieldEnhancementAutocallBufferCoupon` and `participationBufferDigital` to `prism-v1.schema.json`. Both are referenced in `CUSIP_PRISM_Mapping.xlsx` but absent from the schema. Filings of these types currently misclassify into nearest neighbours.
-**Dependency:** A1 should be done first so the new models include classificationHints from the start.
+### A2 — Dynamic schema loading in `classifier.py`
+**Source:** `PLAN_MODEL_SCALING_STRATEGY.md` (consequences of weekly expansion cadence)
+**Effort:** ~3 h
+**What:** Refactor `classifier.py` so model names, descriptions, and classificationHints are read from `prism-v1.schema.json` at classify-time rather than being hardcoded. The classification prompt is built dynamically from whatever models the schema currently contains. A new model added to the schema is picked up automatically on the next run — no code change, no redeploy required.
+**Why critical:** Without this, every weekly model addition requires a code change. With it, the pipeline absorbs new models for free.
 
 ---
 
@@ -34,6 +35,7 @@ Tasks are grouped by priority. Each entry notes its source document and estimate
 - `needs_review` — confidence < 0.60 or model = "unknown"
 
 The config constant `CLASSIFICATION_GATE_CONFIDENCE = 0.80` already exists but is unused in persist logic. Also update status comment in `database.py` and status enum in `classify/router.py`.
+**Note:** `needs_review` is also the output for filings of product types not yet covered by the schema — important during weekly expansion period.
 
 ### B2 — `POST /api/classify/{id}/confirm` endpoint
 **Source:** `PLAN_CLASSIFICATION_REVIEW_GATE.md` task 3
@@ -54,32 +56,26 @@ The config constant `CLASSIFICATION_GATE_CONFIDENCE = 0.80` already exists but i
 
 ## 🟡 C — Medium Priority (strategic / scaling)
 
-### C1 — Model scaling strategy: answer open questions and choose implementation path
-**Source:** `PLAN_MODEL_SCALING_STRATEGY.md` (Q1–Q6)
-**Effort:** Discussion + decision (no code until questions answered)
-**What:** Six open questions determine the implementation shape for sustainable model onboarding. See `PLAN_MODEL_SCALING_STRATEGY.md` for the full list. Key questions:
-- Does PRISM documentation accompany new schemas? (determines annotation effort per new model)
-- Is zero-annotation the goal, or is 15 min/model acceptable?
-- What frequency are new models expected?
-- What is the fallback when no model matches?
+### C1 — Stage 1 feature extraction prompt
+**Source:** `NOTE_LLM_FUZZY_PRISM_MATCHING.md`, `files/payout_features.json`
+**Effort:** ~2 h (prompt engineering + integration)
+**What:** Write and integrate a structured prompt that extracts the 22-dimension feature vector from any EDGAR filing — the same dimensions as `Payout_to_Features.xlsx` (COUPON_TYPE, CALL_TYPE, DOWNSIDE_PROTECTION_TYPE, all HAS_* flags). The output is a structured JSON dict. This becomes the stable intermediate representation fed into Stage 2 (PRISM model matching), and doubles as an audit trail for every classification decision.
+**Why medium (not critical):** The current two-stage classifier works without it. This replaces Stage 1 with a more principled, inspectable signal — a quality improvement, not a bug fix. Can be added after B1/B2 without disrupting the existing flow.
+**Schema independence:** This prompt is entirely independent of how many PRISM models exist. It runs the same regardless of weekly schema changes.
 
 ### C2 — Demote CUSIP xlsx to optional enrichment
 **Source:** `PLAN_MODEL_SCALING_STRATEGY.md` Option 4
 **Effort:** ~1 h
-**What:** Make CUSIP mapping lookup a confidence *booster* rather than a hard gate. Classifier proceeds on document evidence alone when a CUSIP is not in the mapping. Xlsx contribution fades naturally as classificationHints mature. Prerequisite: A1 complete.
+**What:** Make CUSIP mapping lookup a confidence *booster* rather than a hard gate. Classifier proceeds on document evidence alone when a CUSIP is not in the mapping. Xlsx contribution fades naturally as classificationHints mature.
+**Dependency:** A2 (dynamic schema loading) should be complete first so the classifier is already schema-driven before the xlsx is demoted.
 
-### C3 — Feature matrix per model (discriminating logic)
-**Source:** `PLAN_MODEL_SCALING_STRATEGY.md` Option 2
-**Effort:** ~2 h (schema + classifier prompt update)
-**What:** Add a boolean `features` block to each model (has_autocall, has_conditional_coupon, has_barrier, etc.). Used as a second-stage disambiguator when two models score similarly on Stage 1. Particularly useful for new models that share vocabulary with existing ones.
-
-### C4 — Few-shot product title examples per model
+### C3 — Few-shot product title examples per model
 **Source:** `PLAN_MODEL_SCALING_STRATEGY.md` Option 3
 **Effort:** ~1 h (content, no code)
-**What:** Add 2–3 representative product title examples to each model's classificationHints block. Drawn from real approved filings. Very effective because filing vocabulary matches the examples directly.
-**Dependency:** A1 (classificationHints block must exist first).
+**What:** Add 2–3 representative product title strings to each model's classificationHints block. Drawn from real approved filings. Effective because filing vocabulary matches directly.
+**Dependency:** classificationHints format must be agreed (A1) and team must be onboarded to populate this field per model.
 
-### C5 — Export validation messaging improvement
+### C4 — Export validation messaging improvement
 **Source:** `REQUIREMENTS.md` FR-6.5 (partially implemented)
 **Effort:** ~1 h
 **What:** Current export validates against schema but error surface in UI is limited. Surface validation errors more clearly in the export result response and in the FilingDetail export action feedback.
@@ -113,17 +109,19 @@ The config constant `CLASSIFICATION_GATE_CONFIDENCE = 0.80` already exists but i
 | M7 — sections_store reload | Already implemented; `section_loader.py` has mtime-cache (lines 14, 21–30) |
 | PLAN_SECTION_BY_SECTION_EXTRACTION.md | Fully implemented and feature-flagged (`SECTIONED_EXTRACTION`) |
 | All HIGH + MEDIUM code quality items | Executed in session 2026-03-22 (commit `177552f`) |
+| C1 old — answer Q1–Q6 scaling questions | Resolved in conversation 2026-03-22; see `PLAN_MODEL_SCALING_STRATEGY.md` |
+| A2 old — add 2 missing models to schema | Subsumed by PRISM team's ongoing weekly expansion; not our task |
 
 ---
 
 ## Priority Order for Next Session
 
-1. Answer C1 open questions (Q1–Q6 in `PLAN_MODEL_SCALING_STRATEGY.md`) — no code needed, shapes all downstream work
-2. A1 — classificationHints in schema
-3. A2 — add missing models
-4. B1 + B2 — three-state backend (can be done in parallel with A1/A2)
-5. B3 — confirmation modal UI
-6. D1 + D3 — quick admin tasks (10–15 min total)
-7. D2 — README update
-8. C2 + C4 — demote xlsx, add few-shot examples (after A1 validated)
-9. C3 + C5 — feature matrix, export messaging
+1. **A1** — classificationHints format spec → bring to PRISM team discussion (2 h; highest leverage because it shapes every model added from here)
+2. **A2** — dynamic schema loading in classifier.py (3 h; makes pipeline absorb weekly additions automatically)
+3. **B1 + B2** — three-state backend, can run in parallel with A1/A2 (3 h combined)
+4. **B3** — confirmation modal UI (5 h; follows B1+B2)
+5. **C1** — Stage 1 feature extraction prompt (2 h; after B1/B2 so it feeds into a functional three-state flow)
+6. **D1 + D3** — quick admin tasks (15 min total)
+7. **D2** — README update (1 h)
+8. **C2** — demote xlsx (1 h; after A2)
+9. **C3 + C4** — few-shot examples, export messaging (after team onboarded to hints format)
