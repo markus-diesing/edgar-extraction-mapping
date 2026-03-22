@@ -413,17 +413,17 @@ flowchart LR
     <div class="mermaid">
 stateDiagram-v2
     [*] --> ingested : POST /api/ingest/filing
-    ingested --> classified : POST /api/classify/:id\nconfidence above 0.75
-    ingested --> needs_review : POST /api/classify/:id\nconfidence below 0.75 or unknown
-    needs_review --> classified : Manual override\nPOST /api/classify/:id/confirm
-    classified --> extracting : POST /api/extract/:id\nin-flight marker
-    extracting --> extracted : Extraction complete
-    extracting --> classified : Extraction failed - rollback
-    extracted --> approved : POST /api/extract/:id/approve
-    approved --> extracted : POST /api/extract/:id/unapprove
+    ingested --> classified : classify - confidence above 0.75
+    ingested --> needs_review : classify - confidence below 0.75 or unknown
+    needs_review --> classified : manual override confirm
+    classified --> extracting : POST /api/extract/:id
+    extracting --> extracted : extraction complete
+    extracting --> classified : extraction failed - rollback
+    extracted --> approved : approve
+    approved --> extracted : unapprove
     approved --> exported : POST /api/export/:id
-    classified --> ingested : POST /api/filings/:id/reset-classification
-    needs_review --> ingested : POST /api/filings/:id/reset-classification
+    classified --> ingested : reset classification
+    needs_review --> ingested : reset classification
     </div>
   </div>
 
