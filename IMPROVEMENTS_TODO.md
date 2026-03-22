@@ -1,6 +1,6 @@
 # EDGAR Extraction — Improvements Backlog
 
-*Last updated: 2026-03-21*
+*Last updated: 2026-03-22*
 
 Items are roughly ordered by priority within each group.
 Completed items are moved to the bottom section for reference.
@@ -224,3 +224,29 @@ that apply directly to structured product coupons.
 - [x] `scripts/backfill_images.py` — bulk image backfill for existing filings
 - [x] `_SECTION_HEADERS` in `classifier.py` expanded with worst-of synonyms and payout formula anchors
 - [x] `section_specs.yaml` `product_generic` section updated with PAYOUT FORMULA PRIORITY note
+
+- [x] **Admin tab — Application Log viewer** — `GET /api/admin/logs` parses `logs/app.log` into
+  structured entries with level/module/timestamp/message; frontend `AdminLogViewer.jsx` with
+  lines selector (50/200/500), level dropdown, module + text search, auto-refresh (10 s),
+  download link, colour-coded rows (ERROR red / WARNING amber), file stats footer.
+  `GET /api/admin/logs/download` serves raw log via `FileResponse`.
+  Uvicorn access log noise suppressed below WARNING level.
+
+- [x] **Admin tab — Cost & Usage analytics** — `GET /api/admin/usage/summary` surfaces totals,
+  rolling 7d/30d windows, by-step breakdown, by-issuer breakdown, unit economics (cost/filing,
+  cost/field, cache hit rate), projection, model comparison table, active model.
+  `GET /api/admin/usage/timeline` provides day/week/month bucketed spend split by classify vs
+  extract plus cache savings. Frontend `AdminUsage.jsx` implements 10 sections: KPI tiles,
+  timeline stacked-bar chart, step/issuer tables, unit economics grid, caching panel,
+  projection, model comparison, live model selector, commercial signal cards.
+
+- [x] **Prompt caching** — `extractor.py` and `classifier.py` refactored to split prompts into
+  cacheable preamble (hints + schema instructions) and non-cacheable filing text, sent as two
+  content blocks with `cache_control: {type: ephemeral}` on the stable prefix.
+  `cache_read_input_tokens` and `cache_creation_input_tokens` captured from API response and
+  stored in `api_usage_log.cache_read_tokens` / `cache_write_tokens` (new columns, migrated).
+
+- [x] **Dynamic model selection** — `CLAUDE_MODEL_REGISTRY` in `config.py` with pricing for
+  Sonnet 4.6 (default, 1M context), Sonnet 4.5-20250929, Sonnet 4.0-20250514.
+  Model resolved from `settings_store` at each API call; changeable live via `PUT /api/settings`
+  without server restart. KPI cost recalculated per-model via `_cost_for_row()` helper.
