@@ -71,4 +71,11 @@ export const api = {
   labelMapDismissMiss:  (id)                      => call('DELETE', `/admin/label-map/misses/${id}`),
   labelMapDismissAll:   ()                        => call('DELETE', '/admin/label-map/misses'),
   labelMapFieldPaths:   ()                        => call('GET',    '/admin/label-map/field-paths'),
+
+  // Schema management
+  schemaStatus:          ()           => call('GET',    '/admin/schema/status'),
+  schemaFetch:           ()           => call('POST',   '/admin/schema/fetch'),
+  schemaPendingDiff:     (fetchId)    => call('GET',    `/admin/schema/pending/${fetchId}`),
+  schemaActivate:        (fetchId)    => call('POST',   `/admin/schema/pending/${fetchId}/activate`),
+  schemaDiscard:         (fetchId)    => call('DELETE', `/admin/schema/pending/${fetchId}`),
 }

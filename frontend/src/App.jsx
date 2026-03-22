@@ -7,6 +7,7 @@ import HintsEditor from './components/HintsEditor.jsx'
 import SectionPromptsEditor from './components/SectionPromptsEditor.jsx'
 import ExtractionSettings from './components/ExtractionSettings.jsx'
 import LabelMapEditor from './components/LabelMapEditor.jsx'
+import SchemaManager from './components/SchemaManager.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 
 function HealthDot({ healthy }) {
@@ -119,7 +120,7 @@ export default function App() {
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {/* Expert settings tab bar */}
             <div className="flex border-b border-slate-200 bg-white shrink-0 px-4">
-              {[['hints', 'Field Hints'], ['sections', 'Section Prompts'], ['extraction', 'Extraction Settings'], ['labelmap', 'Label Map']].map(([tab, label]) => (
+              {[['hints', 'Field Hints'], ['sections', 'Section Prompts'], ['extraction', 'Extraction Settings'], ['labelmap', 'Label Map'], ['schema', 'Schema']].map(([tab, label]) => (
                 <button
                   key={tab}
                   onClick={() => setExpertTab(tab)}
@@ -140,7 +141,9 @@ export default function App() {
                   ? <SectionPromptsEditor />
                   : expertTab === 'labelmap'
                     ? <LabelMapEditor />
-                    : <ExtractionSettings />
+                    : expertTab === 'schema'
+                      ? <SchemaManager />
+                      : <ExtractionSettings />
               }
             </div>
           </div>
