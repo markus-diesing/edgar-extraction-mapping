@@ -51,6 +51,58 @@ log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Label miss-log persistence
+# ---------------------------------------------------------------------------
+
+def _persist_label_misses(
+    misses: list,
+    filing_id: str,
+    issuer_name: str | None,
+) -> None:
+    """
+    Upsert LabelMissLog rows for labels that html_extractor could not resolve.
+    Existing rows are incremented (occurrence_count + 1, last_seen_at updated).
+    Already-dismissed rows are not resurrected by new occurrences.
+    """
+    if not misses:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        with database.get_session() as session:
+            for miss in misses:
+                existing = (
+                    session.query(database.LabelMissLog)
+                    .filter_by(label_norm=miss.label_norm)
+                    .first()
+                )
+                if existing:
+                    existing.occurrence_count = (existing.occurrence_count or 0) + 1
+                    existing.last_seen_at = now
+                    existing.issuer_name  = issuer_name
+                    existing.filing_id    = filing_id
+                    if miss.sample_value and not existing.sample_value:
+                        existing.sample_value = miss.sample_value
+                else:
+                    session.add(database.LabelMissLog(
+                        id=str(uuid.uuid4()),
+                        label_norm=miss.label_norm,
+                        label_raw=miss.label_raw,
+                        sample_value=miss.sample_value,
+                        issuer_name=issuer_name,
+                        filing_id=filing_id,
+                        occurrence_count=1,
+                        first_seen_at=now,
+                        last_seen_at=now,
+                        dismissed=0,
+                    ))
+            session.commit()
+        log.debug("Persisted %d label miss(es) to label_miss_log", len(misses))
+    except Exception as exc:
+        # Miss logging is non-critical — never let it break extraction
+        log.warning("Could not persist label misses: %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # Extraction hints — loaded on-demand from YAML files via hints_loader
 # ---------------------------------------------------------------------------
 
@@ -450,9 +502,11 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
     # ── Tier 1: HTML table extraction ────────────────────────────────────────
     issuer_table_labels = issuer_hints.get("table_labels", {}) if issuer_hints else {}
     label_map = build_label_map(issuer_table_labels=issuer_table_labels)
-    tier1_fields = extract_from_html(html, issuer_hints, label_map)
+    tier1_fields, tier1_misses = extract_from_html(html, issuer_hints, label_map)
     if tier1_fields:
         log.info("Tier 1: %d fields extracted from HTML table", len(tier1_fields))
+    if tier1_misses:
+        _persist_label_misses(tier1_misses, filing_id=filing_id, issuer_name=issuer_name)
 
     # Strip HTML to plain text for LLM prompt
     filing_text = strip_html(html)

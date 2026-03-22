@@ -164,6 +164,26 @@ class ClassificationFeedback(Base):
     filing = relationship("Filing", back_populates="classification_feedback")
 
 
+class LabelMissLog(Base):
+    """
+    Tracks label strings that html_extractor saw in Key Terms tables but could
+    not resolve to a PRISM field path.  Used to surface unmapped labels in the
+    Expert > Label Map editor so the user can add them without editing YAML by hand.
+    """
+    __tablename__ = "label_miss_log"
+
+    id               = Column(String, primary_key=True, default=_uuid)
+    label_norm       = Column(String, nullable=False, unique=True)  # normalized (lowercase, stripped)
+    label_raw        = Column(String, nullable=False)               # representative raw form
+    sample_value     = Column(String)                               # sample value from the filing
+    issuer_name      = Column(String)                               # most recent issuer
+    filing_id        = Column(String)                               # most recent filing
+    occurrence_count = Column(Integer, default=1)
+    first_seen_at    = Column(String, nullable=False, default=_now)
+    last_seen_at     = Column(String, nullable=False, default=_now)
+    dismissed        = Column(Integer, default=0)  # 1 = user dismissed without adding a mapping
+
+
 class ApiUsageLog(Base):
     __tablename__ = "api_usage_log"
 
@@ -208,6 +228,8 @@ def _migrate() -> None:
         ("api_usage_log",      "cache_write_tokens",             "INTEGER"),
         # v5 columns — hybrid extraction source tracking
         ("field_results",      "source",                         "TEXT"),
+        # v6 columns — label miss log deduplication
+        ("label_miss_log",     "dismissed",                      "INTEGER"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

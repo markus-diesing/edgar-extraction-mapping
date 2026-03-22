@@ -61,4 +61,14 @@ export const api = {
   // Admin — Cost & Usage
   adminUsageSummary:  ()              => call('GET', '/admin/usage/summary'),
   adminUsageTimeline: (granularity)   => call('GET', `/admin/usage/timeline?granularity=${granularity}`),
+
+  // Label Map (Expert Settings)
+  labelMapEntries:      ()                        => call('GET',    '/admin/label-map/entries'),
+  labelMapAddEntry:     (label, field_path)       => call('POST',   '/admin/label-map/entries', { label, field_path }),
+  labelMapRemoveEntry:  (label_norm)              => call('DELETE', '/admin/label-map/entries', { label_norm }),
+  labelMapMisses:       (includeDismissed = false) => call('GET',  `/admin/label-map/misses?include_dismissed=${includeDismissed}`),
+  labelMapResolveMiss:  (id, field_path)          => call('POST',   `/admin/label-map/misses/${id}/resolve`, { field_path }),
+  labelMapDismissMiss:  (id)                      => call('DELETE', `/admin/label-map/misses/${id}`),
+  labelMapDismissAll:   ()                        => call('DELETE', '/admin/label-map/misses'),
+  labelMapFieldPaths:   ()                        => call('GET',    '/admin/label-map/field-paths'),
 }

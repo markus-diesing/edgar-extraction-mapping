@@ -31,7 +31,8 @@ from export.router   import router as export_router
 from hints.router    import router as hints_router
 from sections.router import router as sections_router
 from settings.router import router as settings_router
-from admin.router    import router as admin_router
+from admin.router          import router as admin_router
+from admin.label_map_router import router as label_map_router
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -104,7 +105,8 @@ app.include_router(export_router,   prefix="/api")
 app.include_router(hints_router,    prefix="/api")
 app.include_router(sections_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
-app.include_router(admin_router,    prefix="/api")
+app.include_router(admin_router,     prefix="/api")
+app.include_router(label_map_router, prefix="/api")
 
 
 @app.get("/api/health")

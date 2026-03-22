@@ -26,11 +26,19 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NamedTuple
 
 from bs4 import BeautifulSoup, Tag
 
 log = logging.getLogger(__name__)
+
+
+class LabelMiss(NamedTuple):
+    """An unmatched label observed during HTML extraction."""
+    label_raw:    str   # original text from the cell
+    label_norm:   str   # normalized (lowercase, stripped)
+    sample_value: str   # the value cell text (for context)
+
 
 # Deferred import to avoid circular dependencies — extractor imports us
 # and we import ExtractionField from extractor would create a cycle.
@@ -253,7 +261,7 @@ def extract_from_html(
     html: str,
     issuer_hints: dict | None,
     label_map: dict[str, str],
-) -> list[HtmlField]:
+) -> tuple[list[HtmlField], list[LabelMiss]]:
     """
     Tier 1 extraction: parse the HTML Key Terms table and return typed fields.
 
@@ -264,10 +272,13 @@ def extract_from_html(
         label_map:      Merged label → field_path dict from label_mapper.build_label_map().
 
     Returns:
-        list of HtmlField with source="html_table" and confidence=0.97.
-        Empty list if no Key Terms table could be found or parsed.
+        Tuple of:
+          fields  — list of HtmlField with source="html_table" and confidence=0.97
+          misses  — list of LabelMiss for labels that had no mapping (for miss-log persistence)
+
+        Both lists are empty if no Key Terms table could be found or parsed.
     """
-    from extract.label_mapper import resolve_label, get_parser
+    from extract.label_mapper import resolve_label, get_parser, _norm as norm
 
     soup = BeautifulSoup(html, "lxml")
 
@@ -278,22 +289,32 @@ def extract_from_html(
     table = _find_key_terms_table(soup, issuer_heading)
     if table is None:
         log.info("html_extractor: no Key Terms table found in filing HTML")
-        return []
+        return [], []
 
     pairs = _extract_two_column_rows(table)
     if not pairs:
         log.info("html_extractor: Key Terms table found but no 2-column rows extracted")
-        return []
+        return [], []
 
     log.info("html_extractor: found %d label:value rows in Key Terms table", len(pairs))
 
     results: list[HtmlField] = []
+    misses:  list[LabelMiss] = []
     seen_fields: set[str] = set()
+    seen_misses: set[str] = set()
 
     for raw_label, raw_value in pairs:
         field_path = resolve_label(raw_label, label_map)
         if field_path is None:
-            log.debug("html_extractor: no mapping for label %r", raw_label)
+            label_n = norm(raw_label)
+            if label_n not in seen_misses:
+                log.debug("html_extractor: no mapping for label %r", raw_label)
+                misses.append(LabelMiss(
+                    label_raw=raw_label,
+                    label_norm=label_n,
+                    sample_value=raw_value[:200],
+                ))
+                seen_misses.add(label_n)
             continue
 
         # Avoid duplicate entries for the same field (take first match)
@@ -333,7 +354,7 @@ def extract_from_html(
         log.debug("html_extractor: %s = %r (from label %r)", field_path, parsed_value, raw_label)
 
     log.info(
-        "html_extractor: extracted %d/%d fields from HTML table",
-        len(results), len(pairs),
+        "html_extractor: extracted %d/%d fields; %d unmatched labels",
+        len(results), len(pairs), len(misses),
     )
-    return results
+    return results, misses
