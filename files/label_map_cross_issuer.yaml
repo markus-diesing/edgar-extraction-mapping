@@ -137,3 +137,10 @@ labels:
   "term":                                       "structuredProductsGeneric.term"
   "tenor":                                      "structuredProductsGeneric.term"
   "term of the notes":                          "structuredProductsGeneric.term"
+  # Added: additional common labels observed in production filings
+  "initial valuation date":           "structuredProductsGeneric.tradeDate"
+  "issue date":                       "structuredProductsGeneric.issueDate"
+  "final underlier value":            "underlyingTerms.underlyingAssets[*].finalLevel"
+  "final value":                      "underlyingTerms.underlyingAssets[*].finalLevel"
+  "denominations":                    "product.denomination"
+  "minimum denominations":            "product.denomination"

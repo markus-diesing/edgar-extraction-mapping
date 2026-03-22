@@ -213,3 +213,10 @@ table_labels:
   # Principal amount
   "Principal Amount":                 "product.denomination"
   "Stated principal amount":          "product.denomination"
+
+  # Fixed-coupon barrier note variant (e.g. CUSIP 06744EE37)
+  # These labels appear in fixed-coupon products with physical delivery
+  "Fixed Coupon":                     "coupon.rate"
+  "Initial Valuation Date":           "structuredProductsGeneric.tradeDate"
+  "Denominations":                    "product.denomination"
+  "Final Underlier Value":            "underlyingTerms.underlyingAssets[*].finalLevel"

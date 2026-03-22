@@ -48,8 +48,25 @@ LABEL_MAP_USER_PATH  = config.PROJECT_ROOT / "files" / "label_map_user.yaml"
 # ---------------------------------------------------------------------------
 
 def _norm(label: str) -> str:
-    """Normalize a label for lookup: strip, lowercase, collapse whitespace."""
-    return re.sub(r"\s+", " ", label.strip().lower())
+    """
+    Normalize a label for lookup: strip, lowercase, collapse whitespace,
+    and remove a trailing colon.
+
+    Many issuers (Barclays, JPMorgan, BofA, …) suffix every Key Terms label
+    with ':' in the HTML cell (e.g. "Reference Asset:").  The label map stores
+    entries without the colon.  Stripping it here means the YAML never needs
+    colon variants — any label matches whether or not it carries a trailing colon.
+    Footnote markers (*, †, ‡) are also stripped for the same reason.
+    """
+    normalized = re.sub(r"\s+", " ", label.strip().lower())
+    # Strip in this order so "Label: †" and "Label*(1):" all reduce cleanly:
+    # 1. Footnote markers (* † ‡ § ¶) anywhere at the tail
+    normalized = re.sub(r"[\s\*†‡§¶]+$", "", normalized).strip()
+    # 2. Parenthesised numeric footnotes e.g. "(1)" "(2)"
+    normalized = re.sub(r"\s*\(\d+\)$", "", normalized).strip()
+    # 3. Trailing colon (now that markers are gone)
+    normalized = normalized.rstrip(":").strip()
+    return normalized
 
 
 # ---------------------------------------------------------------------------
