@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGAR Extraction — System Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    min-height: 100vh;
+  }
+  header {
+    background: #011151;
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+  header p  { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+  header nav a {
+    color: #00b4d8;
+    text-decoration: none;
+    font-size: 0.8rem;
+    margin-left: 18px;
+  }
+  header nav a:hover { text-decoration: underline; }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 24px;
+  }
+
+  .intro {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .intro h2 { font-size: 1rem; font-weight: 700; color: #011151; margin-bottom: 8px; }
+  .intro p  { font-size: 0.875rem; line-height: 1.6; color: #475569; }
+
+  .diagram-card {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .diagram-card h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #011151;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #00b4d8;
+    padding-bottom: 8px;
+  }
+
+  .mermaid { font-size: 13px; }
+
+  .legend {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .legend h2 { font-size: 1rem; font-weight: 700; color: #011151; margin-bottom: 14px; }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #475569;
+  }
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .legend-item strong { color: #1e293b; }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .status-card {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 14px 16px;
+  }
+  .status-card h3 { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .status-card .value { font-size: 1.25rem; font-weight: 700; color: #011151; margin-top: 4px; }
+  .status-card .detail { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+
+  footer {
+    background: #011151;
+    color: #94a3b8;
+    text-align: center;
+    font-size: 0.75rem;
+    padding: 14px;
+    margin-top: 24px;
+  }
+  footer a { color: #00b4d8; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>EDGAR Extraction &amp; PRISM Mapping — System Architecture</h1>
+    <p>LPA Internal POC · Architecture Diagram · March 2026</p>
+  </div>
+  <nav>
+    <a href="user_manual.html">User Manual</a>
+    <a href="tech_handbook.html">Tech Handbook</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <div class="intro">
+    <h2>Overview</h2>
+    <p>
+      This tool is a local, standalone pipeline running entirely on a Mac. It retrieves SEC EDGAR 424B2 filings
+      (structured products prospectuses), classifies them into PRISM payout types using a two-stage Claude AI pipeline,
+      and extracts PRISM schema fields using a three-tier hybrid approach (registry metadata → HTML table parsing →
+      LLM extraction). A browser-based UI enables human review, field correction, and export to JSON/CSV for
+      downstream PRISM ingestion. All data is stored in a local SQLite database; no cloud infrastructure is required.
+    </p>
+  </div>
+
+  <div class="diagram-card">
+    <h2>End-to-End Pipeline</h2>
+    <div class="mermaid">
+flowchart TD
+    classDef user fill:#00b4d8,color:#fff,stroke:#0090a8
+    classDef proc fill:#011151,color:#fff,stroke:#011151
+    classDef store fill:#1e3a5f,color:#fff,stroke:#1e3a5f
+    classDef config fill:#4a5568,color:#fff,stroke:#4a5568
+    classDef ai fill:#7c3aed,color:#fff,stroke:#7c3aed
+    classDef tier0 fill:#059669,color:#fff,stroke:#059669
+    classDef tier1 fill:#d97706,color:#fff,stroke:#d97706
+    classDef tier2 fill:#dc2626,color:#fff,stroke:#dc2626
+
+    User([Browser UI\nReact + Vite]):::user
+
+    subgraph Ingest["INGEST — POST /api/ingest/..."]
+      EDGAR_SEARCH[EFTS Full-Text\nSearch API]:::proc
+      SEC_FETCH[SEC Filing\nFetch + HTML Save]:::proc
+      IMG_DL[Image Download\nfrom EDGAR folder]:::proc
+    end
+
+    subgraph Classify["CLASSIFY — POST /api/classify/{id}"]
+      CLS1[Stage 1 — Cover page\n4K chars + CUSIP hint]:::ai
+      CLS2[Stage 2 — Targeted sections\n8K chars structural headers]:::ai
+      CLS_PERSIST[Persist result\npayout_type_id + confidence]:::proc
+    end
+
+    subgraph Extract["EXTRACT — POST /api/extract/{id}"]
+      T0[Tier 0 — Registry\nCUSIP + issuer from DB]:::tier0
+      T1[Tier 1 — HTML Table\nKey Terms section\n label_mapper + field_parsers]:::tier1
+      T2[Tier 2 — LLM\nClaude tool-call\nwith schema + hints]:::tier2
+      MERGE[Merge: T0 overrides LLM\nT1 overrides LLM\nConflicts logged]:::proc
+    end
+
+    subgraph Review["REVIEW — PATCH /api/extract/{id}/fields/{fid}"]
+      FT[Field Table\nSimple View\nTABLE / REG / AI badges]:::user
+      ER[Expert Review\nSide-by-side iframe\nSource highlight]:::user
+      APPROVE[Approve Filing]:::proc
+    end
+
+    subgraph Export["EXPORT — POST /api/export/{id}"]
+      EXPJ[JSON export\nPRISM-format]:::proc
+      EXPC[CSV export\nFlat fields]:::proc
+    end
+
+    subgraph Storage["STORAGE"]
+      DB[(SQLite DB\nfilings\nextraction_results\nfield_results\nlabel_miss_log\napi_usage_log)]:::store
+      FS[File System\ndata/filings/{accession}/\nraw.html + images\ndata/exports/]:::store
+      YAML[YAML Config Files\nhints/ · sections/\nlabel_maps · settings\nprism-v1.schema.json]:::config
+    end
+
+    subgraph Admin["ADMIN — /api/admin/..."]
+      LOGS[Log Viewer\napp.log tail + filter]:::proc
+      USAGE[Cost &amp; Usage\ntoken counts + USD cost]:::proc
+      SCHEMA[Schema Manager\nFetch → Diff → Activate]:::proc
+    end
+
+    User --> |"Search EDGAR\nor paste accession"| EDGAR_SEARCH
+    EDGAR_SEARCH --> SEC_FETCH
+    SEC_FETCH --> IMG_DL
+    SEC_FETCH --> DB
+    IMG_DL --> FS
+
+    User --> |"Classify"| CLS1
+    DB --> |"filing record\ncusip + html_path"| CLS1
+    YAML --> |"CUSIP→model mapping\n(.xlsx)"| CLS1
+    CLS1 --> |"confidence ≥ 0.75"| CLS_PERSIST
+    CLS1 --> |"confidence &lt; 0.75"| CLS2
+    CLS2 --> CLS_PERSIST
+    CLS_PERSIST --> DB
+
+    User --> |"Extract"| T0
+    DB --> |"filing + cusip"| T0
+    DB --> |"raw.html"| T1
+    T1 --> |"unmatched labels"| DB
+    YAML --> |"label_maps\nhints + sections"| T1
+    YAML --> |"hints + schema"| T2
+    T0 --> MERGE
+    T1 --> MERGE
+    T2 --> |"PRISM JSON\ntool-call response"| MERGE
+    MERGE --> DB
+
+    DB --> |"field_results"| FT
+    DB --> |"field_results"| ER
+    FT --> |"accept/reject/edit"| DB
+    ER --> |"accept/reject/edit"| DB
+    APPROVE --> DB
+
+    DB --> |"approved fields"| EXPJ
+    DB --> |"approved fields"| EXPC
+    EXPJ --> FS
+    EXPC --> FS
+
+    DB --> LOGS
+    DB --> USAGE
+    YAML --> |"prism-v1.schema.json"| SCHEMA
+    SCHEMA --> YAML
+
+    User --> Admin
+    User --> Review
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <h2>Three-Tier Extraction Detail</h2>
+    <div class="mermaid">
+flowchart LR
+    classDef tier0 fill:#059669,color:#fff,stroke:#059669
+    classDef tier1 fill:#d97706,color:#fff,stroke:#d97706
+    classDef tier2 fill:#dc2626,color:#fff,stroke:#dc2626
+    classDef merge fill:#011151,color:#fff,stroke:#011151
+
+    subgraph T0["Tier 0 — Registry (confidence=1.0)"]
+      R1[CUSIP from DB row]:::tier0
+      R2[Issuer name from DB row]:::tier0
+      R3[Extracted with certainty\nbefore any parsing]:::tier0
+    end
+
+    subgraph T1["Tier 1 — HTML Table (confidence=0.97)"]
+      H1[Find Key Terms table\nby heading text]:::tier1
+      H2[Extract label:value rows]:::tier1
+      H3[label_mapper.py\nnormalize → PRISM field path]:::tier1
+      H4[field_parsers.py\nparse_date / parse_percentage\nparse_amount / parse_frequency etc]:::tier1
+      H5[Unmatched labels\n→ label_miss_log DB table]:::tier1
+      H1 --> H2 --> H3 --> H4
+      H3 --> H5
+    end
+
+    subgraph T2["Tier 2 — LLM (confidence varies)"]
+      L1[Strip HTML to text]:::tier2
+      L2[Trim to Key Terms window\n120K chars anchored\non section heading]:::tier2
+      L3[Build prompt: schema JSON\n+ hints block + filing text]:::tier2
+      L4[Claude tool-call\nsubmit_prism_extraction\nreturns prism_data\n_confidence _excerpts]:::tier2
+      L5[Flatten JSON to\ndot-path field list]:::tier2
+      L1 --> L2 --> L3 --> L4 --> L5
+    end
+
+    subgraph Merge["Merge &amp; Persist"]
+      M1[Tier 0 fills pre_extracted map]:::merge
+      M2[Tier 1 overwrites T0\non same field]:::merge
+      M3[For each field path:\n  if in pre_extracted → use T0/T1\n  else use LLM value]:::merge
+      M4[Persist field_results\nwith source tag\nllm / html_table / registry]:::merge
+      M1 --> M2 --> M3 --> M4
+    end
+
+    T0 --> Merge
+    T1 --> Merge
+    T2 --> Merge
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <h2>Classification Pipeline</h2>
+    <div class="mermaid">
+flowchart TD
+    classDef proc fill:#011151,color:#fff,stroke:#011151
+    classDef ai fill:#7c3aed,color:#fff,stroke:#7c3aed
+    classDef decision fill:#d97706,color:#fff,stroke:#d97706
+    classDef good fill:#059669,color:#fff,stroke:#059669
+    classDef warn fill:#dc2626,color:#fff,stroke:#dc2626
+
+    START([Filing ingested\nstatus=ingested])
+    CUSIP[CUSIP lookup\nCUSIP_PRISM_Mapping.xlsx]:::proc
+    HINT{CUSIP maps\nto a model?}:::decision
+    S1[Stage 1 — Claude\nCover page 4K chars\n+ CUSIP hint if available\n+ few-shot feedback examples]:::ai
+    CHECK1{confidence\n≥ 0.75?}:::decision
+    S2[Stage 2 — Claude\nCover + targeted sections\nStructural header scan\n8K chars]:::ai
+    BEST[Take higher\nconfidence result]:::proc
+    PERSIST_C[Persist classification\npayout_type_id\nclassification_confidence\ntitle_excerpt]:::proc
+    STATUS_C{confidence ≥ 0.75\nand not unknown?}:::decision
+    CLASSIFIED([status=classified\nReady for extraction]):::good
+    REVIEW([status=needs_review\nManual override needed]):::warn
+
+    START --> CUSIP --> HINT
+    HINT --> |yes| S1
+    HINT --> |no| S1
+    S1 --> CHECK1
+    CHECK1 --> |yes| PERSIST_C
+    CHECK1 --> |no| S2
+    S2 --> BEST --> PERSIST_C
+    PERSIST_C --> STATUS_C
+    STATUS_C --> |yes| CLASSIFIED
+    STATUS_C --> |no| REVIEW
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <h2>Configuration Layers</h2>
+    <div class="mermaid">
+flowchart LR
+    classDef config fill:#4a5568,color:#fff,stroke:#4a5568
+
+    subgraph Schema["Schema Config"]
+      SC1[prism-v1.schema.json\nAll PRISM models + field types]:::config
+      SC2[CUSIP_PRISM_Mapping.xlsx\nCUSIP → payout_type_id lookup]:::config
+    end
+
+    subgraph Hints["Extraction Hints — files/hints/"]
+      H1[cross_issuer_field_hints.yaml\nField-level synonyms, formats,\ncautions applied to all issuers]:::config
+      H2[prism_schema_guide.yaml\nDiscriminated union rules\nFrequency type variants]:::config
+      H3["issuer_Barclays.yaml\nissuer_JPMorgan.yaml\netc — per-issuer overrides:\nkey_terms_table_heading\ntable_labels\nsection_headings\nfield_hints"]:::config
+    end
+
+    subgraph LabelMap["Label Maps — files/"]
+      LM1[label_map_cross_issuer.yaml\nBaseline read-only mappings\nHand-curated]:::config
+      LM2[label_map_user.yaml\nUI-added entries\nWritten by label_map_router]:::config
+    end
+
+    subgraph Sections["Section Prompts — files/sections/"]
+      SP1[identifiers.yaml\nproduct.yaml\nunderlying_terms.yaml\nprotection.yaml\nautocall.yaml\ncoupon.yaml\nparties.yaml]:::config
+    end
+
+    subgraph Runtime["Runtime — files/"]
+      RT[runtime_settings.yaml\nclaude_model\nsectioned_extraction\nconfidence thresholds]:::config
+    end
+
+    Schema --> |"loaded at startup\nmtime-cached"| Extract
+    Hints --> |"per-call\nmtime-cached"| Extract
+    LabelMap --> |"per-call\nmtime-cached"| Extract
+    Sections --> |"sectioned mode only"| Extract
+    Runtime --> |"per-call\nlive-reload"| Extract
+
+    Extract([Extraction Pipeline])
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <h2>Frontend Areas</h2>
+    <div class="mermaid">
+flowchart LR
+    classDef ui fill:#00b4d8,color:#fff,stroke:#0090a8
+
+    subgraph Filings["Filings View"]
+      FL[Filing List\nSearch + filter\nStatus badges]:::ui
+      ING[Ingest Panel\nEDGAR search\nAccession ingest]:::ui
+      FD[Filing Detail\nHeader + KPI strip\nAction buttons]:::ui
+      SV[Simple View\nFieldTable\nTABLE/REG/AI badges]:::ui
+      EV[Expert Review\nSide-by-side iframe\nResizable divider\nSource highlight]:::ui
+    end
+
+    subgraph Expert["Expert Settings View"]
+      HE[Field Hints\nCross-issuer + per-issuer\nPer-field instructions]:::ui
+      SE[Section Prompts\nYAML section configs]:::ui
+      EX[Extraction Settings\nModel selector\nSectioned toggle\nThresholds]:::ui
+      LM[Label Map\nMiss log + mapping panel\nAdd/remove entries]:::ui
+      SM[Schema Manager\nFetch → Diff → Activate]:::ui
+    end
+
+    subgraph Admin["Admin View"]
+      LV[Log Viewer\nFilter by level/module\nDownload log file]:::ui
+      CU[Cost and Usage\nSummary cards\nTimeline chart\nModel comparison]:::ui
+    end
+
+    FL --> FD
+    FD --> SV
+    FD --> EV
+    </div>
+  </div>
+
+  <div class="diagram-card">
+    <h2>Filing Lifecycle (Status Transitions)</h2>
+    <div class="mermaid">
+stateDiagram-v2
+    [*] --> ingested : POST /api/ingest/filing
+    ingested --> classified : POST /api/classify/{id}\nconfidence ≥ 0.75
+    ingested --> needs_review : POST /api/classify/{id}\nconfidence &lt; 0.75 or unknown
+    needs_review --> classified : Manual override\nPOST /api/classify/{id}/confirm
+    classified --> extracting : POST /api/extract/{id}\nin-flight marker
+    extracting --> extracted : Extraction complete
+    extracting --> classified : Extraction failed\nrollback
+    extracted --> approved : POST /api/extract/{id}/approve
+    approved --> extracted : POST /api/extract/{id}/unapprove
+    approved --> exported : POST /api/export/{id}
+    classified --> ingested : POST /api/filings/{id}/reset-classification
+    needs_review --> ingested : POST /api/filings/{id}/reset-classification
+    </div>
+  </div>
+
+  <div class="legend">
+    <h2>Legend</h2>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#011151"></div>
+        <div><strong>Dark blue</strong> — Core processing components (FastAPI routers, persistence logic)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#7c3aed"></div>
+        <div><strong>Purple</strong> — Claude AI calls (classification stages, LLM extraction)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#059669"></div>
+        <div><strong>Green</strong> — Tier 0 extraction (EDGAR registry metadata, confidence = 1.0)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#d97706"></div>
+        <div><strong>Amber</strong> — Tier 1 extraction (HTML table parsing, confidence = 0.97)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#dc2626"></div>
+        <div><strong>Red</strong> — Tier 2 extraction (LLM, confidence varies 0.4–1.0)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#00b4d8"></div>
+        <div><strong>Cyan</strong> — Frontend UI components (React/Vite, port 5173)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#1e3a5f"></div>
+        <div><strong>Dark teal</strong> — Persistent storage (SQLite DB, file system)</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#4a5568"></div>
+        <div><strong>Grey</strong> — Configuration files (YAML, JSON schema, xlsx)</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  LPA Internal &mdash; Test System &mdash; Not for Production Use &nbsp;|&nbsp;
+  <a href="user_manual.html">User Manual</a> &nbsp;|&nbsp;
+  <a href="tech_handbook.html">Tech Handbook</a>
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#011151',
+      primaryTextColor: '#fff',
+      primaryBorderColor: '#011151',
+      lineColor: '#475569',
+      secondaryColor: '#00b4d8',
+      tertiaryColor: '#f1f5f9',
+    },
+    flowchart: { curve: 'basis', padding: 20 },
+    stateDiagram: { dividerMargin: 10 },
+  })
+</script>
+</body>
+</html>

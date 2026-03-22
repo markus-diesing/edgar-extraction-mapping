@@ -1,0 +1,205 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.6 Chrome/140.0.7339.249 Electron/38.8.0 Safari/537.36" version="29.3.6">
+  <diagram name="EDGAR Extraction — Architecture" id="edgar-arch-v2">
+    <mxGraphModel dx="2334" dy="1152" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;fontStyle=1;fontSize=16;fontColor=#1a1a1a;" value="EDGAR Structured Note Extraction &amp; Mapping — System Architecture (2026-03-22)" vertex="1">
+          <mxGeometry height="30" width="960" x="10" y="8" as="geometry" />
+        </mxCell>
+
+        <!-- ① FRONTEND -->
+        <mxCell id="UI" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#003366;rounded=1;arcSize=3;shadow=0;" value="① FRONTEND — React 18 · Vite · Tailwind CSS" vertex="1">
+          <mxGeometry height="175" width="960" x="10" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-note" parent="UI" style="text;html=1;align=left;fontSize=8;fontStyle=2;fontColor=#003366;" value="Single-page application. All user interactions trigger REST calls to the FastAPI backend." vertex="1">
+          <mxGeometry height="18" width="920" x="15" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-search" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Filing Search &amp; Ingest&lt;/b&gt;&lt;br/&gt;EDGAR full-text search&lt;br/&gt;Ingest queue · filing list" vertex="1">
+          <mxGeometry height="92" width="180" x="15" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-detail" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Filing Detail &amp; Actions&lt;/b&gt;&lt;br/&gt;Status · KPI strip&lt;br/&gt;Classify · Extract · Approve · Export&lt;br/&gt;Classification override / reset" vertex="1">
+          <mxGeometry height="92" width="195" x="210" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-review" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Field Review&lt;/b&gt;&lt;br/&gt;Simple view (TABLE/REG/AI badges)&lt;br/&gt;Expert view (iframe + source highlight)&lt;br/&gt;Resizable divider · inline edit · accept/reject" vertex="1">
+          <mxGeometry height="92" width="215" x="420" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ui-expert" parent="UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Expert Tools&lt;/b&gt;&lt;br/&gt;Field Hints editor (per-issuer YAML)&lt;br/&gt;Section prompts · Extraction settings&lt;br/&gt;&lt;b&gt;Label Map&lt;/b&gt; (miss log + mapping)&lt;br/&gt;&lt;b&gt;Schema Manager&lt;/b&gt; (Fetch → Diff → Activate)" vertex="1">
+          <mxGeometry height="92" width="220" x="720" y="38" as="geometry" />
+        </mxCell>
+
+        <!-- ② BACKEND -->
+        <mxCell id="API" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a4d00;rounded=1;arcSize=3;" value="② BACKEND — FastAPI · Python 3.13 · Uvicorn" vertex="1">
+          <mxGeometry height="330" width="960" x="10" y="294" as="geometry" />
+        </mxCell>
+        <mxCell id="api-routers-label" parent="API" style="text;html=1;align=left;fontStyle=1;fontSize=9;fontColor=#1a4d00;" value="REST API Routers  ( /api/* )" vertex="1">
+          <mxGeometry height="16" width="200" x="15" y="36" as="geometry" />
+        </mxCell>
+        <mxCell id="api-ingest" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Ingest&lt;/b&gt;&lt;br/&gt;/ingest/* · /filings/*&lt;br/&gt;Download · persist&lt;br/&gt;Reset · override · fetch-images" vertex="1">
+          <mxGeometry height="88" width="128" x="15" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-classify" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Classify&lt;/b&gt;&lt;br/&gt;/classify/*&lt;br/&gt;2-stage pipeline&lt;br/&gt;CUSIP hint · model list" vertex="1">
+          <mxGeometry height="88" width="128" x="158" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-extract" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Extract&lt;/b&gt;&lt;br/&gt;/extract/*&lt;br/&gt;Single-call or&lt;br/&gt;section-by-section" vertex="1">
+          <mxGeometry height="88" width="128" x="301" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-export" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Export&lt;/b&gt;&lt;br/&gt;/export/*&lt;br/&gt;Approved → JSON/CSV&lt;br/&gt;Single · batch" vertex="1">
+          <mxGeometry height="88" width="118" x="444" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-hints" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Hints&lt;/b&gt;&lt;br/&gt;/hints/*&lt;br/&gt;Issuer &amp; cross-issuer&lt;br/&gt;field hint CRUD" vertex="1">
+          <mxGeometry height="88" width="118" x="577" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-admin" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Admin&lt;/b&gt;&lt;br/&gt;/admin/*&lt;br/&gt;Logs · Cost&amp;Usage&lt;br/&gt;Label Map · Schema" vertex="1">
+          <mxGeometry height="88" width="118" x="710" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="api-settings" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Sections / Settings&lt;/b&gt;&lt;br/&gt;/sections/* · /settings/*&lt;br/&gt;Section prompts&lt;br/&gt;Runtime config" vertex="1">
+          <mxGeometry height="88" width="120" x="825" y="55" as="geometry" />
+        </mxCell>
+
+        <!-- Processing Modules row -->
+        <mxCell id="api-modules-label" parent="API" style="text;html=1;align=left;fontStyle=1;fontSize=9;fontColor=#1a4d00;" value="Processing Modules" vertex="1">
+          <mxGeometry height="16" width="200" x="15" y="155" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-edgar" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;edgar_client.py&lt;/b&gt;&lt;br/&gt;HTTP · rate limiter&lt;br/&gt;Retry + backoff&lt;br/&gt;HTML parse · image DL" vertex="1">
+          <mxGeometry height="88" width="148" x="15" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-classifier" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;classifier.py&lt;/b&gt;&lt;br/&gt;Stage 1: cover page (4K)&lt;br/&gt;Stage 2: targeted sections (8K)&lt;br/&gt;Confidence threshold gating" vertex="1">
+          <mxGeometry height="88" width="155" x="178" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-extractor" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;extractor.py&lt;/b&gt;&lt;br/&gt;&lt;b&gt;Tier 0:&lt;/b&gt; registry (CUSIP/issuer, conf=1.0)&lt;br/&gt;&lt;b&gt;Tier 1:&lt;/b&gt; HTML table (html_extractor, conf=0.97)&lt;br/&gt;&lt;b&gt;Tier 2:&lt;/b&gt; Claude LLM (schema + hints)&lt;br/&gt;Merge: T0/T1 override LLM per field" vertex="1">
+          <mxGeometry height="108" width="195" x="348" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-html-ext" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;html_extractor.py&lt;/b&gt;&lt;br/&gt;Key Terms table finder&lt;br/&gt;label_mapper.py → field path&lt;br/&gt;field_parsers.py → typed value&lt;br/&gt;LabelMiss → label_miss_log" vertex="1">
+          <mxGeometry height="108" width="155" x="558" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-schema-diff" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;schema_diff.py&lt;/b&gt;&lt;br/&gt;Resolve $ref · walk fields&lt;br/&gt;Detect renames · severity&lt;br/&gt;&lt;b&gt;schema_loader.py&lt;/b&gt;&lt;br/&gt;Mtime-cached · reload API" vertex="1">
+          <mxGeometry height="108" width="155" x="728" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-loaders" parent="API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;hints_loader.py&lt;/b&gt;&lt;br/&gt;Mtime-cached YAML reads&lt;br/&gt;Live reload without restart&lt;br/&gt;Slug → issuer key resolver" vertex="1">
+          <mxGeometry height="88" width="148" x="800" y="175" as="geometry" />
+        </mxCell>
+
+        <!-- ③ DATA LAYER -->
+        <mxCell id="DATA" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;rounded=1;arcSize=3;" value="③ DATA LAYER — SQLite (WAL) · Local Filesystem" vertex="1">
+          <mxGeometry height="250" width="470" x="1050" y="294" as="geometry" />
+        </mxCell>
+        <mxCell id="data-sqlite" parent="DATA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;SQLite Database&lt;/b&gt;&lt;br/&gt;&lt;i&gt;filings&lt;/i&gt; · &lt;i&gt;extraction_results&lt;/i&gt; · &lt;i&gt;field_results&lt;/i&gt;&lt;br/&gt;&lt;i&gt;edit_log&lt;/i&gt; · &lt;i&gt;classification_feedback&lt;/i&gt;&lt;br/&gt;&lt;i&gt;api_usage_log&lt;/i&gt; · &lt;i&gt;label_miss_log&lt;/i&gt;&lt;br/&gt;Managed via SQLAlchemy ORM · WAL mode" vertex="1">
+          <mxGeometry height="100" width="435" x="15" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="data-fs" parent="DATA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Local Filesystem&lt;/b&gt; — &lt;code&gt;data/filings/{accession}/&lt;/code&gt;&lt;br/&gt;&lt;b&gt;raw.html&lt;/b&gt; — full 424B2 filing HTML&lt;br/&gt;&lt;b&gt;image_*.jpg/.png&lt;/b&gt; — downloaded formula images&lt;br/&gt;&lt;b&gt;metadata.json&lt;/b&gt; — CUSIP, issuer, image list&lt;br/&gt;&lt;b&gt;export_*.json / *.csv&lt;/b&gt; — PRISM output" vertex="1">
+          <mxGeometry height="100" width="435" x="15" y="148" as="geometry" />
+        </mxCell>
+
+        <!-- External Services -->
+        <mxCell id="EXT" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#7a3500;rounded=1;arcSize=3;" value="External Services" vertex="1">
+          <mxGeometry height="185" width="830" x="-8" y="756" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-efts" parent="EXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;SEC EDGAR — Full-Text Search&lt;/b&gt;&lt;br/&gt;efts.sec.gov · 424B2 search by CUSIP or text&lt;br/&gt;Returns accession numbers + CIK" vertex="1">
+          <mxGeometry height="68" width="230" x="12" y="51" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-archives" parent="EXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;SEC EDGAR — Document Archives&lt;/b&gt;&lt;br/&gt;sec.gov/Archives/edgar/data/{cik}/{acc}/&lt;br/&gt;424B2 HTML filing · index · images (jpg / png)" vertex="1">
+          <mxGeometry height="68" width="220" x="258" y="51" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-note" parent="EXT" style="text;html=1;align=center;fontSize=8;fontColor=#7a3500;fontStyle=2;" value="≤ 10 req/s EDGAR rate limit · exponential backoff on 429/503 · User-Agent required" vertex="1">
+          <mxGeometry height="30" width="400" x="-20" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-claude" parent="EXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffefd5;strokeColor=#d79b00;fontSize=9;align=center;verticalAlign=middle;fontStyle=0;" value="&lt;b&gt;Anthropic Claude API&lt;/b&gt;&lt;br/&gt;Default: claude-sonnet-4-6 (1M context)&lt;br/&gt;Also: claude-sonnet-4-5 · claude-sonnet-4&lt;br/&gt;&lt;b&gt;Classification:&lt;/b&gt; Stage 1 (cover) + Stage 2 (sections)&lt;br/&gt;&lt;b&gt;Extraction:&lt;/b&gt; single-call or per-section (Tier 2 only)&lt;br/&gt;Usage tracked → api_usage_log (tokens · cost · cache)" vertex="1">
+          <mxGeometry height="120" width="265" x="498" y="38" as="geometry" />
+        </mxCell>
+
+        <!-- Knowledge & Config -->
+        <mxCell id="CFG" parent="1" style="swimlane;startSize=30;fontStyle=1;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3d1f5c;rounded=1;arcSize=3;" value="Knowledge &amp; Config Files" vertex="1">
+          <mxGeometry height="280" width="470" x="1050" y="566" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-schema" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;PRISM JSON Schema&lt;/b&gt;&lt;br/&gt;schemas/prism/prism-v1.schema.json&lt;br/&gt;9 payout model definitions · Field types · enums&lt;br/&gt;Managed via Schema Manager (fetch → diff → activate)" vertex="1">
+          <mxGeometry height="78" width="200" x="15" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-hints" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Issuer Hints (YAML)&lt;/b&gt;&lt;br/&gt;files/hints/issuer_*.yaml&lt;br/&gt;Per-issuer field synonyms&lt;br/&gt;Label positions · filing notes" vertex="1">
+          <mxGeometry height="78" width="215" x="230" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-labelmap" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Label Maps (YAML)&lt;/b&gt;&lt;br/&gt;label_map_cross_issuer.yaml (curated)&lt;br/&gt;label_map_user.yaml (UI-managed)&lt;br/&gt;HTML label → PRISM field path" vertex="1">
+          <mxGeometry height="78" width="200" x="15" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-sections" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Section Specs (YAML)&lt;/b&gt;&lt;br/&gt;files/sections/identifiers.yaml etc.&lt;br/&gt;Section names · search anchors&lt;br/&gt;Per-section system prompt notes" vertex="1">
+          <mxGeometry height="78" width="215" x="230" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-glossary" parent="CFG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" value="&lt;b&gt;Financial Glossary (MD)&lt;/b&gt; — Product terminology · Synonym map · Payout formula patterns · Injected into extraction system prompt at runtime (mtime-cached, live reload)" vertex="1">
+          <mxGeometry height="30" width="435" x="15" y="218" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" parent="1" style="swimlane;startSize=20;fontSize=9;fontStyle=1;fillColor=#ffffff;strokeColor=#aaaaaa;rounded=1;" value="Legend" vertex="1">
+          <mxGeometry height="51" width="450" x="-8" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-sync" parent="legend" style="text;html=1;fontSize=8;fontColor=#333333;" value="━━ synchronous REST / ORM call" vertex="1">
+          <mxGeometry height="16" width="160" x="10" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-async" parent="legend" style="text;html=1;fontSize=8;fontColor=#d79b00;" value="╌╌ external network call (SEC EDGAR / Claude API)" vertex="1">
+          <mxGeometry height="16" width="220" x="180" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-config" parent="legend" style="text;html=1;fontSize=8;fontColor=#9673a6;" value="╌╌ config file read (mtime-cached)" vertex="1">
+          <mxGeometry height="16" width="180" x="410" y="20" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e-ui-api" edge="1" parent="1" source="UI" target="API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;fontColor=#003366;strokeColor=#6c8ebf;endArrow=block;startArrow=block;startFill=0;endFill=1;" value="HTTP REST /api/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-api-data" edge="1" parent="1" source="API" target="DATA" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;fontColor=#333333;strokeColor=#666666;endArrow=block;startArrow=block;startFill=0;endFill=1;" value="SQLAlchemy ORM · file R/W">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="460" />
+              <mxPoint x="1060" y="460" />
+              <mxPoint x="1060" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-edgar-efts" edge="1" parent="1" source="mod-edgar" target="ext-efts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;dashed=1;endArrow=open;endFill=0;" value="CUSIP / text search">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="64" y="748" />
+              <mxPoint x="64" y="820" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-edgar-arch" edge="1" parent="1" source="mod-edgar" target="ext-archives" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;dashed=1;endArrow=open;endFill=0;" value="HTML · index · images">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="748" />
+              <mxPoint x="145" y="790" />
+              <mxPoint x="380" y="790" />
+              <mxPoint x="380" y="807" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-class-claude" edge="1" parent="1" source="mod-classifier" target="ext-claude" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;dashed=1;endArrow=open;endFill=0;" value="classification prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="256" y="748" />
+              <mxPoint x="256" y="774" />
+              <mxPoint x="660" y="774" />
+              <mxPoint x="660" y="806" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-extract-claude" edge="1" parent="1" source="mod-extractor" target="ext-claude" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=8;fontColor=#7a3500;strokeColor=#d79b00;dashed=1;endArrow=open;endFill=0;" value="extraction prompt (Tier 2)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="446" y="748" />
+              <mxPoint x="446" y="762" />
+              <mxPoint x="660" y="762" />
+              <mxPoint x="660" y="794" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cfg-loaders" edge="1" parent="1" source="CFG" target="mod-loaders" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=8;fontColor=#3d1f5c;strokeColor=#9673a6;dashed=1;endArrow=open;endFill=0;" value="file reads (mtime-cached)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cfg-schema" edge="1" parent="1" source="CFG" target="mod-schema-diff" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=8;fontColor=#3d1f5c;strokeColor=#9673a6;dashed=1;endArrow=open;endFill=0;" value="schema JSON">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
