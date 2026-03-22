@@ -874,6 +874,26 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
     if hints_block.strip():
         log.info("Applying extraction hints for issuer %r (sectioned mode)", issuer_name)
 
+    # ── Tier 0: Registry metadata extraction ────────────────────────────────
+    with database.get_session() as session:
+        filing_row = session.get(database.Filing, filing_id)
+        filing_record = {
+            "cusip":       filing_row.cusip       if filing_row else None,
+            "issuer_name": filing_row.issuer_name if filing_row else None,
+        }
+    tier0_fields = extract_registry_fields(filing_record)
+    if tier0_fields:
+        log.info("Tier 0: %d registry fields extracted", len(tier0_fields))
+
+    # ── Tier 1: HTML table extraction ────────────────────────────────────────
+    issuer_table_labels = issuer_hints.get("table_labels", {}) if issuer_hints else {}
+    label_map = build_label_map(issuer_table_labels=issuer_table_labels)
+    tier1_fields, tier1_misses = extract_from_html(html, issuer_hints, label_map)
+    if tier1_fields:
+        log.info("Tier 1: %d fields extracted from HTML table", len(tier1_fields))
+    if tier1_misses:
+        _persist_label_misses(tier1_misses, filing_id=filing_id, issuer_name=issuer_name)
+
     # Get sections for this model
     sections = get_sections_for_model(model_name)
     log.info(
@@ -974,17 +994,46 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
     flat_values: dict[str, Any] = {}
     _flatten(merged_prism, "", flat_values, skip_keys={"model", "_confidence", "_excerpts"})
 
+    # ── Merge Tier 0 + Tier 1 into override map (same logic as extract_filing) ─
+    # Tier 1 wins over Tier 0 on conflict; both win over LLM (higher trust).
+    pre_extracted: dict[str, Any] = {}   # field_name → (value, score, excerpt, source)
+
+    for hf in tier0_fields:
+        pre_extracted[hf.field_name] = (hf.extracted_value, hf.confidence_score,
+                                        hf.source_excerpt, hf.source)
+    for hf in tier1_fields:
+        if hf.field_name in pre_extracted:
+            log.info(
+                "Tier 1 overrides Tier 0 for %s: %r → %r",
+                hf.field_name, pre_extracted[hf.field_name][0], hf.extracted_value,
+            )
+        pre_extracted[hf.field_name] = (hf.extracted_value, hf.confidence_score,
+                                        hf.source_excerpt, hf.source)
+
     # Build ExtractionField list — ensure all descriptor paths are covered
-    all_paths = descriptor_paths | set(flat_values.keys())
+    all_paths = descriptor_paths | set(flat_values.keys()) | set(pre_extracted.keys())
     fields: list[ExtractionField] = []
     for path in sorted(all_paths):
         if path in {"model", "_confidence", "_excerpts"}:
             continue
-        value      = flat_values.get(path)
-        confidence = float(merged_conf.get(path, 0.5 if value is not None else 0.0))
-        confidence = max(0.0, min(1.0, confidence))
-        excerpt    = str(merged_excr.get(path, ""))[:500]
-        not_found  = value is None
+
+        # Determine source: Tier 0/1 win over LLM
+        if path in pre_extracted:
+            value, confidence, excerpt, src = pre_extracted[path]
+            llm_value = flat_values.get(path)
+            if llm_value is not None and llm_value != value:
+                log.info(
+                    "Conflict [Tier 1 wins]: %s — html=%r  llm=%r  (confidence=%.2f)",
+                    path, value, llm_value, confidence,
+                )
+        else:
+            value      = flat_values.get(path)
+            confidence = float(merged_conf.get(path, 0.5 if value is not None else 0.0))
+            confidence = max(0.0, min(1.0, confidence))
+            excerpt    = str(merged_excr.get(path, ""))[:500]
+            src        = "llm"
+
+        not_found = value is None
 
         # Schema enum validation
         validation_error: str | None = None
@@ -1009,6 +1058,7 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
             source_excerpt=excerpt,
             not_found=not_found,
             validation_error=validation_error,
+            source=src,
         ))
 
     # Persist to DB
