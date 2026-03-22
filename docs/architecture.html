@@ -411,19 +411,33 @@ flowchart LR
   <div class="diagram-card">
     <h2>Filing Lifecycle (Status Transitions)</h2>
     <div class="mermaid">
-stateDiagram-v2
-    [*] --> ingested : POST /api/ingest/filing
-    ingested --> classified : classify - confidence above 0.75
-    ingested --> needs_review : classify - confidence below 0.75 or unknown
-    needs_review --> classified : manual override confirm
-    classified --> extracting : POST /api/extract/:id
-    extracting --> extracted : extraction complete
-    extracting --> classified : extraction failed - rollback
-    extracted --> approved : approve
-    approved --> extracted : unapprove
-    approved --> exported : POST /api/export/:id
-    classified --> ingested : reset classification
-    needs_review --> ingested : reset classification
+flowchart TD
+    classDef base fill:#011151,color:#fff,stroke:#334155,stroke-width:2px
+    classDef warn fill:#dc2626,color:#fff,stroke:#991b1b,stroke-width:2px
+    classDef good fill:#059669,color:#fff,stroke:#065f46,stroke-width:2px
+    classDef transit fill:#7c3aed,color:#fff,stroke:#5b21b6,stroke-width:2px
+
+    START([Start]) --> INGESTED
+
+    INGESTED([ingested]):::base
+    CLASSIFIED([classified]):::base
+    NEEDS_REVIEW([needs review]):::warn
+    EXTRACTING([extracting]):::transit
+    EXTRACTED([extracted]):::base
+    APPROVED([approved]):::good
+    EXPORTED([exported]):::good
+
+    INGESTED --> |"classify - conf above 0.75"| CLASSIFIED
+    INGESTED --> |"classify - conf below 0.75"| NEEDS_REVIEW
+    NEEDS_REVIEW --> |"manual override"| CLASSIFIED
+    NEEDS_REVIEW --> |"reset"| INGESTED
+    CLASSIFIED --> |"reset"| INGESTED
+    CLASSIFIED --> |"extract"| EXTRACTING
+    EXTRACTING --> |"complete"| EXTRACTED
+    EXTRACTING --> |"failed - rollback"| CLASSIFIED
+    EXTRACTED --> |"approve"| APPROVED
+    APPROVED --> |"unapprove"| EXTRACTED
+    APPROVED --> |"export"| EXPORTED
     </div>
   </div>
 
