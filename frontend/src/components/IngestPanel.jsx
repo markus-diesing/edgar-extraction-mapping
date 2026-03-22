@@ -30,40 +30,44 @@ export default function IngestPanel({ onIngested }) {
   const doIngestHit = async (hit) => {
     setIngesting(hit.accession_number)
     setError('')
+    let filing = null
     try {
-      const filing = await api.ingest({
+      filing = await api.ingest({
         accession_number: hit.accession_number,
         cik: hit.cik,
         cusip: query.length === 9 ? query.toUpperCase() : hit.cusip_hint,
         issuer_name: hit.entity_name,
         filing_date: hit.filing_date,
       })
-      onIngested(filing)
       setResults(null)
     } catch (e) {
       setError(e.message)
     } finally {
       setIngesting(null)
     }
+    // Call parent callback outside try/catch so errors in onIngested() are not swallowed.
+    if (filing) onIngested(filing)
   }
 
   const doDirectIngest = async () => {
     if (!directAcc || !directCik) { setError('Accession number and CIK are required'); return }
     setIngesting('direct')
     setError('')
+    let filing = null
     try {
-      const filing = await api.ingest({
+      filing = await api.ingest({
         accession_number: directAcc,
         cik: directCik,
         cusip: directCusip || null,
       })
-      onIngested(filing)
       setDirectCusip(''); setDirectAcc(''); setDirectCik('')
     } catch (e) {
       setError(e.message)
     } finally {
       setIngesting(null)
     }
+    // Call parent callback outside try/catch so errors in onIngested() are not swallowed.
+    if (filing) onIngested(filing)
   }
 
   return (

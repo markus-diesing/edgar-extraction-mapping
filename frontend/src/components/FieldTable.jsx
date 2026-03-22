@@ -35,27 +35,39 @@ function ConfidenceBar({ score }) {
 }
 
 function EditCell({ field, filingId, onUpdated }) {
-  const [editing, setEditing] = useState(false)
-  const [val, setVal]         = useState('')
-  const [saving, setSaving]   = useState(false)
+  const [editing,      setEditing]      = useState(false)
+  const [val,          setVal]          = useState('')
+  const [saving,       setSaving]       = useState(false)
+  const [parseWarning, setParseWarning] = useState(false)
 
   const startEdit = () => {
     const current = field.reviewed_value ?? field.extracted_value
     setVal(current == null ? '' : (typeof current === 'object' ? JSON.stringify(current) : String(current)))
+    setParseWarning(false)
     setEditing(true)
+  }
+
+  const handleValChange = (e) => {
+    setVal(e.target.value)
+    setParseWarning(false)
   }
 
   const save = async (status) => {
     setSaving(true)
+    let parsedVal
+    let isRawString = false
+    try { parsedVal = JSON.parse(val) } catch { parsedVal = val || null; isRawString = val.length > 0 }
+    if (isRawString) {
+      setParseWarning(true)
+    }
     try {
-      let parsedVal
-      try { parsedVal = JSON.parse(val) } catch { parsedVal = val || null }
       const updated = await api.updateField(filingId, field.id, {
         reviewed_value: parsedVal,
         review_status: status,
       })
       onUpdated(updated)
       setEditing(false)
+      setParseWarning(false)
     } catch (e) {
       alert(e.message)
     } finally {
@@ -84,10 +96,15 @@ function EditCell({ field, filingId, onUpdated }) {
         <input
           className="border border-slate-300 rounded px-2 py-1 text-xs font-mono w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
           value={val}
-          onChange={e => setVal(e.target.value)}
+          onChange={handleValChange}
           disabled={saving}
           autoFocus
         />
+        {parseWarning && (
+          <p className="text-xs text-amber-600 italic">
+            ⚠ Saved as plain string — not valid JSON
+          </p>
+        )}
         <div className="flex gap-1">
           <button onClick={() => save('corrected')} disabled={saving}
             className="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded px-2 py-0.5 disabled:opacity-50">

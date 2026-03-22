@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean, Column, Float, ForeignKey, Integer, String, Text, UniqueConstraint,
     create_engine, event, text,
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, relationship
 
 import config
@@ -236,8 +237,8 @@ def _migrate() -> None:
             try:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 conn.commit()
-            except Exception:
-                pass  # column already exists — SQLite raises OperationalError; safe to ignore
+            except OperationalError:
+                pass  # column already exists — SQLite raises OperationalError on duplicate ADD COLUMN
 
 
 def get_session() -> Session:

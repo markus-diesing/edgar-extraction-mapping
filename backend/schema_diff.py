@@ -202,8 +202,8 @@ def _detect_renames(
                 "new_path": best_path,
                 "confidence": best_conf,
                 "type": old_info["type"],
-                "old_description": old_info["description"][:120],
-                "new_description": best_info["description"][:120],
+                "old_description": old_info.get("description", "")[:120],
+                "new_description": best_info.get("description", "")[:120],
             })
             used_added.add(best_path)
     return suggestions
@@ -387,7 +387,7 @@ def compute_diff(
             "severity": "safe",
             "field_changes": [
                 {"path": p, "change": "added", "severity": "safe",
-                 "new_type": fi["type"], "new_description": fi["description"][:120],
+                 "new_type": fi["type"], "new_description": fi.get("description", "")[:120],
                  "new_required": fi["required"], "new_enum_values": fi["enum_values"],
                  "is_dynamic": fi.get("is_dynamic", False),
                  "has_parser": False, "label_map_entries": [],
@@ -424,7 +424,7 @@ def compute_diff(
             sev = _severity("added", fi)
             field_changes.append({
                 "path": p, "change": "added", "severity": sev,
-                "new_type": fi["type"], "new_description": fi["description"][:120],
+                "new_type": fi["type"], "new_description": fi.get("description", "")[:120],
                 "new_required": fi["required"], "new_enum_values": fi["enum_values"],
                 "is_dynamic": fi.get("is_dynamic", False),
                 **_xref(p),
@@ -433,7 +433,7 @@ def compute_diff(
         for p, fi in sorted(removed_paths.items()):
             field_changes.append({
                 "path": p, "change": "removed", "severity": "breaking",
-                "old_type": fi["type"], "old_description": fi["description"][:120],
+                "old_type": fi["type"], "old_description": fi.get("description", "")[:120],
                 "old_required": fi["required"],
                 **_xref(p),
             })
@@ -477,8 +477,8 @@ def compute_diff(
                 sub_changes.append({
                     "path": p, "change": "desc_changed",
                     "severity": _severity("desc_changed", nf),
-                    "old_description": cf["description"][:120],
-                    "new_description": nf["description"][:120],
+                    "old_description": cf.get("description", "")[:120],
+                    "new_description": nf.get("description", "")[:120],
                     **_xref(p),
                 })
 

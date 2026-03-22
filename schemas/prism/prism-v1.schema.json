@@ -47,6 +47,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
                 }
             },
             "required": [
@@ -141,6 +144,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
                 }
             },
             "required": [
@@ -203,6 +209,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
                 }
             },
             "required": [
@@ -268,6 +277,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
                 }
             },
             "required": [
@@ -362,6 +374,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
                 }
             },
             "required": [
@@ -453,6 +468,9 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
                 }
             },
             "required": [
@@ -596,15 +614,15 @@
                     "description": "The total maximum possible number of shares that can be traded during the lifetime of the instrument including gearing if applicable.",
                     "minimum": 1
                 },
-                "tradedSharesDaily": {
-                    "type": "integer",
-                    "description": "The number of shares traded per day.",
-                    "minimum": 1
-                },
                 "guaranteedSchedulesNumber": {
                     "type": "integer",
                     "description": "Defines how many of the schedules are traded at a minimum even if the product is knocked out.",
                     "minimum": 0
+                },
+                "tradedSharesDaily": {
+                    "type": "integer",
+                    "description": "The number of shares traded per day.",
+                    "minimum": 1
                 },
                 "strikeAbsolute": {
                     "type": "object",
@@ -1519,6 +1537,42 @@
                 }
             },
             "additionalProperties": true
+        },
+        "Portfolios": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z]\\w*$": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "enum": [
+                                "basket"
+                            ]
+                        },
+                        "weights": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^[A-Za-z]\\w*$": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "type",
+                        "weights"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
         },
         "Quarterly": {
             "type": "object",

@@ -13,6 +13,28 @@ import { api } from '../api.js'
 // Lines-per-page selector options
 const LINE_OPTIONS = [50, 200, 500]
 
+// Module name suggestions for the filter autocomplete datalist.
+// Covers all logger names used in the backend (logging.getLogger(__name__)).
+const MODULE_SUGGESTIONS = [
+  'main',
+  'extract.extractor',
+  'extract.html_extractor',
+  'extract.label_mapper',
+  'classify.router',
+  'extract.router',
+  'ingest.router',
+  'hints.router',
+  'admin.router',
+  'admin.schema_router',
+  'admin.label_map_router',
+  'schema_diff',
+  'schema_loader',
+  'hints_loader',
+  'sections.router',
+  'settings.router',
+  'export.router',
+]
+
 // Level filter options in severity order
 const LEVEL_OPTIONS = [
   { value: 'ALL',     label: 'All levels' },
@@ -135,11 +157,15 @@ export default function AdminLogViewer() {
 
         {/* Module filter */}
         <input
-          className="text-xs border border-slate-200 rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="text-xs border border-slate-200 rounded px-2 py-1 w-44 focus:outline-none focus:ring-1 focus:ring-blue-400"
           placeholder="Module…"
           value={moduleFilter}
           onChange={e => setModuleFilter(e.target.value)}
+          list="module-suggestions"
         />
+        <datalist id="module-suggestions">
+          {MODULE_SUGGESTIONS.map(m => <option key={m} value={m} />)}
+        </datalist>
 
         {/* Text search */}
         <input

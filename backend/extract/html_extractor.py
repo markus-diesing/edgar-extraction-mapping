@@ -243,9 +243,10 @@ def _extract_two_column_rows(table: Tag) -> list[tuple[str, str]]:
         # Skip empty rows
         if not label_text or not value_text:
             continue
-        # Skip rows where both cells look like column header labels (purely short words
-        # without any digit or special char in the value).  A CUSIP value like "06749FWA3"
-        # contains digits so it passes through even though it's a single token.
+        # Skip rows where both cells are single-word all-uppercase tokens with no digits
+        # — these look like column-header placeholder rows (e.g. "LABEL" / "VALUE")
+        # rather than actual Key Terms data.  A CUSIP like "06749FWA3" passes through
+        # because it contains digits; multi-word labels/values also pass through.
         if (len(label_text.split()) <= 1
                 and len(value_text.split()) <= 1
                 and not any(c.isdigit() for c in value_text)

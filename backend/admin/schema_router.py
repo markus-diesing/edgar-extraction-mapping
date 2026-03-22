@@ -131,6 +131,7 @@ def fetch_schema() -> dict:
         resp.raise_for_status()
         new_schema = resp.json()
     except Exception as e:
+        log.exception("Failed to fetch schema from %s", config.PRISM_SCHEMA_URL)
         raise HTTPException(status_code=502, detail=f"Failed to fetch schema: {e}")
 
     # Validate minimal structure
@@ -153,6 +154,7 @@ def fetch_schema() -> dict:
             source_url=config.PRISM_SCHEMA_URL,
         )
     except Exception as e:
+        log.exception("Diff computation failed for fetch_id=%s", fetch_id)
         pending_path.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Diff computation failed: {e}")
 

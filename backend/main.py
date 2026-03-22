@@ -111,6 +111,48 @@ app.include_router(label_map_router, prefix="/api")
 app.include_router(schema_router, prefix="/api")
 
 
+# ---------------------------------------------------------------------------
+# Documentation support chat — used by the HTML user manuals
+# ---------------------------------------------------------------------------
+from pydantic import BaseModel as _BaseModel
+
+
+class _ChatRequest(_BaseModel):
+    message: str
+    history: list[dict] = []
+
+
+@app.post("/api/docs/chat")
+async def docs_chat(req: _ChatRequest):
+    import anthropic as _anthropic
+    client = _anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    system = (
+        "You are a helpful assistant for the EDGAR Extraction & PRISM Mapping tool built by "
+        "Lucht Probst Associates (LPA). This is an internal POC tool that:\n"
+        "- Ingests SEC EDGAR 424B2 structured product filings\n"
+        "- Classifies them into PRISM data model types using Claude AI\n"
+        "- Extracts PRISM fields using a hybrid approach: HTML table parsing (Tier 1), "
+        "EDGAR registry data (Tier 0), and LLM extraction (Tier 2)\n"
+        "- Provides an Expert UI for reviewing, correcting, and approving extracted fields\n"
+        "- Exports to JSON/CSV for downstream PRISM ingestion\n\n"
+        "Key components: Filings view (list + detail), Expert view (Field Hints, Section Prompts, "
+        "Extraction Settings, Label Map, Schema), Admin view (Logs, Cost & Usage).\n\n"
+        "Answer questions about how to use the tool, troubleshoot issues, and explain concepts. "
+        "Be concise and practical."
+    )
+    messages = req.history[-10:] + [{"role": "user", "content": req.message}]
+    try:
+        resp = client.messages.create(
+            model=config.CLAUDE_MODEL_DEFAULT,
+            max_tokens=1024,
+            system=system,
+            messages=messages,
+        )
+        return {"reply": resp.content[0].text}
+    except Exception as e:
+        return {"reply": f"Sorry, I couldn't reach the AI assistant: {e}"}
+
+
 @app.get("/api/health")
 def health():
     models = schema_loader.list_models()

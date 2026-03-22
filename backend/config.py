@@ -19,7 +19,7 @@ LOGS_DIR      = PROJECT_ROOT / "logs"
 
 PRISM_SCHEMA_FILE    = SCHEMAS_DIR / "prism-v1.schema.json"
 CUSIP_MAPPING_FILE   = SCHEMAS_DIR / "CUSIP_PRISM_Mapping.xlsx"
-PRISM_SCHEMA_URL         = "http://10.10.21.57:30080/api/schema/json"
+PRISM_SCHEMA_URL         = os.environ.get("PRISM_SCHEMA_URL", "http://10.10.21.57:30080/api/schema/json")
 PRISM_SCHEMA_PENDING_DIR = SCHEMAS_DIR / "pending"
 PRISM_SCHEMA_ARCHIVE_DIR = SCHEMAS_DIR / "archive"
 

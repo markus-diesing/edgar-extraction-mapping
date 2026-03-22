@@ -54,6 +54,11 @@ log = logging.getLogger(__name__)
 # Label miss-log persistence
 # ---------------------------------------------------------------------------
 
+def _clamp_conf(confidence: float) -> float:
+    """Clamp a confidence score to the valid [0.0, 1.0] range."""
+    return max(0.0, min(1.0, confidence))
+
+
 def _persist_label_misses(
     misses: list,
     filing_id: str,
@@ -98,8 +103,12 @@ def _persist_label_misses(
             session.commit()
         log.debug("Persisted %d label miss(es) to label_miss_log", len(misses))
     except Exception as exc:
-        # Miss logging is non-critical — never let it break extraction
-        log.warning("Could not persist label misses: %s", exc)
+        # Miss logging is non-critical — never let it break extraction.
+        # Log at warning with count so repeated failures are visible in the log viewer.
+        log.warning(
+            "Could not persist %d label miss(es) — they will not appear in the Label Map editor: %s",
+            len(misses), exc, exc_info=True,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +292,8 @@ Rules:
 
 _GLOSSARY_PATH = config.PROJECT_ROOT / "files" / "financial_glossary.md"
 _glossary_cache: dict = {"mtime": None, "text": ""}
+# Guards _glossary_cache against concurrent mtime-check + write races when multiple
+# extraction requests arrive simultaneously (FastAPI runs handlers in a thread pool).
 _glossary_lock = threading.Lock()
 
 
@@ -610,8 +621,7 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
                 )
         else:
             value      = flat_values.get(path)
-            confidence = float(confidence_map.get(path, 0.5 if value is not None else 0.0))
-            confidence = max(0.0, min(1.0, confidence))
+            confidence = _clamp_conf(float(confidence_map.get(path, 0.5 if value is not None else 0.0)))
             excerpt    = str(excerpts_map.get(path, ""))[:500]
             src        = "llm"
 
@@ -629,8 +639,8 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
                 )
                 confidence = 0.0
                 log.warning(
-                    "Enum violation in %s: field=%s  value=%r  allowed=%s",
-                    path, path, str_value, allowed,
+                    "Enum violation: field=%s  value=%r  allowed=%s",
+                    path, str_value, allowed,
                 )
 
         fields.append(ExtractionField(
@@ -1028,8 +1038,7 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
                 )
         else:
             value      = flat_values.get(path)
-            confidence = float(merged_conf.get(path, 0.5 if value is not None else 0.0))
-            confidence = max(0.0, min(1.0, confidence))
+            confidence = _clamp_conf(float(merged_conf.get(path, 0.5 if value is not None else 0.0)))
             excerpt    = str(merged_excr.get(path, ""))[:500]
             src        = "llm"
 
@@ -1047,8 +1056,8 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
                 )
                 confidence = 0.0
                 log.warning(
-                    "Enum violation in %s: field=%s  value=%r  allowed=%s",
-                    path, path, str_value, allowed,
+                    "Enum violation: field=%s  value=%r  allowed=%s",
+                    path, str_value, allowed,
                 )
 
         fields.append(ExtractionField(

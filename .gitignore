@@ -27,6 +27,7 @@ logs/
 # ── Credentials ───────────────────────────────────────────────────────────────
 .env
 .env.*
+!.env.example
 *.key
 secrets/
 

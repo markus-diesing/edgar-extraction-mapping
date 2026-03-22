@@ -72,6 +72,7 @@ def _load_yaml_file(path: Path) -> dict:
         with path.open(encoding="utf-8") as fh:
             return yaml.safe_load(fh) or {}
     except Exception as exc:
+        log.exception("Failed to read YAML file %s", path.name)
         raise HTTPException(status_code=500, detail=f"Failed to read {path.name}: {exc}")
 
 
@@ -83,6 +84,7 @@ def _save_yaml_file(path: Path, data: dict) -> None:
         # Invalidate cache so next get_hints() reloads
         hints_loader.reload_hints()
     except Exception as exc:
+        log.exception("Failed to write YAML file %s", path.name)
         raise HTTPException(status_code=500, detail=f"Failed to write {path.name}: {exc}")
 
 
