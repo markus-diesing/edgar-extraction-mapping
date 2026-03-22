@@ -11,8 +11,9 @@ All endpoint details from EDGAR_API.md.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
+import re
+import threading
 import time
 from typing import Any
 
@@ -38,15 +39,18 @@ HEADERS = {"User-Agent": config.EDGAR_USER_AGENT}
 # Rate limiter (shared across all client instances)
 # ---------------------------------------------------------------------------
 _last_request_time: float = 0.0
+_rate_limit_lock = threading.Lock()
 
 
 def _wait_rate_limit() -> None:
+    """Thread-safe rate limiter — enforces at most 1 request per EDGAR_RATE_LIMIT_DELAY."""
     global _last_request_time
-    now = time.monotonic()
-    elapsed = now - _last_request_time
-    if elapsed < config.EDGAR_RATE_LIMIT_DELAY:
-        time.sleep(config.EDGAR_RATE_LIMIT_DELAY - elapsed)
-    _last_request_time = time.monotonic()
+    with _rate_limit_lock:
+        now = time.monotonic()
+        elapsed = now - _last_request_time
+        if elapsed < config.EDGAR_RATE_LIMIT_DELAY:
+            time.sleep(config.EDGAR_RATE_LIMIT_DELAY - elapsed)
+        _last_request_time = time.monotonic()
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +216,6 @@ def strip_html(html: str) -> str:
         tag.decompose()
     text = soup.get_text(separator="\n", strip=True)
     # Collapse runs of blank lines
-    import re
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import uuid
 from datetime import datetime, timezone
@@ -650,8 +651,7 @@ def get_filing_document(filing_id: str):
     )
 
     # Inject right after <head> (case-insensitive), or prepend if no head tag.
-    import re as _re
-    head_match = _re.search(r"<head[^>]*>", html, _re.IGNORECASE)
+    head_match = re.search(r"<head[^>]*>", html, re.IGNORECASE)
     if head_match:
         pos  = head_match.end()
         html = html[:pos] + "\n" + injection + html[pos:]
@@ -702,7 +702,6 @@ def get_filing_kpis(filing_id: str):
         ingest: dict[str, Any] = {}
         if f.ingest_started_at and f.ingest_timestamp:
             try:
-                from datetime import datetime, timezone
                 start = datetime.fromisoformat(f.ingest_started_at)
                 end   = datetime.fromisoformat(f.ingest_timestamp)
                 ingest = {

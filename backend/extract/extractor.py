@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -56,9 +57,13 @@ def _get_extraction_hints() -> dict:
     return hints_loader.get_hints()
 
 
-def _match_issuer_hints(issuer_name: str | None) -> dict | None:
-    """Return the hints block for the best-matching issuer, or None."""
-    extraction_hints = _get_extraction_hints()
+def _match_issuer_hints(issuer_name: str | None, all_hints: dict | None = None) -> dict | None:
+    """Return the hints block for the best-matching issuer, or None.
+
+    Pass all_hints to avoid a redundant hints_loader call when the caller already
+    holds the hints dict (e.g. extract_filing calls _get_extraction_hints once).
+    """
+    extraction_hints = all_hints if all_hints is not None else _get_extraction_hints()
     if not issuer_name or not extraction_hints:
         return None
     issuers = extraction_hints.get("issuers", {})
@@ -72,7 +77,7 @@ def _match_issuer_hints(issuer_name: str | None) -> dict | None:
     return None
 
 
-def _build_hints_block(issuer_hints: dict | None) -> str:
+def _build_hints_block(issuer_hints: dict | None, all_hints: dict | None = None) -> str:
     """
     Render a concise prompt prefix from issuer-specific, cross-issuer, and schema-guide hints.
 
@@ -81,10 +86,13 @@ def _build_hints_block(issuer_hints: dict | None) -> str:
       2. Cross-issuer field-level rules (synonyms, value formats, cautions)
       3. Issuer-specific hints (section headings, field aliases, document layout)
 
+    Pass all_hints to avoid a redundant hints_loader call when the caller already holds
+    the dict (extract_filing loads once and passes to both _match_issuer_hints and here).
     Returns an empty string when no hints are available.
     """
     lines: list[str] = []
-    all_hints = _get_extraction_hints()
+    if all_hints is None:
+        all_hints = _get_extraction_hints()
 
     # --- PRISM schema guide (structural patterns — always applied when present) ---
     schema_guide = all_hints.get("schema_guide", {})
@@ -220,22 +228,24 @@ Rules:
 
 _GLOSSARY_PATH = config.PROJECT_ROOT / "files" / "financial_glossary.md"
 _glossary_cache: dict = {"mtime": None, "text": ""}
+_glossary_lock = threading.Lock()
 
 
 def _get_system_prompt() -> str:
     """
     Return the extraction system prompt, appending the financial glossary if the file
     exists. The glossary is mtime-cached — edits to financial_glossary.md take effect
-    on the next extraction call without a server restart.
+    on the next extraction call without a server restart.  Thread-safe via _glossary_lock.
     """
     global _glossary_cache
     if _GLOSSARY_PATH.exists():
         try:
             mtime = _GLOSSARY_PATH.stat().st_mtime
-            if mtime != _glossary_cache["mtime"]:
-                _glossary_cache["text"]  = _GLOSSARY_PATH.read_text(encoding="utf-8")
-                _glossary_cache["mtime"] = mtime
-                log.info("Financial glossary loaded/reloaded from %s", _GLOSSARY_PATH.name)
+            with _glossary_lock:
+                if mtime != _glossary_cache["mtime"]:
+                    _glossary_cache["text"]  = _GLOSSARY_PATH.read_text(encoding="utf-8")
+                    _glossary_cache["mtime"] = mtime
+                    log.info("Financial glossary loaded/reloaded from %s", _GLOSSARY_PATH.name)
         except Exception as exc:
             log.warning("Could not load financial glossary: %s", exc)
 
@@ -414,9 +424,11 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
     html = abs_path.read_text(encoding="utf-8", errors="replace")
     filing_text = strip_html(html)
 
-    # Build issuer hints block (empty string if no match / hints unavailable)
-    issuer_hints = _match_issuer_hints(issuer_name)
-    hints_block  = _build_hints_block(issuer_hints)
+    # Build issuer hints block (empty string if no match / hints unavailable).
+    # Load hints once and pass to both helpers to avoid a redundant mtime-stat/reload.
+    all_hints    = _get_extraction_hints()
+    issuer_hints = _match_issuer_hints(issuer_name, all_hints=all_hints)
+    hints_block  = _build_hints_block(issuer_hints, all_hints=all_hints)
     if hints_block.strip():
         log.info("Applying extraction hints for issuer %r", issuer_name)
     else:

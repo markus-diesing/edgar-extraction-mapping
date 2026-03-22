@@ -9,6 +9,7 @@ GET  /api/usage                — Claude API usage summary
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -111,7 +112,6 @@ def list_exports():
     for f in sorted(exports_dir.iterdir()):
         if f.is_file():
             stat = f.stat()
-            from datetime import datetime, timezone
             entries.append(ExportFileEntry(
                 filename=f.name,
                 size_bytes=stat.st_size,

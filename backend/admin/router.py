@@ -58,7 +58,24 @@ def get_logs(
     raw_lines: list[str] = []
     if log_path.exists():
         file_size = log_path.stat().st_size
-        raw_lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        # Tail the file: read only the last chunk rather than the whole log.
+        # Each structured log line is at most ~300 bytes; tracebacks add ~1-3 KB.
+        # Reading 3× the target byte budget gives ample margin while avoiding
+        # loading many MBs after months of use.
+        tail_bytes = lines * 400  # generous per-line budget
+        try:
+            with open(log_path, "rb") as fh:
+                fh.seek(0, 2)  # seek to end
+                size = fh.tell()
+                start = max(0, size - tail_bytes)
+                fh.seek(start)
+                chunk = fh.read().decode("utf-8", errors="replace")
+            # If we seeked mid-line, drop the first (possibly partial) line
+            if start > 0:
+                chunk = chunk[chunk.find("\n") + 1:]
+            raw_lines = chunk.splitlines()
+        except OSError:
+            raw_lines = []
 
     # Parse into structured entries (handle multi-line tracebacks)
     entries: list[dict] = []
@@ -193,89 +210,126 @@ def get_usage_summary():
 
     with database.get_session() as session:
 
-        # Fetch all usage rows
-        all_rows = session.query(database.ApiUsageLog).all()
-
-        if not all_rows:
-            return _empty_summary()
-
-        # ------------------------------------------------------------------
-        # Totals
-        # ------------------------------------------------------------------
-        total_cost     = sum(_cost_for_row(r) for r in all_rows)
-        total_savings  = sum(_cache_savings_for_row(r) for r in all_rows)
-        total_calls    = len(all_rows)
-        total_in       = sum(r.prompt_tokens     or 0 for r in all_rows)
-        total_out      = sum(r.completion_tokens or 0 for r in all_rows)
-        total_cache_rd = sum(r.cache_read_tokens  or 0 for r in all_rows)
-        total_cache_wr = sum(r.cache_write_tokens or 0 for r in all_rows)
-        total_filings  = len({r.filing_id for r in all_rows if r.filing_id})
-
-        # Rolling windows
-        week_rows  = [r for r in all_rows if (r.called_at or "") >= week_ago]
-        month_rows = [r for r in all_rows if (r.called_at or "") >= month_ago]
-        week_cost  = sum(_cost_for_row(r) for r in week_rows)
-        month_cost = sum(_cost_for_row(r) for r in month_rows)
-
-        # ------------------------------------------------------------------
-        # By step (call_type)
-        # ------------------------------------------------------------------
-        step_buckets: dict[str, dict[str, Any]] = {}
-        for r in all_rows:
-            ct = r.call_type or "unknown"
-            if ct not in step_buckets:
-                step_buckets[ct] = {
-                    "call_type":   ct,
-                    "label":       _CALL_TYPE_LABELS.get(ct, ct),
-                    "calls":       0,
-                    "input_tokens": 0,
-                    "output_tokens": 0,
-                    "cache_read_tokens": 0,
-                    "cache_write_tokens": 0,
-                    "cost_usd":    0.0,
-                    "cache_savings_usd": 0.0,
-                }
-            b = step_buckets[ct]
-            b["calls"]              += 1
-            b["input_tokens"]       += r.prompt_tokens     or 0
-            b["output_tokens"]      += r.completion_tokens or 0
-            b["cache_read_tokens"]  += r.cache_read_tokens  or 0
-            b["cache_write_tokens"] += r.cache_write_tokens or 0
-            b["cost_usd"]           += _cost_for_row(r)
-            b["cache_savings_usd"]  += _cache_savings_for_row(r)
-
-        by_step = sorted(step_buckets.values(), key=lambda s: -s["cost_usd"])
-        for s in by_step:
-            s["cost_usd"]          = round(s["cost_usd"], 6)
-            s["cache_savings_usd"] = round(s["cache_savings_usd"], 6)
-            s["pct_of_total"]      = round(s["cost_usd"] / total_cost * 100, 1) if total_cost else 0
-            s["avg_cost_per_call"] = round(s["cost_usd"] / s["calls"], 6) if s["calls"] else 0
-
-        # ------------------------------------------------------------------
-        # By payout_type and by issuer (join to filings table)
-        # ------------------------------------------------------------------
+        # Single left-outer-join query — avoids scanning api_usage_log twice.
+        # rows_with_filing is the canonical list used for all per-row iteration.
         rows_with_filing = (
             session.query(database.ApiUsageLog, database.Filing)
             .outerjoin(database.Filing, database.ApiUsageLog.filing_id == database.Filing.id)
             .all()
         )
 
+        if not rows_with_filing:
+            return _empty_summary()
+
+        # ------------------------------------------------------------------
+        # Single pass: compute all accumulators simultaneously
+        # ------------------------------------------------------------------
+        total_cost     = 0.0
+        total_savings  = 0.0
+        total_calls    = 0
+        total_in       = 0
+        total_out      = 0
+        total_cache_rd = 0
+        total_cache_wr = 0
+        filing_ids: set[str] = set()
+
+        week_cost  = 0.0
+        month_cost = 0.0
+        week_filing_ids:  set[str] = set()
+        month_filing_ids: set[str] = set()
+
+        step_buckets:   dict[str, dict[str, Any]] = {}
         payout_buckets: dict[str, dict] = {}
         issuer_buckets: dict[str, dict] = {}
+
+        classify_cost = 0.0
+        stage2_cost   = 0.0
+
+        # For model comparison: accumulate total tokens once (O(N), not O(M×N))
+        total_prompt_tokens_for_cmp     = 0
+        total_completion_tokens_for_cmp = 0
+
         for usage_row, filing in rows_with_filing:
+            cost    = _cost_for_row(usage_row)
+            savings = _cache_savings_for_row(usage_row)
+
+            total_cost     += cost
+            total_savings  += savings
+            total_calls    += 1
+            total_in       += usage_row.prompt_tokens     or 0
+            total_out      += usage_row.completion_tokens or 0
+            total_cache_rd += usage_row.cache_read_tokens  or 0
+            total_cache_wr += usage_row.cache_write_tokens or 0
+            if usage_row.filing_id:
+                filing_ids.add(usage_row.filing_id)
+
+            # Rolling windows — ISO string comparison is valid for UTC timestamps
+            ts = usage_row.called_at or ""
+            if ts >= week_ago:
+                week_cost += cost
+                if usage_row.filing_id:
+                    week_filing_ids.add(usage_row.filing_id)
+            if ts >= month_ago:
+                month_cost += cost
+                if usage_row.filing_id:
+                    month_filing_ids.add(usage_row.filing_id)
+
+            # By step
+            ct = usage_row.call_type or "unknown"
+            if ct not in step_buckets:
+                step_buckets[ct] = {
+                    "call_type":         ct,
+                    "label":             _CALL_TYPE_LABELS.get(ct, ct),
+                    "calls":             0,
+                    "input_tokens":      0,
+                    "output_tokens":     0,
+                    "cache_read_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cost_usd":          0.0,
+                    "cache_savings_usd": 0.0,
+                }
+            b = step_buckets[ct]
+            b["calls"]              += 1
+            b["input_tokens"]       += usage_row.prompt_tokens     or 0
+            b["output_tokens"]      += usage_row.completion_tokens or 0
+            b["cache_read_tokens"]  += usage_row.cache_read_tokens  or 0
+            b["cache_write_tokens"] += usage_row.cache_write_tokens or 0
+            b["cost_usd"]           += cost
+            b["cache_savings_usd"]  += savings
+
+            # By payout_type and issuer
             ptype  = (filing.payout_type_id if filing else None) or "unknown"
             issuer = (filing.issuer_name    if filing else None) or "Unknown"
-            cost   = _cost_for_row(usage_row)
-
             if ptype not in payout_buckets:
                 payout_buckets[ptype] = {"payout_type_id": ptype, "calls": 0, "cost_usd": 0.0}
             payout_buckets[ptype]["calls"]    += 1
             payout_buckets[ptype]["cost_usd"] += cost
-
             if issuer not in issuer_buckets:
                 issuer_buckets[issuer] = {"issuer_name": issuer, "calls": 0, "cost_usd": 0.0}
             issuer_buckets[issuer]["calls"]    += 1
             issuer_buckets[issuer]["cost_usd"] += cost
+
+            # Classify cost breakdown
+            if usage_row.call_type and usage_row.call_type.startswith("classify"):
+                classify_cost += cost
+                if usage_row.call_type == "classify_stage2":
+                    stage2_cost += cost
+
+            # Model comparison token accumulators (O(N) instead of O(M×N))
+            total_prompt_tokens_for_cmp     += usage_row.prompt_tokens     or 0
+            total_completion_tokens_for_cmp += usage_row.completion_tokens or 0
+
+        total_filings = len(filing_ids)
+
+        # ------------------------------------------------------------------
+        # Finalize by_step
+        # ------------------------------------------------------------------
+        by_step = sorted(step_buckets.values(), key=lambda s: -s["cost_usd"])
+        for s in by_step:
+            s["cost_usd"]          = round(s["cost_usd"], 6)
+            s["cache_savings_usd"] = round(s["cache_savings_usd"], 6)
+            s["pct_of_total"]      = round(s["cost_usd"] / total_cost * 100, 1) if total_cost else 0
+            s["avg_cost_per_call"] = round(s["cost_usd"] / s["calls"], 6) if s["calls"] else 0
 
         by_payout_type = sorted(
             [{"payout_type_id": k, "calls": v["calls"], "cost_usd": round(v["cost_usd"], 6)}
@@ -293,20 +347,14 @@ def get_usage_summary():
         # ------------------------------------------------------------------
         total_fields_found = session.query(database.FieldResult).filter_by(not_found=False).count()
 
-        classify_cost = sum(
-            _cost_for_row(r) for r in all_rows if r.call_type and r.call_type.startswith("classify")
-        )
-        stage2_cost = sum(
-            _cost_for_row(r) for r in all_rows if r.call_type == "classify_stage2"
-        )
         cache_hit_rate = (
             round(total_cache_rd / max(total_in, 1) * 100, 1) if total_cache_rd else 0.0
         )
 
         unit_economics = {
-            "cost_per_filing":        round(total_cost / total_filings, 6)  if total_filings else None,
-            "cost_per_field_found":   round(total_cost / total_fields_found, 6) if total_fields_found else None,
-            "avg_input_per_filing":   round(total_in   / total_filings, 0)  if total_filings else None,
+            "cost_per_filing":        round(total_cost / total_filings, 6)       if total_filings else None,
+            "cost_per_field_found":   round(total_cost / total_fields_found, 6)  if total_fields_found else None,
+            "avg_input_per_filing":   round(total_in   / total_filings, 0)       if total_filings else None,
             "output_input_ratio_pct": round(total_out  / max(total_in, 1) * 100, 1),
             "classify_overhead_pct":  round(classify_cost / total_cost * 100, 1) if total_cost else 0,
             "stage2_overhead_pct":    round(stage2_cost / max(classify_cost, 0.000001) * 100, 1),
@@ -320,28 +368,25 @@ def get_usage_summary():
         # ------------------------------------------------------------------
         # Projection (based on last 30 days)
         # ------------------------------------------------------------------
-        month_filings = len({r.filing_id for r in month_rows if r.filing_id})
-        monthly_run_rate = round(month_cost, 4) if month_rows else None
-        per_100_filings  = round(
-            total_cost / total_filings * 100, 4
-        ) if total_filings else None
+        month_filings    = len(month_filing_ids)
+        monthly_run_rate = round(month_cost, 4) if month_filing_ids else None
+        per_100_filings  = round(total_cost / total_filings * 100, 4) if total_filings else None
 
         projection = {
-            "monthly_run_rate_usd":   monthly_run_rate,
+            "monthly_run_rate_usd":    monthly_run_rate,
             "month_filings_processed": month_filings,
-            "per_100_filings_usd":    per_100_filings,
-            "annual_estimate_usd":    round(monthly_run_rate * 12, 2) if monthly_run_rate else None,
+            "per_100_filings_usd":     per_100_filings,
+            "annual_estimate_usd":     round(monthly_run_rate * 12, 2) if monthly_run_rate else None,
         }
 
         # ------------------------------------------------------------------
-        # Model comparison — what would this corpus have cost on each model?
+        # Model comparison — O(M+N): token totals pre-computed above, one multiply per model
         # ------------------------------------------------------------------
         model_comparison = []
         for model_id, info in config.CLAUDE_MODEL_REGISTRY.items():
-            est_cost = sum(
-                (r.prompt_tokens or 0)    * info["input_price_per_m"]  / 1_000_000
-                + (r.completion_tokens or 0) * info["output_price_per_m"] / 1_000_000
-                for r in all_rows
+            est_cost = (
+                total_prompt_tokens_for_cmp     * info["input_price_per_m"]  / 1_000_000
+                + total_completion_tokens_for_cmp * info["output_price_per_m"] / 1_000_000
             )
             model_comparison.append({
                 "model_id":     model_id,

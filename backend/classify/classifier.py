@@ -84,6 +84,12 @@ _SECTION_HEADERS: list[str] = [
 _SECTION_WINDOW = 1_500    # chars to collect around each matched header
 _MAX_STAGE2_CHARS = 8_000  # cap for the targeted section block
 
+# Pre-compiled combined pattern — one scan instead of 35+ per stage-2 call
+_SECTION_PATTERN = re.compile(
+    "|".join(re.escape(h) for h in _SECTION_HEADERS),
+    re.IGNORECASE,
+)
+
 
 # ---------------------------------------------------------------------------
 # Prompt builders
@@ -304,17 +310,17 @@ TARGETED SECTIONS (key structural terms found in full document):
 def _extract_targeted_sections(full_text: str) -> str:
     """
     Search the full filing for structural-feature headers and return up to
-    _MAX_STAGE2_CHARS of context around the first match of each header.
+    _MAX_STAGE2_CHARS of context around each match.
     Deduplicates overlapping windows.
+
+    Uses a single pre-compiled combined pattern (_SECTION_PATTERN) instead of
+    compiling and running 35+ individual regexes.
     """
     windows: list[tuple[int, int]] = []
-    for header in _SECTION_HEADERS:
-        pat = re.compile(re.escape(header), re.IGNORECASE)
-        m = pat.search(full_text)
-        if m:
-            start = max(0, m.start() - 200)
-            end   = min(len(full_text), m.end() + _SECTION_WINDOW)
-            windows.append((start, end))
+    for m in _SECTION_PATTERN.finditer(full_text):
+        start = max(0, m.start() - 200)
+        end   = min(len(full_text), m.end() + _SECTION_WINDOW)
+        windows.append((start, end))
 
     if not windows:
         return ""

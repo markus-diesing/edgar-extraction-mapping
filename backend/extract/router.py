@@ -100,6 +100,12 @@ def run_extraction(filing_id: str):
         if not filing:
             raise HTTPException(status_code=404, detail="Filing not found")
         if filing.status not in ("classified", "needs_review", "extracted"):
+            # "extracting" means a concurrent request is already running the LLM
+            if filing.status == "extracting":
+                raise HTTPException(
+                    status_code=409,
+                    detail="Extraction already in progress for this filing.",
+                )
             raise HTTPException(
                 status_code=422,
                 detail=f"Filing must be classified first (current status: {filing.status})",
@@ -117,10 +123,25 @@ def run_extraction(filing_id: str):
                     "(set status to 'classified' via POST /api/classify/{filing_id}/confirm)."
                 ),
             )
+        # TOCTOU guard: set an in-flight marker atomically before releasing the session.
+        # A concurrent POST /extract/{id} will see status="extracting" and return 409,
+        # preventing a duplicate LLM call (and duplicate API spend) on the same filing.
+        if filing.status != "extracting":
+            filing.status = "extracting"
+            session.commit()
 
     try:
         result = extract_filing(filing_id)
     except Exception as exc:
+        # Revert the in-flight marker so the filing can be re-tried
+        try:
+            with database.get_session() as rollback_session:
+                f = rollback_session.get(database.Filing, filing_id)
+                if f and f.status == "extracting":
+                    f.status = "classified"
+                    rollback_session.commit()
+        except Exception:
+            pass
         log.exception("Extraction failed for filing %s", filing_id)
         raise HTTPException(status_code=500, detail=str(exc))
 
