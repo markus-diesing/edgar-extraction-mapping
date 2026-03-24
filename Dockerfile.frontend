@@ -1,0 +1,19 @@
+# ── EDGAR Extraction & PRISM Mapping — Frontend (dev) ─────────────────────────
+# Runs the Vite dev server with hot reload.
+# Source is bind-mounted at runtime — edit a .jsx, browser reloads instantly.
+FROM node:20-slim
+
+WORKDIR /app
+
+# ── Dependency layer ──────────────────────────────────────────────────────────
+COPY frontend/package*.json ./
+RUN npm ci
+
+# Source is volume-mounted over this at runtime; the COPY just ensures the
+# image can stand alone if ever run without a mount.
+COPY frontend/ .
+
+EXPOSE 5173
+
+# --host 0.0.0.0 makes Vite listen on all interfaces (required inside Docker)
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

@@ -1,6 +1,6 @@
 # Open Tasks
 
-**Last updated:** 2026-03-23
+**Last updated:** 2026-03-24
 **Source:** Requirements audit + session review + strategic planning
 
 Tasks are grouped by priority. Each entry notes its source document and estimated effort.
@@ -64,7 +64,7 @@ Prompt language in both stage-1 and stage-2 prompts changed to treat CUSIP hint 
 
 ---
 
-## 🟢 D — Admin / Documentation
+## 🟢 D — Admin / Documentation / Infrastructure
 
 ### D1 — Commit `docs/` directory to git ✅ (committed in 1dfa89f)
 
@@ -74,6 +74,14 @@ Prompt language in both stage-1 and stage-2 prompts changed to treat CUSIP hint 
 ### D3 — Remove or archive old `files/architecture.drawio`
 **Effort:** 5 min
 **What:** `architecture_260322.drawio` supersedes `architecture.drawio`. Remove to avoid confusion.
+
+### D4 — Docker containerisation ✅ DONE (2026-03-24)
+**What:** Full Docker Compose stack — backend (Python 3.13-slim) + frontend (Node 20-slim, Vite dev server).
+- `Dockerfile`, `Dockerfile.frontend`, `docker-compose.yml`, `start.sh`, `.dockerignore` created
+- `start.sh` reads Anthropic key from macOS Keychain — zero manual input on this Mac
+- All data dirs bind-mounted: source hot-reloads, SQLite + files accessible from Finder as before
+- Pre-Docker state tagged: `v0.1-pre-docker`
+- See `docs/dev/DOCKER_SETUP.md` for full reference
 
 ---
 
@@ -94,6 +102,7 @@ Prompt language in both stage-1 and stage-2 prompts changed to treat CUSIP hint 
 | A2 — dynamic schema loading | Already in place — schema_loader.py is fully dynamic |
 | D1 — commit docs/ | Done (commit 1dfa89f) |
 | D2 — update README.md | Done (2026-03-23) — three-state classification, confirm endpoint, CUSIP demotion, docs endpoints |
+| D4 — Docker containerisation | Done (2026-03-24) — full Compose stack, Keychain integration, bind mounts, hot reload |
 
 ---
 

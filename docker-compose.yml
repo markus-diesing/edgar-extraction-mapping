@@ -1,0 +1,54 @@
+# ── EDGAR Extraction & PRISM Mapping — Docker Compose (dev) ───────────────────
+#
+# Start with:   ./start.sh          (reads Anthropic key from macOS Keychain)
+# Stop with:    Ctrl+C  then  docker compose down
+# Logs:         docker compose logs -f
+#
+# Ports (same as the non-Docker dev setup):
+#   http://localhost:8000  →  FastAPI backend + /docs static files
+#   http://localhost:5173  →  React frontend (Vite dev server, hot reload)
+
+services:
+
+  # ── Backend ──────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Injected by start.sh from macOS Keychain — never stored in this file.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      # Source — bind mount enables uvicorn --reload on file save
+      - ./backend:/app/backend
+      # Runtime data — same paths the app uses on the host
+      - ./data:/app/data
+      - ./files:/app/files
+      - ./docs:/app/docs
+      - ./schemas:/app/schemas
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    environment:
+      # Tells vite.config.js where to proxy /api calls.
+      # Inside Docker the backend is reachable via its service name.
+      - VITE_BACKEND_URL=http://backend:8000
+    volumes:
+      # Source — Vite watches for changes and hot-reloads the browser
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.js:/app/vite.config.js
+      # node_modules stays inside the container — do not overwrite with host copy
+    depends_on:
+      - backend
+    restart: unless-stopped
