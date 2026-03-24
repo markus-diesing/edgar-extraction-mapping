@@ -232,8 +232,8 @@ The single most valuable addition is a **PRISM_MODEL_ID mapping column**, which 
 ---
 
 *Related documents:*
-- `files/PLAN_MODEL_SCALING_STRATEGY.md` — strategic options and open questions
-- `files/CLASSIFICATION_HINTS_SPEC.md` — schema hints specification
+- `docs/plans/PLAN_MODEL_SCALING_STRATEGY.md` — strategic options and open questions
+- `docs/specs/SPEC_CLASSIFICATION_HINTS_FORMAT.md` — schema hints specification
 - `files/payout_features.json` — extracted data (machine-readable)
 - `files/payout_features.csv` — extracted data (tabular)
-- `files/OPEN_TASKS.md` — task backlog (A1, A2, B1–B3)
+- `docs/tracking/OPEN_TASKS.md` — task backlog (A1, A2, B1–B3)

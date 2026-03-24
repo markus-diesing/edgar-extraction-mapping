@@ -150,7 +150,7 @@ EDGAR does not provide a direct CUSIP-to-accession-number index. The recommended
 2. CUSIP numbers frequently appear in the text of 424B2 filings
 3. Filter results by `forms=424B2`
 
-Note: A 424B2 may contain multiple CUSIPs (e.g., for a series of products). The extraction step should handle this.
+Note: A 424B2 may contain multiple CUSIPs (e.g., for a series of products filed together in one supplement). This is a **series filing** — see §8 below.
 
 ---
 
@@ -194,5 +194,19 @@ A 424B2 is a prospectus supplement filed under an existing shelf registration. K
 - **PDF filings:** A minority of 424B2s are filed as PDF. Detect content type from the filing index and skip/flag in v1 (do not attempt PDF extraction in v1).
 
 ---
+
+## 8. Series Filings (Multiple CUSIPs in One 424B2)
+
+Some issuers file a single 424B2 supplement covering a **series** of products with different economic terms under one accession number. Each product in the series has its own CUSIP and its own set of parameters (different barrier levels, coupons, maturities, underliers).
+
+**Risk:** Extracting a series filing as a single document will produce mixed or averaged field values — the extractor cannot reliably distinguish which parameter belongs to which CUSIP.
+
+**Current behaviour:** The pipeline ingests the full HTML of the matching filing regardless of how many CUSIPs are embedded. PRISM expects one CUSIP → one extraction result.
+
+**Detection:** A series filing can be identified during ingest or classification by the presence of multiple distinct CUSIP strings in the filing HTML. The ingest layer currently stores whichever CUSIP was used to search EDGAR.
+
+**Frontend:** Series filings should be visually flagged in the filing list and detail view (e.g. a warning badge "Series filing — multiple CUSIPs detected"). The reviewer should be aware that extraction results may contain mixed parameters.
+
+**Future work (backlog):** "Break series filing to individual datasets" — decompose a series 424B2 into N separate filing records, one per CUSIP, each containing only the relevant section of the HTML. This requires identifying the per-CUSIP sections within the document (typically separated by product headers or table rows).
 
 *End of EDGAR_API.md*

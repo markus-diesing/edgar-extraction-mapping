@@ -44,6 +44,26 @@ log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _assert_text_response(msg: Any, stage: int) -> str:
+    """Return the text of the first content block, or raise with a clear message.
+
+    The Anthropic SDK normally guarantees a non-empty content array with a text
+    block when using the default ``messages.create`` call, but defensive
+    checking here surfaces unexpected API shapes as actionable errors rather
+    than cryptic ``IndexError`` / ``AttributeError`` crashes.
+    """
+    if not msg.content or not hasattr(msg.content[0], "text"):
+        raise ValueError(
+            f"Stage {stage}: unexpected Anthropic response — content array is empty or "
+            f"first block has no text attribute. content={msg.content!r}"
+        )
+    return msg.content[0].text.strip()
+
+
+# ---------------------------------------------------------------------------
 # Result type
 # ---------------------------------------------------------------------------
 
@@ -474,7 +494,7 @@ def classify_filing(
         cache_write_tokens=getattr(msg1.usage, "cache_creation_input_tokens", 0) or 0,
     )
 
-    result1 = _parse_classification_response(msg1.content[0].text.strip(), models, schema_version, stage=1)
+    result1 = _parse_classification_response(_assert_text_response(msg1, 1), models, schema_version, stage=1)
     log.info(
         "Stage 1 result: model=%s  confidence=%.2f",
         result1.payout_type_id, result1.confidence_score,
@@ -526,7 +546,7 @@ def classify_filing(
         cache_write_tokens=getattr(msg2.usage, "cache_creation_input_tokens", 0) or 0,
     )
 
-    result2 = _parse_classification_response(msg2.content[0].text.strip(), models, schema_version, stage=2)
+    result2 = _parse_classification_response(_assert_text_response(msg2, 2), models, schema_version, stage=2)
     log.info(
         "Stage 2 result: model=%s  confidence=%.2f",
         result2.payout_type_id, result2.confidence_score,

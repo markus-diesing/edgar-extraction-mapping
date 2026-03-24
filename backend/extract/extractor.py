@@ -54,9 +54,22 @@ log = logging.getLogger(__name__)
 # Label miss-log persistence
 # ---------------------------------------------------------------------------
 
-def _clamp_conf(confidence: float) -> float:
-    """Clamp a confidence score to the valid [0.0, 1.0] range."""
-    return max(0.0, min(1.0, confidence))
+def _clamp_conf(raw: Any, path: str = "", default: float = 0.5) -> float:
+    """Parse *raw* as a float confidence and clamp to [0.0, 1.0].
+
+    *raw* may be a float, int, or numeric string as Claude returns.
+    Non-numeric values (e.g. ``"high"``, ``"0.85 (estimated)"``) fall back
+    to *default* and emit a warning when *path* is provided.
+    """
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except (ValueError, TypeError):
+        if path:
+            log.warning(
+                "Non-numeric confidence value for %s: %r — defaulting to %.1f",
+                path, raw, default,
+            )
+        return default
 
 
 def _persist_label_misses(
@@ -290,7 +303,7 @@ Rules:
   non-null field. If inferred from context, provide the supporting clause.
 """
 
-_GLOSSARY_PATH = config.PROJECT_ROOT / "files" / "financial_glossary.md"
+_GLOSSARY_PATH = config.PROJECT_ROOT / "docs" / "research" / "financial_glossary.md"
 _glossary_cache: dict = {"mtime": None, "text": ""}
 # Guards _glossary_cache against concurrent mtime-check + write races when multiple
 # extraction requests arrive simultaneously (FastAPI runs handlers in a thread pool).
@@ -621,7 +634,8 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
                 )
         else:
             value      = flat_values.get(path)
-            confidence = _clamp_conf(float(confidence_map.get(path, 0.5 if value is not None else 0.0)))
+            _default   = 0.5 if value is not None else 0.0
+            confidence = _clamp_conf(confidence_map.get(path, _default), path, _default)
             excerpt    = str(excerpts_map.get(path, ""))[:500]
             src        = "llm"
 
@@ -1038,7 +1052,8 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
                 )
         else:
             value      = flat_values.get(path)
-            confidence = _clamp_conf(float(merged_conf.get(path, 0.5 if value is not None else 0.0)))
+            _default   = 0.5 if value is not None else 0.0
+            confidence = _clamp_conf(merged_conf.get(path, _default), path, _default)
             excerpt    = str(merged_excr.get(path, ""))[:500]
             src        = "llm"
 
@@ -1144,10 +1159,25 @@ def _parse_tool_response(message: Any) -> tuple[dict, dict, dict]:
     for block in message.content:
         if block.type == "tool_use" and block.name == "submit_prism_extraction":
             tool_input = block.input  # already a dict, guaranteed valid
-            prism_data     = tool_input.get("prism_data", {})
-            confidence_map = tool_input.get("_confidence", {})
-            excerpts_map   = tool_input.get("_excerpts", {})
-            return prism_data, confidence_map, excerpts_map
+            # Claude occasionally returns a non-dict for these maps (e.g. an empty
+            # string or null) despite the tool schema specifying object types.
+            # Guard here so callers never receive a non-dict and crash on .get().
+            _tool_keys = [
+                ("prism_data",   "prism_data"),
+                ("_confidence",  "confidence_map"),
+                ("_excerpts",    "excerpts_map"),
+            ]
+            _coerced: dict[str, dict] = {}
+            for tool_key, var_name in _tool_keys:
+                val = tool_input.get(tool_key, {})
+                if not isinstance(val, dict):
+                    log.warning(
+                        "_parse_tool_response: %s was %s, defaulting to {}",
+                        tool_key, type(val).__name__,
+                    )
+                    val = {}
+                _coerced[var_name] = val
+            return _coerced["prism_data"], _coerced["confidence_map"], _coerced["excerpts_map"]
 
     # Fallback: if no tool_use block found (should not happen with tool_choice=forced),
     # try to parse text content as raw JSON

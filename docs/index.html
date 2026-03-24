@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGAR Extraction — Documentation Hub</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+#topbar {
+  background: #011151;
+  color: #fff;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+#topbar h1 { font-size: 1rem; font-weight: 700; letter-spacing: 0.01em; }
+#topbar .sub { font-size: 0.75rem; color: #94a3b8; margin-top: 1px; }
+#refresh-info { font-size: 0.72rem; color: #64748b; text-align: right; }
+#refresh-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #cbd5e1;
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#refresh-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+/* ── Main layout ─────────────────────────────────────────────────────────── */
+#main {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 28px 32px;
+  display: flex;
+  gap: 28px;
+}
+#doc-list { flex: 1; min-width: 0; }
+#reader-panel {
+  width: 520px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 68px;
+  height: calc(100vh - 96px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.1);
+  display: none;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+#reader-panel.open { display: flex; }
+
+/* ── Category sections ───────────────────────────────────────────────────── */
+.category {
+  margin-bottom: 28px;
+}
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.category-icon { font-size: 1rem; }
+.category-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+}
+.category-count {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+/* ── File cards ──────────────────────────────────────────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-color: #0F3AF0;
+  transform: translateY(-1px);
+}
+.card.active {
+  border-color: #0F3AF0;
+  background: #f5f7ff;
+  box-shadow: 0 0 0 2px rgba(15,58,240,0.15);
+}
+.card-top { display: flex; align-items: flex-start; gap: 8px; }
+.card-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.card-name { font-size: 0.82rem; font-weight: 600; color: #1e293b; line-height: 1.3; }
+.card-abstract { font-size: 0.75rem; color: #64748b; line-height: 1.5; }
+.card-footer { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.badge-date {
+  font-size: 0.65rem;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'SF Mono', monospace;
+}
+.badge-type {
+  font-size: 0.65rem;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.badge-type.html { background: #eff6ff; color: #2563eb; }
+.badge-type.markdown { background: #f0fdf4; color: #16a34a; }
+
+/* ── Error / loading ─────────────────────────────────────────────────────── */
+#status-bar {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+#status-bar.error { color: #b91c1c; }
+
+/* ── Reader panel ────────────────────────────────────────────────────────── */
+#reader-header {
+  background: #011151;
+  color: #fff;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+#reader-title { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#reader-actions { display: flex; gap: 6px; flex-shrink: 0; }
+#reader-actions button {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#reader-actions button:hover { background: rgba(255,255,255,0.25); color: #fff; }
+#reader-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 22px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+/* Markdown rendering styles */
+#reader-body h1 { font-size: 1.1rem; font-weight: 700; margin: 0 0 14px; color: #011151; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+#reader-body h2 { font-size: 0.95rem; font-weight: 700; margin: 18px 0 8px; color: #0f172a; }
+#reader-body h3 { font-size: 0.85rem; font-weight: 600; margin: 14px 0 6px; color: #1e293b; }
+#reader-body p  { margin: 0 0 10px; }
+#reader-body p:last-child { margin-bottom: 0; }
+#reader-body ul, #reader-body ol { margin: 6px 0 10px 20px; }
+#reader-body li { margin: 3px 0; }
+#reader-body code { font-family: 'SF Mono','Fira Mono',monospace; font-size: 0.78em; background: #f1f5f9; border-radius: 3px; padding: 1px 5px; }
+#reader-body pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; overflow-x: auto; margin: 10px 0; }
+#reader-body pre code { background: none; padding: 0; }
+#reader-body strong { font-weight: 600; }
+#reader-body em { font-style: italic; }
+#reader-body blockquote { border-left: 3px solid #0F3AF0; padding-left: 12px; color: #475569; margin: 10px 0; }
+#reader-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 16px 0; }
+#reader-body table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.78rem; }
+#reader-body th { background: #f8fafc; font-weight: 600; text-align: left; }
+#reader-body th, #reader-body td { border: 1px solid #e2e8f0; padding: 5px 10px; }
+#reader-body tr:nth-child(even) td { background: #fafafa; }
+#reader-body a { color: #0F3AF0; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #reader-panel { display: none !important; }
+  #main { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div>
+    <h1>EDGAR Extraction &amp; PRISM Mapping — Documentation Hub</h1>
+    <div class="sub">LPA Internal POC · <span id="file-count">…</span> documents across <span id="cat-count">…</span> categories</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div id="refresh-info">Last refreshed: <span id="refresh-time">—</span></div>
+    <button id="refresh-btn" onclick="loadManifest()">↺ Refresh</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="doc-list">
+    <div id="status-bar">Loading documentation index…</div>
+  </div>
+  <div id="reader-panel">
+    <div id="reader-header">
+      <span id="reader-title">—</span>
+      <div id="reader-actions">
+        <button onclick="openExternal()">↗ Open</button>
+        <button onclick="closeReader()">✕</button>
+      </div>
+    </div>
+    <div id="reader-body"></div>
+  </div>
+</div>
+
+<script src="/docs/js/markdown.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let activeCard = null;
+let activeUrl = null;
+
+// ── Manifest loader ───────────────────────────────────────────────────────────
+async function loadManifest() {
+  document.getElementById('status-bar').textContent = 'Refreshing…';
+  document.getElementById('status-bar').className = '';
+  try {
+    const resp = await fetch('/api/docs/manifest');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    renderManifest(data);
+    document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('status-bar').textContent = `Could not load documentation index. Is the backend running? (${e.message})`;
+    document.getElementById('status-bar').className = 'error';
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderManifest(data) {
+  const list = document.getElementById('doc-list');
+  list.innerHTML = '';
+  document.getElementById('status-bar').style.display = 'none';
+
+  let totalFiles = 0;
+  data.categories.forEach(cat => {
+    totalFiles += cat.files.length;
+    const section = document.createElement('div');
+    section.className = 'category';
+    section.innerHTML = `
+      <div class="category-header">
+        <span class="category-icon">${cat.icon}</span>
+        <span class="category-label">${cat.label}</span>
+        <span class="category-count">${cat.files.length} file${cat.files.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="cards" id="cat-${cat.key}"></div>`;
+    list.appendChild(section);
+
+    const grid = section.querySelector(`#cat-${cat.key}`);
+    cat.files.forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.url = f.url;
+      card.dataset.type = f.type;
+      card.dataset.name = f.name;
+      const typeIcon = f.type === 'html' ? '🌐' : '📄';
+      card.innerHTML = `
+        <div class="card-top">
+          <span class="card-icon">${typeIcon}</span>
+          <span class="card-name">${escHtml(f.name)}</span>
+        </div>
+        ${f.abstract ? `<div class="card-abstract">${escHtml(f.abstract)}</div>` : ''}
+        <div class="card-footer">
+          <span class="badge-date">${f.last_modified}</span>
+          <span class="badge-type ${f.type}">${f.type === 'html' ? 'HTML' : 'Markdown'}</span>
+        </div>`;
+      card.addEventListener('click', () => openDoc(card, f));
+      grid.appendChild(card);
+    });
+  });
+
+  document.getElementById('file-count').textContent = totalFiles;
+  document.getElementById('cat-count').textContent = data.categories.length;
+}
+
+// ── Document opener ───────────────────────────────────────────────────────────
+async function openDoc(card, f) {
+  if (f.type === 'html') {
+    window.open(f.url, '_blank');
+    return;
+  }
+
+  // Markdown: open in reader panel
+  if (activeCard) activeCard.classList.remove('active');
+  activeCard = card;
+  activeUrl = f.url;
+  card.classList.add('active');
+
+  const panel = document.getElementById('reader-panel');
+  const body = document.getElementById('reader-body');
+  document.getElementById('reader-title').textContent = f.name;
+  body.innerHTML = '<p style="color:#94a3b8">Loading…</p>';
+  panel.classList.add('open');
+
+  try {
+    const resp = await fetch(f.url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    body.innerHTML = renderMarkdown(text);
+    body.scrollTop = 0;
+  } catch (e) {
+    body.innerHTML = `<p style="color:#b91c1c">Could not load file: ${escHtml(e.message)}</p>`;
+  }
+}
+
+function openExternal() {
+  if (activeUrl) window.open(activeUrl, '_blank');
+}
+function closeReader() {
+  document.getElementById('reader-panel').classList.remove('open');
+  if (activeCard) { activeCard.classList.remove('active'); activeCard = null; }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadManifest();
+</script>
+</body>
+</html>

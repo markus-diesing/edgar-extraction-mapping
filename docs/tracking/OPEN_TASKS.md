@@ -1,6 +1,6 @@
 # Open Tasks
 
-**Last updated:** 2026-03-22 (post-implementation update — commit 48202e5)
+**Last updated:** 2026-03-23
 **Source:** Requirements audit + session review + strategic planning
 
 Tasks are grouped by priority. Each entry notes its source document and estimated effort.
@@ -68,9 +68,8 @@ Prompt language in both stage-1 and stage-2 prompts changed to treat CUSIP hint 
 
 ### D1 — Commit `docs/` directory to git ✅ (committed in 1dfa89f)
 
-### D2 — Update `README.md`
-**Effort:** ~1 h
-**What:** Missing: three-state classification gate, classificationHints infrastructure, CUSIP demotion, confirm endpoint, new status values.
+### D2 — Update `README.md` ✅ DONE (2026-03-23)
+**What:** Added three-state classification gate, confirm endpoint, CUSIP demotion note, classificationHints infrastructure, new status values, documentation API endpoints, and docs landing page URL.
 
 ### D3 — Remove or archive old `files/architecture.drawio`
 **Effort:** 5 min
@@ -94,6 +93,7 @@ Prompt language in both stage-1 and stage-2 prompts changed to treat CUSIP hint 
 | C1 — CUSIP demotion | Implemented as W4 (commit 48202e5) |
 | A2 — dynamic schema loading | Already in place — schema_loader.py is fully dynamic |
 | D1 — commit docs/ | Done (commit 1dfa89f) |
+| D2 — update README.md | Done (2026-03-23) — three-state classification, confirm endpoint, CUSIP demotion, docs endpoints |
 
 ---
 
@@ -101,7 +101,6 @@ Prompt language in both stage-1 and stage-2 prompts changed to treat CUSIP hint 
 
 1. **A1** — classificationHints format spec to team meeting (spec ready, action is scheduling)
 2. **C2** — Stage 1 feature extraction prompt (22-dimension vector, unblocked)
-3. **D2** — README update (reflects current state)
-4. **D3** — Remove old drawio file (5 min)
-5. **C3** — Few-shot examples (after A1 team agreement)
-6. **C4** — Export validation messaging
+3. **D3** — Remove old drawio file (5 min)
+4. **C3** — Few-shot examples (after A1 team agreement)
+5. **C4** — Export validation messaging

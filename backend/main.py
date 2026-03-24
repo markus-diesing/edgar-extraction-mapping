@@ -10,6 +10,7 @@ Or initialise the database only:
 import logging
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime as _datetime
 
 # ── Credential bootstrap ──────────────────────────────────────────────────────
 # Must run before `import config` so that os.environ["ANTHROPIC_API_KEY"] is
@@ -18,8 +19,11 @@ from credential_loader import load_api_key
 load_api_key()
 # ─────────────────────────────────────────────────────────────────────────────
 
+import anthropic as _anthropic
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 import config
 import database
@@ -47,6 +51,11 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger("main")
+
+# Shared Anthropic client for the docs chat endpoint — instantiated once at
+# startup so the constructor cost (env-var reads, attribute wiring) is not
+# repeated on every request.
+_docs_chat_client = _anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
 # Suppress per-request uvicorn access logs — they use a different format and
 # flood the log file with health-check polls every 30 s from the frontend.
@@ -110,6 +119,10 @@ app.include_router(admin_router,     prefix="/api")
 app.include_router(label_map_router, prefix="/api")
 app.include_router(schema_router, prefix="/api")
 
+# Serve the docs/ directory at /docs so user_manual.html and other HTML docs
+# are on the same origin as the API (required for the in-manual chat to work).
+app.mount("/docs", StaticFiles(directory=config.PROJECT_ROOT / "docs"), name="docs")
+
 
 # ---------------------------------------------------------------------------
 # Documentation support chat — used by the HTML user manuals
@@ -124,25 +137,25 @@ class _ChatRequest(_BaseModel):
 
 @app.post("/api/docs/chat")
 async def docs_chat(req: _ChatRequest):
-    import anthropic as _anthropic
-    client = _anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
     system = (
-        "You are a helpful assistant for the EDGAR Extraction & PRISM Mapping tool built by "
-        "Lucht Probst Associates (LPA). This is an internal POC tool that:\n"
-        "- Ingests SEC EDGAR 424B2 structured product filings\n"
-        "- Classifies them into PRISM data model types using Claude AI\n"
-        "- Extracts PRISM fields using a hybrid approach: HTML table parsing (Tier 1), "
-        "EDGAR registry data (Tier 0), and LLM extraction (Tier 2)\n"
-        "- Provides an Expert UI for reviewing, correcting, and approving extracted fields\n"
-        "- Exports to JSON/CSV for downstream PRISM ingestion\n\n"
-        "Key components: Filings view (list + detail), Expert view (Field Hints, Section Prompts, "
-        "Extraction Settings, Label Map, Schema), Admin view (Logs, Cost & Usage).\n\n"
-        "Answer questions about how to use the tool, troubleshoot issues, and explain concepts. "
-        "Be concise and practical."
+        "You are a concise chat assistant embedded in the user manual for the EDGAR Extraction "
+        "& PRISM Mapping tool — an internal POC by Lucht Probst Associates (LPA).\n\n"
+        "The tool ingests SEC EDGAR 424B2 structured product filings, classifies them into PRISM "
+        "data model types using Claude AI, extracts PRISM fields, and exports to JSON/CSV. "
+        "Key UI areas: Filings (list + detail), Expert ⚙ (Field Hints, Section Prompts, "
+        "Extraction Settings, Label Map, Schema), Admin (Logs, Cost & Usage).\n\n"
+        "RESPONSE RULES — follow these strictly:\n"
+        "- Answer in 2–4 sentences OR a bullet list of 3–5 items. Never both.\n"
+        "- Never use markdown tables, horizontal rules (---), or headings (##).\n"
+        "- Use **bold** only for a single key term per response, if helpful.\n"
+        "- Use inline `code` only for field names or UI labels.\n"
+        "- If the question is broad, give a focused one-paragraph answer and invite a follow-up "
+        "on a specific aspect rather than trying to cover everything.\n"
+        "- Tone: direct, practical, no filler phrases."
     )
     messages = req.history[-10:] + [{"role": "user", "content": req.message}]
     try:
-        resp = client.messages.create(
+        resp = _docs_chat_client.messages.create(
             model=config.CLAUDE_MODEL_DEFAULT,
             max_tokens=1024,
             system=system,
@@ -151,6 +164,91 @@ async def docs_chat(req: _ChatRequest):
         return {"reply": resp.content[0].text}
     except Exception as e:
         return {"reply": f"Sorry, I couldn't reach the AI assistant: {e}"}
+
+
+# ---------------------------------------------------------------------------
+# Docs manifest — used by docs/index.html landing page
+# ---------------------------------------------------------------------------
+@app.get("/api/docs/manifest")
+def docs_manifest():
+    """Return metadata for all documentation files under docs/ subfolders."""
+    from pathlib import Path
+    docs_root = config.PROJECT_ROOT / "docs"
+
+    CATEGORIES = {
+        "project":  {"label": "Project Fundamentals", "icon": "🏗"},
+        "plans":    {"label": "Implementation Plans",  "icon": "📋"},
+        "specs":    {"label": "Specifications",        "icon": "📐"},
+        "research": {"label": "Research & Analysis",   "icon": "🔬"},
+        "taxonomy": {"label": "Product Taxonomy",      "icon": "🗂"},
+        "tracking": {"label": "Tasks & Backlog",       "icon": "✅"},
+        "dev":      {"label": "Developer Notes",       "icon": "⚙️"},
+    }
+    HTML_DOCS = [
+        {"name": "User Manual",        "file": "user_manual.html",  "abstract": "Step-by-step guide to ingesting, classifying, extracting, and exporting structured product filings."},
+        {"name": "Tech Handbook",      "file": "tech_handbook.html","abstract": "Architecture, component design, API reference, and backend internals."},
+        {"name": "Architecture",       "file": "architecture.html", "abstract": "Visual architecture diagrams for the tool pipeline and data flows."},
+    ]
+
+    def _abstract(path: Path) -> str:
+        """Extract first substantive paragraph from a markdown file.
+
+        Reads the file line-by-line and stops as soon as 3 content lines are
+        collected, avoiding loading the full file into memory.
+        """
+        try:
+            para: list[str] = []
+            with path.open(encoding="utf-8") as fh:
+                for line in fh:
+                    stripped = line.strip()
+                    is_skip = (
+                        not stripped
+                        or stripped.startswith("#")
+                        or (stripped.startswith("**") and stripped.endswith("**"))
+                        or stripped.startswith("---")
+                        or stripped.startswith("*Last")
+                        or stripped.startswith("*Date")
+                    )
+                    if is_skip:
+                        if para:
+                            break
+                        continue
+                    para.append(stripped)
+                    if len(para) >= 3:
+                        break
+            result = " ".join(para)
+            return result[:240] + ("…" if len(result) > 240 else "")
+        except Exception:
+            return ""
+
+    categories_out = []
+    # Static HTML docs first
+    html_files = []
+    for h in HTML_DOCS:
+        p = docs_root / h["file"]
+        if p.exists():
+            mtime = _datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d")
+            html_files.append({"name": h["name"], "url": f"/docs/{h['file']}", "type": "html",
+                                "last_modified": mtime, "abstract": h["abstract"]})
+    if html_files:
+        categories_out.append({"key": "guides", "label": "Interactive Guides", "icon": "📖", "files": html_files})
+
+    # Markdown docs by category subfolder
+    for key, meta in CATEGORIES.items():
+        folder = docs_root / key
+        if not folder.is_dir():
+            continue
+        files_out = []
+        for md in sorted(folder.glob("*.md")):
+            mtime = _datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+            url = f"/docs/{key}/{md.name}"
+            files_out.append({"name": md.stem.replace("_", " ").title(),
+                               "filename": md.name, "url": url, "type": "markdown",
+                               "last_modified": mtime, "abstract": _abstract(md)})
+        if files_out:
+            categories_out.append({"key": key, "label": meta["label"], "icon": meta["icon"], "files": files_out})
+
+    return {"categories": categories_out}
 
 
 @app.get("/api/health")

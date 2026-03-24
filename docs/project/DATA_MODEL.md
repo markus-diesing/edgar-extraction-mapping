@@ -2,7 +2,7 @@
 # EDGAR Extraction & Mapping — Data Model
 
 > **Audience:** Claude Code (development agent)
-> **Last updated:** 2026-03-18
+> **Last updated:** 2026-03-19
 
 ---
 
@@ -116,12 +116,9 @@ CREATE TABLE api_usage_log (
 
 ## 3. PRISM Schema File Format
 
-PRISM schema files live in `schemas/prism/`. Each file defines one payout type.
+All PRISM models are defined in a single file: `schemas/prism/prism-v1.schema.json`. The application loads models dynamically from this file at startup via `schema_loader.py`. No code changes are required when new models are added — replace or update the schema file.
 
-**Filename convention:** `{payout_type_id}_v{version}.json`
-Example: `barrier_reverse_convertible_v1.json`
-
-**Schema file structure:**
+**Example of a single model's field structure within the schema:**
 ```json
 {
   "payout_type_id": "barrier_reverse_convertible",
@@ -229,7 +226,7 @@ Example: `barrier_reverse_convertible_v1.json`
 }
 ```
 
-> ⚠️ **Action required:** Markus will provide actual PRISM schema files. Place them in `schemas/prism/`. The structure above is the expected format — if actual files differ, adapt the loader accordingly and update this document.
+> The `prism-v1.schema.json` file is present in `schemas/prism/`. When Chroma publishes a new schema version, replace this file — no code changes are required.
 
 ---
 
@@ -296,12 +293,31 @@ All paths in code and config MUST be relative to the project root (`EDGAR-Extrac
 | Filing folder (per filing) | `data/filings/{accession_number_no_dashes}/` |
 | Raw filing HTML | `data/filings/{accession_number_no_dashes}/raw.html` |
 | Filing metadata snapshot | `data/filings/{accession_number_no_dashes}/metadata.json` |
+| Filing images (formula graphics, etc.) | `data/filings/{accession_number_no_dashes}/{image_filename}` |
 | Filing index page | `data/filings/{accession_number_no_dashes}/index.htm` |
-| PRISM schema files | `schemas/prism/{payout_type_id}_v{version}.json` |
-| CUSIP model mapping | `schemas/prism/cusip_model_mapping.xlsx` |
+| PRISM schema file | `schemas/prism/prism-v1.schema.json` |
+| CUSIP model mapping | `schemas/prism/CUSIP_PRISM_Mapping.xlsx` |
+| Financial glossary | `docs/research/financial_glossary.md` |
+| Architecture diagram | `files/architecture.drawio` |
+| Issuer extraction hints | `files/issuer_extraction_hints.json` |
 | Export files (JSON) | `data/exports/{cusip}_{payout_type}_{date}.json` |
 | Export files (CSV) | `data/exports/{cusip}_{payout_type}_{date}.csv` |
 | Application logs | `logs/app.log` |
+
+**`metadata.json` structure** (written at ingest time, updated when images are (re-)fetched):
+```json
+{
+  "cusip": "...",
+  "cik": "...",
+  "accession_number": "...",
+  "issuer_name": "...",
+  "filing_date": "...",
+  "edgar_filing_url": "...",
+  "ingest_timestamp": "...",
+  "images": ["image1.png", "image2.gif"]
+}
+```
+The `"images"` key lists filenames of formula/chart images downloaded from the same EDGAR filing folder and saved alongside `raw.html`. It is an empty list `[]` if no images were found. Missing from metadata of filings ingested before image-download support was added — use `POST /api/filings/{id}/fetch-images` or `scripts/backfill_images.py` to populate.
 
 Path resolution in `backend/config.py`:
 ```python
@@ -310,10 +326,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent  # EDGAR-Extraction_Mapping/
 DATA_DIR = PROJECT_ROOT / "data"
 SCHEMAS_DIR = PROJECT_ROOT / "schemas" / "prism"
-CUSIP_MAPPING_FILE = SCHEMAS_DIR / "cusip_model_mapping.xlsx"
+CUSIP_MAPPING_FILE = SCHEMAS_DIR / "CUSIP_PRISM_Mapping.xlsx"
+SCHEMA_FILE = SCHEMAS_DIR / "prism-v1.schema.json"
 DB_PATH = DATA_DIR / "db" / "edgar_extraction.db"
 FILINGS_DIR = DATA_DIR / "filings"   # one subfolder per accession number
 EXPORTS_DIR = DATA_DIR / "exports"
+FILES_DIR = PROJECT_ROOT / "files"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
 def filing_folder(accession_number: str) -> Path:
@@ -325,7 +343,7 @@ def filing_folder(accession_number: str) -> Path:
 
 ## 6. CUSIP-to-PRISM Model Mapping
 
-The file `schemas/prism/cusip_model_mapping.xlsx` provides a reference table mapping known CUSIPs to their corresponding PRISM payout type. Claude Code should read this file at startup and use it to:
+The file `schemas/prism/CUSIP_PRISM_Mapping.xlsx` provides a reference table mapping known CUSIPs to their corresponding PRISM payout type. The backend reads this file at startup (`schema_loader.load_cusip_mapping()`) and uses it to:
 
 1. **Pre-populate the classification hint** — when a queried CUSIP is found in the mapping, pass the mapped payout type as a strong prior to the Claude classification prompt (the AI still validates, but starts with the known type)
 2. **Accelerate testing** — CUSIPs in the mapping table are known-good test cases for each payout type

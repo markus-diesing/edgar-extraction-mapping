@@ -375,6 +375,23 @@ code {
   padding: 8px 12px;
 }
 .chat-msg.bot.error { color: #b91c1c; background: #fef2f2; }
+.chat-msg.bot strong { font-weight: 600; }
+.chat-msg.bot em { font-style: italic; }
+.chat-msg.bot code {
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-size: 0.78rem;
+  background: #e2e8f0;
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.chat-msg.bot ul {
+  margin: 4px 0 4px 16px;
+  padding: 0;
+  list-style: disc;
+}
+.chat-msg.bot ul li { margin: 2px 0; }
+.chat-msg.bot p { margin: 0 0 6px 0; }
+.chat-msg.bot p:last-child { margin-bottom: 0; }
 #chat-input-row {
   padding: 10px 12px;
   border-top: 1px solid #e2e8f0;
@@ -1372,6 +1389,7 @@ code {
   </div>
 </div>
 
+<script src="/docs/js/markdown.js"></script>
 <script>
 // ── Table of Contents active state ──────────────────────────────────────────
 const sections = document.querySelectorAll('.content-section, h2[id], h3[id]');
@@ -1505,13 +1523,25 @@ let chatHistory = [];
 chatBtn.addEventListener('click', () => chatPanel.classList.toggle('open'));
 chatClose.addEventListener('click', () => chatPanel.classList.remove('open'));
 
-function appendMsg(text, role, isError) {
+// renderMarkdown is loaded from /docs/js/markdown.js
+
+function appendMsg(text, role) {
   const div = document.createElement('div');
-  div.className = 'chat-msg ' + role + (isError ? ' error' : '');
-  div.textContent = text;
+  div.className = 'chat-msg ' + role;
+  if (role === 'bot') {
+    div.innerHTML = renderMarkdown(text);
+  } else {
+    div.textContent = text;
+  }
   chatMsgs.appendChild(div);
   chatMsgs.scrollTop = chatMsgs.scrollHeight;
   return div;
+}
+
+/** Update an existing bot message bubble in-place and re-scroll. */
+function updateBotMsg(div, text) {
+  div.innerHTML = renderMarkdown(text);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
 }
 
 async function sendChat() {
@@ -1533,7 +1563,7 @@ async function sendChat() {
     });
     const data = await resp.json();
     const reply = data.reply || 'No response.';
-    thinkingDiv.textContent = reply;
+    updateBotMsg(thinkingDiv, reply);
     chatHistory.push({ role: 'assistant', content: reply });
   } catch (e) {
     thinkingDiv.textContent = 'Could not reach the backend. Is the server running?';

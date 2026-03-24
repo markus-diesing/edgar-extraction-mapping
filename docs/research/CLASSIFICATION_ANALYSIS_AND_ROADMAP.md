@@ -103,7 +103,7 @@ and is the single most impactful change within the current 9-model constraint.
 
 Implementation: add a `classificationHints` block to each model entry in
 `prism-v1.schema.json` (see Part 3 and the dedicated specification document
-`files/CLASSIFICATION_HINTS_SPEC.md`).
+`docs/specs/SPEC_CLASSIFICATION_HINTS_FORMAT.md`).
 
 ### Tier 3 — Schema completeness (prerequisite for structural correctness)
 
@@ -158,5 +158,5 @@ valid values are only `["default", "payment"]`) should be flagged with
 ---
 
 *End of document. See also:*
-- `files/CLASSIFICATION_HINTS_SPEC.md` — specification for model creation group
+- `docs/specs/SPEC_CLASSIFICATION_HINTS_FORMAT.md` — specification for model creation group
 - `IMPROVEMENTS_TODO.md` — actionable task backlog
