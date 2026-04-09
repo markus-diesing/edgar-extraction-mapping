@@ -39,6 +39,21 @@ import anthropic
 import config
 import database
 import hints_loader
+
+# ---------------------------------------------------------------------------
+# Module-level Anthropic client — instantiated once so the constructor cost
+# (env-var reads, connection wiring) is not repeated on every extraction call.
+# The client is thread-safe and can be shared across concurrent requests.
+# ---------------------------------------------------------------------------
+_client: anthropic.Anthropic | None = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    """Return the shared Anthropic client, creating it on first use."""
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    return _client
 import schema_loader
 import settings_store
 from ingest.edgar_client import strip_html
@@ -553,7 +568,7 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
     # Resolve active Claude model from runtime settings (changeable without server restart)
     active_model = settings_store.get_settings().get("claude_model", config.CLAUDE_MODEL_DEFAULT)
 
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = _get_client()
     log.info("Extracting filing %s model=%s claude=%s (tool-call mode)", filing_id, model_name, active_model)
 
     t0 = time.monotonic()
@@ -698,7 +713,7 @@ def extract_filing(filing_id: str) -> ExtractionResultData:
             not_found=1 if f.not_found else 0,
             review_status="schema_error" if f.validation_error else "pending",
             validation_error=f.validation_error,
-            source=getattr(f, "source", "llm"),
+            source=f.source,
         )
         for f in fields
     ]
@@ -740,10 +755,7 @@ def _slice_filing_text(full_text: str, section_spec: SectionSpec) -> str:
 
     best_start = -1
     for header in section_spec.search_headers:
-        pattern = re.compile(
-            r"(?i)\b" + re.escape(header) + r"\b"
-        )
-        match = pattern.search(full_text)
+        match = re.search(r"(?i)\b" + re.escape(header) + r"\b", full_text)
         if match:
             pos = match.start()
             if best_start < 0 or pos < best_start:
@@ -929,7 +941,7 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
     active_model = settings_store.get_settings().get("claude_model", config.CLAUDE_MODEL_DEFAULT)
     system_prompt_cached = [{"type": "text", "text": _get_system_prompt(), "cache_control": {"type": "ephemeral"}}]
 
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = _get_client()
     section_results: list[SectionResult] = []
 
     for section_spec in sections:
@@ -1116,7 +1128,7 @@ def extract_filing_sectioned(filing_id: str) -> ExtractionResultData:
             not_found=1 if f.not_found else 0,
             review_status="schema_error" if f.validation_error else "pending",
             validation_error=f.validation_error,
-            source=getattr(f, "source", "llm"),
+            source=f.source,
         )
         for f in fields
     ]

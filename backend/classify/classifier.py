@@ -40,6 +40,21 @@ import schema_loader
 import settings_store
 from ingest.edgar_client import strip_html
 
+# ---------------------------------------------------------------------------
+# Module-level Anthropic client — instantiated once so the constructor cost
+# (env-var reads, connection wiring) is not repeated on every classify call.
+# The client is thread-safe and can be shared across concurrent requests.
+# ---------------------------------------------------------------------------
+_client: anthropic.Anthropic | None = None
+
+
+def _get_client() -> anthropic.Anthropic:
+    """Return the shared Anthropic client, creating it on first use."""
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    return _client
+
 log = logging.getLogger(__name__)
 
 
@@ -460,7 +475,7 @@ def classify_filing(
     # System prompt is static — cache it to reduce token cost on repeated calls
     system_cached = [{"type": "text", "text": _SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]
 
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = _get_client()
 
     # ------------------------------------------------------------------
     # Stage 1 — cover page (with few-shot feedback injection)

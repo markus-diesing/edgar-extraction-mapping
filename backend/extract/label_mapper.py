@@ -26,12 +26,12 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 
 import config
-from extract.field_parsers import FIELD_PARSERS, Callable
+from extract.field_parsers import FIELD_PARSERS
 
 log = logging.getLogger(__name__)
 

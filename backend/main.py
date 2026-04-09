@@ -11,6 +11,7 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 from datetime import datetime as _datetime
+from pathlib import Path
 
 # ── Credential bootstrap ──────────────────────────────────────────────────────
 # Must run before `import config` so that os.environ["ANTHROPIC_API_KEY"] is
@@ -153,7 +154,12 @@ async def docs_chat(req: _ChatRequest):
         "on a specific aspect rather than trying to cover everything.\n"
         "- Tone: direct, practical, no filler phrases."
     )
-    messages = req.history[-10:] + [{"role": "user", "content": req.message}]
+    # Build message list: trim history to last 10 messages, then ensure the
+    # window starts on a user turn so the alternating role requirement is met.
+    trimmed = req.history[-10:]
+    if trimmed and trimmed[0].get("role") != "user":
+        trimmed = trimmed[1:]  # drop leading assistant message
+    messages = trimmed + [{"role": "user", "content": req.message}]
     try:
         resp = _docs_chat_client.messages.create(
             model=config.CLAUDE_MODEL_DEFAULT,
@@ -172,7 +178,6 @@ async def docs_chat(req: _ChatRequest):
 @app.get("/api/docs/manifest")
 def docs_manifest():
     """Return metadata for all documentation files under docs/ subfolders."""
-    from pathlib import Path
     docs_root = config.PROJECT_ROOT / "docs"
 
     CATEGORIES = {
@@ -251,16 +256,29 @@ def docs_manifest():
     return {"categories": categories_out}
 
 
+_health_cache: dict | None = None
+_health_cache_at: float = 0.0
+_HEALTH_TTL = 30.0  # seconds — refresh at most every 30 s
+
+
 @app.get("/api/health")
 def health():
-    models = schema_loader.list_models()
-    mapping = schema_loader.load_cusip_mapping()
-    return {
-        "status": "ok",
-        "prism_models": models,
-        "cusip_mapping_count": len(mapping),
-        "anthropic_key_set": bool(config.ANTHROPIC_API_KEY),
-    }
+    """Return backend health.  Response is cached for _HEALTH_TTL seconds
+    to avoid repeated file-I/O from the frontend's 30 s polling interval."""
+    import time as _time
+    global _health_cache, _health_cache_at
+    now = _time.monotonic()
+    if _health_cache is None or (now - _health_cache_at) > _HEALTH_TTL:
+        models  = schema_loader.list_models()
+        mapping = schema_loader.load_cusip_mapping()
+        _health_cache = {
+            "status": "ok",
+            "prism_models": models,
+            "cusip_mapping_count": len(mapping),
+            "anthropic_key_set": bool(config.ANTHROPIC_API_KEY),
+        }
+        _health_cache_at = now
+    return _health_cache
 
 
 # ---------------------------------------------------------------------------

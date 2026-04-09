@@ -94,7 +94,7 @@ export default function App() {
               </button>
             ))}
             <a
-              href="http://localhost:8000/docs/user_manual.html"
+              href="/docs/user_manual.html"
               target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-1 text-xs font-medium rounded transition-colors text-slate-300 hover:text-white hover:bg-white/10"

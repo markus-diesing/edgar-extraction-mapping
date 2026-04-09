@@ -15,8 +15,22 @@ Parser registry:
 """
 from __future__ import annotations
 
+import calendar
 import re
 from typing import Any, Callable
+
+# ---------------------------------------------------------------------------
+# Module-level constants — built once, not per-call
+# ---------------------------------------------------------------------------
+
+# Maps lowercase month name / abbreviation → 1-based month number.
+# Built once at import time; calendar.month_name[0] is '' (empty), skipped.
+_MONTH_NAMES: dict[str, int] = {
+    name.lower(): i for i, name in enumerate(calendar.month_name) if name
+}
+_MONTH_NAMES.update(
+    {name.lower(): i for i, name in enumerate(calendar.month_abbr) if name}
+)
 
 
 # ---------------------------------------------------------------------------
@@ -63,22 +77,18 @@ def parse_date(raw: str) -> str | None:
       "on or about March 21, 2029"  → "2029-03-21"
       "expected to be March 21, 2029"  → "2029-03-21"
     """
-    import calendar
     raw = _strip_footnotes(raw.strip())
     # Already ISO
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
         return raw
-    # Attempt "Month DD, YYYY" or "Month D, YYYY"
-    months = {name.lower(): i for i, name in enumerate(calendar.month_name) if name}
-    months.update({name.lower(): i for i, name in enumerate(calendar.month_abbr) if name})
-    # Find a date pattern anywhere in the string
+    # Attempt "Month DD, YYYY" or "Month D, YYYY" using module-level month map
     pattern = re.search(
         r"\b([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})\b",
         raw,
     )
     if pattern:
         month_str, day_str, year_str = pattern.groups()
-        month = months.get(month_str.lower())
+        month = _MONTH_NAMES.get(month_str.lower())
         if month:
             return f"{int(year_str):04d}-{month:02d}-{int(day_str):02d}"
     # MM/DD/YYYY or DD/MM/YYYY — ambiguous without locale, skip
@@ -291,18 +301,18 @@ FIELD_PARSERS: dict[str, Callable[[str], Any]] = {
     "identifiers.isin":                                     parse_isin,
 
     # Dates
-    "structuredProductsGeneric.maturityDate":               parse_date,
-    "structuredProductsGeneric.tradeDate":                  parse_date,
-    "structuredProductsGeneric.issueDate":                  parse_date,
-    "structuredProductsGeneric.valuationDate":              parse_date,
+    "structuredProductsGeneral.maturityDate":               parse_date,
+    "structuredProductsGeneral.tradeDate":                  parse_date,
+    "structuredProductsGeneral.issueDate":                  parse_date,
+    "structuredProductsGeneral.valuationDate":              parse_date,
 
     # Notional / denomination
-    "structuredProductsGeneric.notional":                   parse_amount,
-    "structuredProductsGeneric.currency":                   parse_currency,
+    "structuredProductsGeneral.notional":                   parse_amount,
+    "structuredProductsGeneral.currency":                   parse_currency,
     "product.denomination":                                 parse_amount,
 
     # Term
-    "structuredProductsGeneric.term":                       parse_text,
+    "structuredProductsGeneral.term":                       parse_text,
 
     # Coupon
     "coupon.rate":                                          parse_percentage,
