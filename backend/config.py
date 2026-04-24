@@ -117,6 +117,40 @@ EDGAR_RETRY_MAX        = 4
 EDGAR_RETRY_BASE_DELAY = 2.0    # seconds, doubles on each retry (max ~30 s)
 
 # ---------------------------------------------------------------------------
+# Underlying Data Module
+# ---------------------------------------------------------------------------
+UNDERLYING_FIELD_CONFIG_FILE    = PROJECT_ROOT / "files" / "underlying_field_config.yaml"
+COMPANY_TICKERS_CACHE_FILE      = PROJECT_ROOT / "files" / "company_tickers_cache.json"
+COMPANY_TICKERS_CACHE_TTL       = 7 * 24 * 3600          # 7 days in seconds
+COMPANY_TICKERS_URL             = "https://www.sec.gov/files/company_tickers.json"
+
+OPENFIGI_API_URL                = "https://api.openfigi.com/v3/mapping"
+OPENFIGI_RATE_LIMIT_DELAY       = 2.5                     # seconds (~25 req/min free tier)
+
+MARKET_DATA_PRICE_SERIES_YEARS  = 5                       # years of daily history to store
+UNDERLYING_INGEST_MAX_CSV_ROWS  = 500
+UNDERLYING_JOB_POLL_INTERVAL    = 3                       # seconds (used by frontend)
+
+# Filing-deadline days by SEC filer category for currentness checks.
+# Keys must match the `category` field in EDGAR submissions JSON (case-insensitive compare).
+FILING_DEADLINE_DAYS: dict[str, dict[str, int | None]] = {
+    "large accelerated filer":  {"10-K": 60,  "10-Q": 40, "20-F": 120, "NT_EXTENSION": 15},
+    "accelerated filer":        {"10-K": 75,  "10-Q": 40, "20-F": 120, "NT_EXTENSION": 15},
+    "non-accelerated filer":    {"10-K": 90,  "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15},
+    "smaller reporting company":{"10-K": 90,  "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15},
+    # Foreign private issuers file 20-F only — no 10-Q requirement.
+    # None signals the currentness engine to skip the 10-Q check entirely.
+    "foreign private issuer":   {"10-K": 120, "10-Q": None, "20-F": 120, "NT_EXTENSION": 15},
+}
+# Fallback when category is not recognised
+FILING_DEADLINE_DAYS_DEFAULT: dict[str, int] = {
+    "10-K": 90, "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15,
+}
+
+# Tolerance (days) when matching period-end dates to account for 52/53-week fiscal years
+CURRENTNESS_PERIOD_TOLERANCE_DAYS = 7
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -135,3 +169,11 @@ def ensure_dirs() -> None:
     """Create all required data directories if they don't exist."""
     for d in (DATA_DIR / "db", FILINGS_DIR, EXPORTS_DIR, LOGS_DIR):
         d.mkdir(parents=True, exist_ok=True)
+
+
+def filing_deadlines(category: str) -> dict[str, int]:
+    """Return the filing deadline config for a given filer category (case-insensitive).
+
+    Falls back to *FILING_DEADLINE_DAYS_DEFAULT* when the category is unrecognised.
+    """
+    return FILING_DEADLINE_DAYS.get(category.lower(), FILING_DEADLINE_DAYS_DEFAULT)

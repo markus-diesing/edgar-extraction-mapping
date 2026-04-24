@@ -58,7 +58,15 @@ def _wait_rate_limit() -> None:
 # ---------------------------------------------------------------------------
 
 def _get(url: str, params: dict[str, Any] | None = None) -> httpx.Response:
-    """Synchronous GET with rate limiting and retry."""
+    """Synchronous GET with rate limiting and retry.
+
+    Retries on:
+    * HTTP 429 (rate-limited) — backs off and retries.
+    * HTTP 5xx (server errors) — transient EDGAR outages; retried up to
+      ``config.EDGAR_RETRY_MAX`` attempts.  404 and other 4xx are returned
+      immediately (they are definitive answers).
+    * ``httpx.RequestError`` (connection / timeout errors).
+    """
     delay = config.EDGAR_RETRY_BASE_DELAY
     for attempt in range(config.EDGAR_RETRY_MAX):
         _wait_rate_limit()
@@ -66,6 +74,14 @@ def _get(url: str, params: dict[str, Any] | None = None) -> httpx.Response:
             resp = httpx.get(url, params=params, headers=HEADERS, follow_redirects=True, timeout=30)
             if resp.status_code == 429:
                 log.warning("EDGAR rate-limited (429), backing off %.1fs", delay)
+                time.sleep(min(delay, 30))
+                delay *= 2
+                continue
+            if resp.status_code >= 500 and attempt < config.EDGAR_RETRY_MAX - 1:
+                log.warning(
+                    "EDGAR server error %d on attempt %d/%d, backing off %.1fs",
+                    resp.status_code, attempt + 1, config.EDGAR_RETRY_MAX, delay,
+                )
                 time.sleep(min(delay, 30))
                 delay *= 2
                 continue

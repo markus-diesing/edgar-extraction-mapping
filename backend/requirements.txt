@@ -1,6 +1,7 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36
+alembic>=1.14,<2.0
 httpx==0.28.1
 anthropic==0.43.0
 beautifulsoup4==4.12.3
@@ -10,3 +11,4 @@ chardet==5.2.0
 python-multipart==0.0.20
 keyring==25.6.0
 python-dotenv==1.0.1
+yfinance>=0.2.40,<0.3.0
