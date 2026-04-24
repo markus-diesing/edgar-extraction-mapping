@@ -8,6 +8,8 @@
  * Props:
  *   selectedId      string | null  — currently selected security ID
  *   onSelect(id)                   — callback when user clicks a row
+ *   refreshKey      number         — increment from the parent (App) to force a list refresh
+ *                                    e.g. after approve/archive from the detail panel (B2)
  */
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api.js'
@@ -184,16 +186,22 @@ function SecurityList({ selectedId, onSelect, refreshTrigger }) {
 // Exported component
 // ---------------------------------------------------------------------------
 
-export default function UnderlyingPanel({ selectedId, onSelect }) {
+export default function UnderlyingPanel({ selectedId, onSelect, refreshKey = 0 }) {
   const [tab,            setTab]            = useState('securities')
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  const onJobStarted = () => {
-    // Switch to securities list tab and trigger a refresh after a short delay
-    // so the newly-created rows appear once the background job runs.
+  // Called immediately when a job is queued — switch to the list tab so the
+  // user can see progress without any refresh lag.
+  const onJobStarted = useCallback(() => {
     setTab('securities')
-    setTimeout(() => setRefreshTrigger(t => t + 1), 3500)
-  }
+  }, [])
+
+  // Called when the background job reaches done/error — refresh the list so
+  // newly-ingested securities appear.  Kept separate from onJobStarted so the
+  // list refresh fires exactly once (at completion) rather than twice.
+  const onJobDone = useCallback(() => {
+    setRefreshTrigger(t => t + 1)
+  }, [])
 
   return (
     <div className="flex flex-col h-full">
@@ -221,11 +229,11 @@ export default function UnderlyingPanel({ selectedId, onSelect }) {
             <SecurityList
               selectedId={selectedId}
               onSelect={onSelect}
-              refreshTrigger={refreshTrigger}
+              refreshTrigger={refreshTrigger + refreshKey}
             />
           ) : (
             <div className="h-full overflow-y-auto scrollbar-thin">
-              <UnderlyingIngest onJobStarted={onJobStarted} />
+              <UnderlyingIngest onJobStarted={onJobStarted} onJobDone={onJobDone} />
             </div>
           )
         }

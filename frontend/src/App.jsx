@@ -26,9 +26,10 @@ export default function App() {
   const [sideTab,      setSideTab]      = useState('filings')  // 'filings' | 'ingest'
   const [loadingList,  setLoadingList]  = useState(false)
   const [sidebarOpen,  setSidebarOpen]  = useState(true)
-  const [mainView,     setMainView]     = useState('filings')  // 'filings' | 'expert' | 'admin' | 'underlyings'
-  const [expertTab,    setExpertTab]    = useState('hints')    // 'hints' | 'sections' | 'extraction'
+  const [mainView,          setMainView]          = useState('filings')  // 'filings' | 'expert' | 'admin' | 'underlyings'
+  const [expertTab,         setExpertTab]         = useState('hints')    // 'hints' | 'sections' | 'extraction'
   const [selectedUnderlying, setSelectedUnderlying] = useState(null)
+  const [underlyingRefresh,  setUnderlyingRefresh]  = useState(0)        // incremented by detail-panel mutations
 
   const loadFilings = useCallback(async () => {
     setLoadingList(true)
@@ -198,12 +199,13 @@ export default function App() {
               <UnderlyingPanel
                 selectedId={selectedUnderlying}
                 onSelect={setSelectedUnderlying}
+                refreshKey={underlyingRefresh}
               />
             </div>
             <div className="flex-1 min-w-0 overflow-hidden bg-white">
               <UnderlyingDetail
                 securityId={selectedUnderlying}
-                onChanged={() => {/* list will auto-refresh on next poll */}}
+                onChanged={() => setUnderlyingRefresh(t => t + 1)}
               />
             </div>
           </>

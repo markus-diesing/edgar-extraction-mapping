@@ -291,11 +291,12 @@ function ReviewTab({ sec, onUpdate }) {
 function MarketTab({ sec }) {
   const series = Array.isArray(sec.hist_data_series) ? sec.hist_data_series : []
 
-  const previewRows = [
-    ...series.slice(0, 3),
-    series.length > 6 && { _gap: true },
-    ...series.slice(-3),
-  ].filter(Boolean)
+  // Show all rows when ≤ 6; otherwise show first 3, a gap indicator, last 3.
+  // The earlier pattern with filter(Boolean) caused slice(-3) to overlap slice(0,3)
+  // for series of length 4–6, producing duplicate rows.
+  const previewRows = series.length <= 6
+    ? series
+    : [...series.slice(0, 3), { _gap: true }, ...series.slice(-3)]
 
   return (
     <div className="p-4 overflow-y-auto scrollbar-thin h-full space-y-4">
@@ -483,6 +484,10 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
   }, [securityId])
 
   useEffect(() => { load() }, [load])
+
+  // Reset to Overview whenever the user selects a different security so they
+  // don't land on, e.g., the Market tab from a previous selection.
+  useEffect(() => { setTab('overview') }, [securityId])
 
   // ── Actions ────────────────────────────────────────────────────────────────
 

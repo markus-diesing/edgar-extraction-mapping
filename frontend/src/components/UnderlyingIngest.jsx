@@ -2,7 +2,8 @@
  * UnderlyingIngest.jsx — Identifier entry + CSV upload panel for the Underlying module.
  *
  * Props:
- *   onJobStarted(jobId) — called when a job is queued; parent can use to refresh the list.
+ *   onJobStarted(jobId) — called immediately when a job is queued (switch to list tab, etc.)
+ *   onJobDone(jobId)    — called when the background job reaches done/error status
  */
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api.js'
@@ -13,8 +14,10 @@ import StatusBadge from './StatusBadge.jsx'
 // ---------------------------------------------------------------------------
 
 function JobCard({ jobId, onDone }) {
-  const [job, setJob] = useState(null)
-  const timerRef = useRef(null)
+  const [job,       setJob]       = useState(null)
+  const [pollError, setPollError] = useState(null)
+  const timerRef    = useRef(null)
+  const failRef     = useRef(0)   // consecutive poll failures
 
   useEffect(() => {
     if (!jobId) return
@@ -22,20 +25,35 @@ function JobCard({ jobId, onDone }) {
       try {
         const j = await api.underlyingJobStatus(jobId)
         setJob(j)
+        failRef.current = 0
         if (j.status === 'done' || j.status === 'error') {
           clearInterval(timerRef.current)
           if (onDone) onDone()
         }
-      } catch {}
+      } catch {
+        failRef.current += 1
+        // Surface an error after 3 consecutive failures so the card doesn't
+        // stay stuck on "Starting job…" when the backend is unreachable.
+        if (failRef.current >= 3) {
+          clearInterval(timerRef.current)
+          setPollError('Job status unavailable — check your connection and retry.')
+        }
+      }
     }
     poll()
     timerRef.current = setInterval(poll, 3000)
     return () => clearInterval(timerRef.current)
   }, [jobId])
 
-  if (!job) return (
+  if (!job && !pollError) return (
     <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-700 animate-pulse">
       Starting job…
+    </div>
+  )
+
+  if (pollError) return (
+    <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700">
+      {pollError}
     </div>
   )
 
@@ -80,7 +98,7 @@ function JobCard({ jobId, onDone }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function UnderlyingIngest({ onJobStarted }) {
+export default function UnderlyingIngest({ onJobStarted, onJobDone }) {
   const [identifiers, setIdentifiers] = useState('')
   const [fetchMarket, setFetchMarket] = useState(true)
   const [runLlm,      setRunLlm]      = useState(true)
@@ -228,7 +246,7 @@ export default function UnderlyingIngest({ onJobStarted }) {
         <JobCard
           key={jobId}
           jobId={jobId}
-          onDone={() => { if (onJobStarted) onJobStarted(jobId) }}
+          onDone={onJobDone}
         />
       )}
 
