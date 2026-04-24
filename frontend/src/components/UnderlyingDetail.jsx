@@ -802,6 +802,14 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
   // don't land on, e.g., the Market tab from a previous selection.
   useEffect(() => { setTab('overview') }, [securityId])
 
+  // Auto-poll while a background fetch job is in progress.
+  // Fires every 3 s; clears itself as soon as status leaves 'fetching'.
+  useEffect(() => {
+    if (!sec || sec.status !== 'fetching') return
+    const timer = setInterval(load, 3_000)
+    return () => clearInterval(timer)
+  }, [sec?.status, load])
+
   // ── Actions ────────────────────────────────────────────────────────────────
 
   const doApprove = async () => {
@@ -939,9 +947,9 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
               />
             )}
             <ActionButton
-              label="Re-fetch"
+              label={sec.status === 'fetching' ? '⟳ Fetching…' : 'Re-fetch'}
               onClick={doRefetch}
-              disabled={!!busy}
+              disabled={!!busy || sec.status === 'fetching'}
               variant="neutral"
             />
             <ActionButton
@@ -961,6 +969,14 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
           </div>
         </div>
       </div>
+
+      {/* ── Fetching banner ─────────────────────────────────────────────────── */}
+      {sec.status === 'fetching' && (
+        <div className="flex items-center gap-2 px-5 py-1.5 bg-blue-50 border-b border-blue-200 shrink-0 text-xs text-blue-700 font-medium">
+          <span className="inline-block w-3 h-3 rounded-full bg-blue-500 animate-pulse shrink-0" />
+          Background fetch in progress — results will appear automatically when complete…
+        </div>
+      )}
 
       {/* ── Tabs ────────────────────────────────────────────────────────────── */}
       <div className="flex border-b border-slate-200 bg-white shrink-0 px-4">
