@@ -48,3 +48,4 @@ cd backend && .venv/bin/python -m pytest tests/ -q
   LLM cover-page extraction (Tier 2), yfinance market data (Tier 3)
 - `backend/ingest/edgar_client.py` — EDGAR HTTP client with rate limiting + retry
 - `backend/database.py` — all ORM models; Alembic migration helpers
+# smoke test
