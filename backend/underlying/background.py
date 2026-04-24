@@ -35,6 +35,7 @@ from sqlalchemy.exc import IntegrityError
 
 import config
 import database as db
+import settings_store
 from database import (
     UnderlyingSecurity,
     UnderlyingFieldResult,
@@ -333,15 +334,23 @@ def _upsert_security(
 
         # ── Tier 2 — token cost ───────────────────────────────────────
         if extraction is not None and (extraction.input_tokens or extraction.output_tokens):
-            pricing = config.CLAUDE_MODEL_REGISTRY.get(
-                config.CLAUDE_MODEL_DEFAULT,
-                config.CLAUDE_MODEL_REGISTRY[config.CLAUDE_MODEL_DEFAULT],
-            )
-            llm_cost = round(
-                extraction.input_tokens  * pricing["input_price_per_m"]  / 1_000_000 +
-                extraction.output_tokens * pricing["output_price_per_m"] / 1_000_000,
-                6,
-            )
+            s = settings_store.get_settings()
+            provider = s.get("underlying_llm_provider", "anthropic")
+            if provider == "anthropic":
+                # Derive cost from the active model's Anthropic pricing
+                active_model = s.get("underlying_llm_model", "") or config.CLAUDE_MODEL_DEFAULT
+                pricing = config.CLAUDE_MODEL_REGISTRY.get(
+                    active_model,
+                    config.CLAUDE_MODEL_REGISTRY[config.CLAUDE_MODEL_DEFAULT],
+                )
+                llm_cost = round(
+                    extraction.input_tokens  * pricing["input_price_per_m"]  / 1_000_000
+                    + extraction.output_tokens * pricing["output_price_per_m"] / 1_000_000,
+                    6,
+                )
+            else:
+                # Local model — no API cost
+                llm_cost = 0.0
             row.llm_input_tokens  = extraction.input_tokens
             row.llm_output_tokens = extraction.output_tokens
             row.llm_cost_usd      = llm_cost

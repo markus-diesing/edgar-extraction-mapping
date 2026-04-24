@@ -6,31 +6,38 @@ available from EDGAR structured data (Tier 1) or market data (Tier 3).
 
 Target fields
 -------------
+legal_name         Exact legal name of the registrant (cover page)
 share_class_name   e.g. "Common Stock, $0.00001 par value per share"
 share_type         e.g. "Common Stock"
 brief_description  1–2 sentence company description from Item 1
 adr_flag           True if the filing describes ADR / ADS shares
 
+LLM backend
+-----------
+Calls are dispatched through ``underlying.llm_client``, which supports:
+  anthropic          — Anthropic Messages API
+  openai-compatible  — LM Studio / any /v1/chat/completions server
+  ollama             — Ollama /api/chat
+
+The active backend is read from ``runtime_settings.yaml`` at call time via
+``llm_client.load_config()``.  No server restart required to switch models.
+
 Design decisions
 ----------------
 * The full filing text is truncated to ``UNDERLYING_EXTRACTION_CHARS`` chars
-  (cover page + beginning of Item 1) so the prompt stays cheap.
-* Claude returns a JSON object with ``fields`` (field_name → value) and
-  ``confidence`` (field_name → 0.0–1.0) keys.
-* Confidence < ``EXTRACTION_CONFIDENCE_THRESHOLD`` flags the field for review
-  in the UI (stored as ``review_status = "needs_review"``).
-* Failures (API errors, JSON parse errors) return an empty result so the
+  so the prompt stays cheap for both cloud and local models.
+* Confidence < ``EXTRACTION_CONFIDENCE_THRESHOLD`` flags the field for review.
+* Failures (network, JSON parse) return an empty ExtractionResult so the
   caller can still write Tier 1 data to the DB.
+* ``try_repair_json`` (from llm_client) recovers truncated JSON responses
+  produced by LM Studio MLX (confirmed bug as of Apr 2026).
 """
 from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass, field
 from typing import Any
-
-import anthropic
 
 import config
 
@@ -40,12 +47,8 @@ log = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-# Characters of stripped 10-K text passed to the extraction prompt.
-# Defined centrally in config.UNDERLYING_EXTRACTION_CHARS — imported below.
-# This local alias is kept so call-sites within this module stay readable.
 UNDERLYING_EXTRACTION_CHARS: int = config.UNDERLYING_EXTRACTION_CHARS
 
-# Fields the LLM is asked to populate.
 _TARGET_FIELDS = [
     "legal_name",
     "share_class_name",
@@ -54,8 +57,6 @@ _TARGET_FIELDS = [
     "adr_flag",
 ]
 
-# Maps each target field to the section of the annual report it is drawn from.
-# Used to populate FieldResult.source_type and the DB source_type column.
 _FIELD_SOURCE_TYPES: dict[str, str] = {
     "legal_name":        "10k_cover",
     "share_class_name":  "10k_cover",
@@ -68,25 +69,26 @@ _FIELD_SOURCE_TYPES: dict[str, str] = {
 # Data types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class FieldResult:
     """Extracted value + metadata for one field."""
-    field_name: str
-    value: Any                    # str | bool | None
-    confidence: float             # 0.0 – 1.0
-    source_excerpt: str = ""      # relevant text snippet (best-effort)
-    source_type: str = "10k_cover"  # origin section: "10k_cover" | "10k_item1"
-    needs_review: bool = False    # True when confidence < threshold
+    field_name:     str
+    value:          Any                      # str | bool | None
+    confidence:     float                    # 0.0 – 1.0
+    source_excerpt: str   = ""               # relevant text snippet (best-effort)
+    source_type:    str   = "10k_cover"      # "10k_cover" | "10k_item1"
+    needs_review:   bool  = False            # True when confidence < threshold
 
 
 @dataclass
 class ExtractionResult:
     """Result of one LLM extraction call."""
-    fields: list[FieldResult] = field(default_factory=list)
-    raw_response: str = ""        # full Claude response text (for debugging)
-    error: str | None = None      # set if Claude call or JSON parse failed
-    input_tokens: int = 0         # prompt tokens reported by the API
-    output_tokens: int = 0        # completion tokens reported by the API
+    fields:        list[FieldResult] = field(default_factory=list)
+    raw_response:  str  = ""                 # full model response (for debugging)
+    error:         str | None = None         # set if call or JSON parse failed
+    input_tokens:  int  = 0                  # prompt tokens reported by the API
+    output_tokens: int  = 0                  # completion tokens reported by the API
 
     def get(self, field_name: str) -> FieldResult | None:
         for f in self.fields:
@@ -96,20 +98,6 @@ class ExtractionResult:
 
     def as_dict(self) -> dict[str, Any]:
         return {f.field_name: f.value for f in self.fields}
-
-
-# ---------------------------------------------------------------------------
-# Anthropic client (module-level singleton)
-# ---------------------------------------------------------------------------
-
-_client: anthropic.Anthropic | None = None
-
-
-def _get_client() -> anthropic.Anthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    return _client
 
 
 # ---------------------------------------------------------------------------
@@ -189,93 +177,118 @@ def _build_user_prompt(filing_text: str, company_name: str, form: str) -> str:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def extract_underlying_fields(
-    filing_text: str,
+    filing_text:  str,
     company_name: str = "",
-    form: str = "10-K",
-    model: str | None = None,
+    form:         str = "10-K",
+    model:        str | None = None,
 ) -> ExtractionResult:
-    """Call Claude to extract Tier 2 fields from annual report text.
+    """Call the configured LLM to extract Tier 2 fields from annual report text.
 
     Parameters
     ----------
     filing_text:
         Stripped plain text of the 10-K / 20-F annual report.
     company_name:
-        Company name for context (added to the prompt).
+        Company name added to the prompt for context.
     form:
         Filing form type ("10-K" | "20-F").
     model:
-        Claude model string. Defaults to ``config.CLAUDE_MODEL_DEFAULT``.
+        Optional model override.  When set and the active provider is
+        ``"anthropic"``, this value replaces the configured model name.
+        For local providers the configured model always takes precedence.
 
     Returns
     -------
     ExtractionResult
         ``error`` is set (and ``fields`` is empty) if the call fails.
-        Partial results are returned if JSON parsing succeeds but some fields
-        are missing.
+        Partial results are returned when JSON parsing succeeds but some
+        fields are missing from the model response.
     """
     if not filing_text or not filing_text.strip():
         return ExtractionResult(error="No filing text provided")
 
-    model_id = model or config.CLAUDE_MODEL_DEFAULT
+    from underlying.llm_client import (
+        load_config, call_underlying_llm, clean_response, try_repair_json,
+    )
+
+    cfg = load_config()
+
+    # Optional model override — honoured for Anthropic only (local models are
+    # always addressed by their full model-file name from settings)
+    if model and cfg.provider == "anthropic":
+        cfg.model = model
+
     user_prompt = _build_user_prompt(filing_text, company_name, form)
 
     log.info(
-        "Underlying LLM extraction: company=%r form=%s chars=%d model=%s",
-        company_name, form, len(filing_text), model_id,
+        "Underlying LLM extraction: company=%r form=%s chars=%d "
+        "provider=%s model=%s",
+        company_name, form, len(filing_text), cfg.provider, cfg.model,
     )
 
     try:
-        client = _get_client()
-        response = client.messages.create(
-            model=model_id,
-            max_tokens=1_024,
-            system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+        raw, input_tokens, output_tokens = call_underlying_llm(
+            _SYSTEM_PROMPT, user_prompt, cfg,
         )
-        raw = response.content[0].text if response.content else ""
     except Exception as exc:
-        log.error("Claude API call failed for underlying extraction: %s", exc)
+        log.error("LLM call failed for underlying extraction: %s", exc)
         return ExtractionResult(error=str(exc))
 
-    result = _parse_response(raw)
-    # Attach token counts so the caller can persist them for cost tracking.
-    result.input_tokens  = getattr(response.usage, "input_tokens",  0) or 0
-    result.output_tokens = getattr(response.usage, "output_tokens", 0) or 0
+    result = _parse_response(raw, clean_response, try_repair_json)
+    result.input_tokens  = input_tokens
+    result.output_tokens = output_tokens
     return result
 
 
-def _parse_response(raw: str) -> ExtractionResult:
-    """Parse Claude's JSON response into an :class:`ExtractionResult`.
+# ---------------------------------------------------------------------------
+# Response parser
+# ---------------------------------------------------------------------------
 
-    Tolerates minor formatting issues (leading/trailing whitespace, markdown
-    fences).  Returns an error result if JSON cannot be parsed.
+
+def _parse_response(raw: str, clean_fn=None, repair_fn=None) -> ExtractionResult:
+    """Parse the LLM JSON response into an :class:`ExtractionResult`.
+
+    Parameters are injectable for unit-testing without importing llm_client.
+    Production callers always pass ``clean_response`` and ``try_repair_json``
+    from ``underlying.llm_client``.
     """
-    text = raw.strip()
-    # Strip markdown code fences if present
-    text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
-    text = re.sub(r"```\s*$", "", text, flags=re.MULTILINE)
-    text = text.strip()
+    import re as _re
 
+    # ── Text cleanup ───────────────────────────────────────────────────────
+    if clean_fn is not None:
+        text = clean_fn(raw)
+    else:
+        # Lightweight fallback (used in tests without llm_client)
+        text = raw.strip()
+        text = _re.sub(r"^```(?:json)?\s*", "", text, flags=_re.MULTILINE)
+        text = _re.sub(r"```\s*$",          "", text, flags=_re.MULTILINE)
+        text = text.strip()
+
+    # ── JSON parse with repair fallback ────────────────────────────────────
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
-        log.warning("JSON parse error in underlying extraction response: %s", exc)
-        return ExtractionResult(raw_response=raw, error=f"JSON parse error: {exc}")
+        data = repair_fn(text) if repair_fn is not None else None
+        if data is None:
+            log.warning("JSON parse error in underlying extraction: %s", exc)
+            return ExtractionResult(raw_response=raw, error=f"JSON parse error: {exc}")
+        log.info("Underlying extraction: repaired truncated JSON response")
 
-    fields_raw: dict[str, Any] = data.get("fields", {})
-    conf_raw: dict[str, Any]   = data.get("confidence", {})
-    excerpts_raw: dict[str, Any] = data.get("excerpts", {})
+    # ── Field extraction ───────────────────────────────────────────────────
+    fields_raw:   dict[str, Any] = data.get("fields",     {}) or {}
+    conf_raw:     dict[str, Any] = data.get("confidence", {}) or {}
+    excerpts_raw: dict[str, Any] = data.get("excerpts",   {}) or {}
 
     threshold = config.EXTRACTION_CONFIDENCE_THRESHOLD
     results: list[FieldResult] = []
 
     for fname in _TARGET_FIELDS:
-        value = fields_raw.get(fname)
+        value      = fields_raw.get(fname)
         confidence = _clamp_conf(conf_raw.get(fname, 0.5))
-        excerpt = str(excerpts_raw.get(fname, ""))[:500]   # cap excerpt length
-        src_type = _FIELD_SOURCE_TYPES.get(fname, "10k_cover")
+        excerpt    = str(excerpts_raw.get(fname, ""))[:500]
+        src_type   = _FIELD_SOURCE_TYPES.get(fname, "10k_cover")
 
         # Normalise adr_flag to bool
         if fname == "adr_flag" and value is not None:
@@ -286,7 +299,7 @@ def _parse_response(raw: str) -> ExtractionResult:
             else:
                 value = bool(value)
 
-        # Normalise string fields: strip and set None if empty
+        # Normalise string fields: strip, set None if empty
         if fname != "adr_flag" and isinstance(value, str):
             value = value.strip() or None
 
@@ -306,8 +319,8 @@ def _parse_response(raw: str) -> ExtractionResult:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _clamp_conf(raw: Any) -> float:
-    """Parse *raw* as a float confidence clamped to [0.0, 1.0]."""
     try:
         return max(0.0, min(1.0, float(raw)))
     except (TypeError, ValueError):

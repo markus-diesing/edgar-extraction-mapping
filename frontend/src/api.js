@@ -68,9 +68,16 @@ export const api = {
   adminLogs:         (params) => call('GET', `/admin/logs${params ? '?' + new URLSearchParams(params) : ''}`),
   adminLogsDownloadUrl: ()    => '/api/admin/logs/download',   // direct URL — use as <a href> for native download
 
-  // Admin — Cost & Usage
+  // Admin — Cost & Usage (Filings)
   adminUsageSummary:  ()              => call('GET', '/admin/usage/summary'),
   adminUsageTimeline: (granularity)   => call('GET', `/admin/usage/timeline?granularity=${granularity}`),
+
+  // Admin — Underlying LLM settings & utilities
+  underlyingLlmGetSettings:    ()       => call('GET',  '/admin/underlying-llm/settings'),
+  underlyingLlmUpdateSettings: (body)   => call('PUT',  '/admin/underlying-llm/settings', body),
+  underlyingLlmGetModels:      ()       => call('GET',  '/admin/underlying-llm/models'),
+  underlyingLlmTest:           ()       => call('POST', '/admin/underlying-llm/test'),
+  underlyingLlmGetUsage:       ()       => call('GET',  '/admin/underlying-llm/usage'),
 
   // Label Map (Expert Settings)
   labelMapEntries:      ()                        => call('GET',    '/admin/label-map/entries'),
