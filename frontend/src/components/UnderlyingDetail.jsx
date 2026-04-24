@@ -2,15 +2,18 @@
  * UnderlyingDetail.jsx — Full detail panel for one underlying security.
  *
  * Tabs:
- *   Overview   — Tier 1 metadata (identification, company, EDGAR filings, currentness)
+ *   Overview   — Pipeline flow, Tier 1 metadata (with preliminary LLM fields),
+ *                and LLM token-cost summary.
  *   Review     — Tier 2 LLM-extracted fields with accept / edit / reject actions
+ *                and source-excerpt column for extraction validation.
  *   Market     — Tier 3 market data (prices, series preview)
+ *   Links      — Linked 424B2 filings
  *
  * Props:
  *   securityId  string | null  — UUID of the UnderlyingSecurity to display
  *   onChanged()                — callback when approve/archive/refetch mutates the record
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api.js'
 import StatusBadge from './StatusBadge.jsx'
 
@@ -18,13 +21,18 @@ import StatusBadge from './StatusBadge.jsx'
 // Generic helpers
 // ---------------------------------------------------------------------------
 
-function MetaRow({ label, value, mono }) {
+function MetaRow({ label, value, mono, preliminary }) {
   if (value == null || value === '') return null
   return (
     <div className="flex gap-2 py-0.5">
       <span className="text-slate-400 text-xs w-40 shrink-0">{label}</span>
       <span className={`text-slate-700 text-xs break-all ${mono ? 'font-mono' : 'font-medium'}`}>
         {String(value)}
+        {preliminary && (
+          <span className="ml-1.5 text-[10px] font-normal text-amber-600 border border-amber-300 bg-amber-50 rounded px-1 py-px">
+            ⚑ preliminary
+          </span>
+        )}
       </span>
     </div>
   )
@@ -75,13 +83,176 @@ function fmtLargeNum(n) {
   return fmtNum(n, 0)
 }
 
+const fmtTok  = (n) => n == null ? '—' : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n)
+const fmtCost = (c) => c == null ? '—' : c < 0.001 ? '<$0.001' : `$${c.toFixed(3)}`
+
+// ---------------------------------------------------------------------------
+// Preliminary field helper
+// Look up a field_result by name and return its best value + pending flag.
+// ---------------------------------------------------------------------------
+
+function getPendingField(fieldResults, fieldName) {
+  const fr = (fieldResults || []).find(f => f.field_name === fieldName)
+  if (!fr) return null
+  const raw = fr.reviewed_value != null ? fr.reviewed_value : fr.extracted_value
+  if (raw == null) return null
+  const value = typeof raw === 'boolean'
+    ? (raw ? 'Yes' : 'No')
+    : String(raw).trim()
+  if (!value) return null
+  return { value, isPreliminary: fr.review_status === 'pending' }
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline flow
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive per-step pipeline status from the security record.
+ *
+ * Steps:  Resolve → EDGAR Fetch → LLM Extract → Review → Approved
+ *
+ * Status values:  ok | active | error | partial | pending | grey
+ */
+function getPipelineSteps(sec, fieldResults) {
+  const isFetching  = sec.status === 'fetching'
+  const hasError    = !!sec.fetch_error
+  const resolved    = !!sec.cik
+  const edgarFetched = !!sec.last_10k_accession
+  const fr = fieldResults || []
+  const llmDone     = fr.length > 0
+  const allReviewed = llmDone && fr.every(f => f.review_status !== 'pending')
+  const someReviewed = llmDone && fr.some(f => f.review_status !== 'pending')
+  const approved    = sec.status === 'approved'
+
+  // Which step is currently active (in-progress)?
+  const activeStep = !isFetching ? null
+    : !resolved      ? 'resolve'
+    : !edgarFetched  ? 'edgar'
+    : !llmDone       ? 'llm'
+    : null
+
+  const step = (id, label, ok, active, errorCondition) => ({
+    id, label,
+    status: ok             ? 'ok'
+      : errorCondition     ? 'error'
+      : active === id      ? 'active'
+      : 'grey',
+  })
+
+  return [
+    step('resolve', 'Resolve',
+      resolved,
+      activeStep,
+      hasError && !resolved,
+    ),
+    step('edgar', 'EDGAR Fetch',
+      edgarFetched,
+      activeStep,
+      hasError && resolved && !edgarFetched,
+    ),
+    step('llm', 'LLM Extract',
+      llmDone,
+      activeStep,
+      hasError && edgarFetched && !llmDone,
+    ),
+    {
+      id: 'review', label: 'Review',
+      status: allReviewed ? 'ok'
+        : someReviewed    ? 'partial'
+        : llmDone         ? 'pending'
+        : 'grey',
+    },
+    {
+      id: 'approved', label: 'Approved',
+      status: approved ? 'ok' : 'grey',
+    },
+  ]
+}
+
+const STEP_COLORS = {
+  ok:      { dot: 'bg-green-500',  label: 'text-green-700',  line: 'bg-green-300' },
+  partial: { dot: 'bg-amber-400',  label: 'text-amber-700',  line: 'bg-amber-200' },
+  active:  { dot: 'bg-blue-500 animate-pulse', label: 'text-blue-700', line: 'bg-slate-200' },
+  error:   { dot: 'bg-red-500',    label: 'text-red-700',    line: 'bg-slate-200' },
+  pending: { dot: 'bg-slate-300',  label: 'text-slate-500',  line: 'bg-slate-200' },
+  grey:    { dot: 'bg-slate-200',  label: 'text-slate-400',  line: 'bg-slate-100' },
+}
+
+function PipelineFlow({ sec, fieldResults }) {
+  const steps = getPipelineSteps(sec, fieldResults)
+
+  return (
+    <div className="mb-4">
+      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 pb-0.5 border-b border-slate-100">
+        Pipeline
+      </h4>
+      <div className="flex items-center gap-0">
+        {steps.map((s, i) => {
+          const c = STEP_COLORS[s.status] || STEP_COLORS.grey
+          return (
+            <div key={s.id} className="flex items-center">
+              {/* Step node */}
+              <div className="flex flex-col items-center gap-1">
+                <div className={`w-3 h-3 rounded-full shrink-0 ${c.dot}`} title={s.status} />
+                <span className={`text-[10px] font-medium whitespace-nowrap ${c.label}`}>
+                  {s.label}
+                </span>
+              </div>
+              {/* Connector line — not after last step */}
+              {i < steps.length - 1 && (
+                <div className={`h-0.5 w-8 mx-1 mb-3.5 shrink-0 ${c.line}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {sec.fetch_error && (
+        <div className="mt-1.5 bg-red-50 border border-red-200 rounded p-1.5 text-xs text-red-700">
+          ⚠ {sec.fetch_error}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Overview tab
 // ---------------------------------------------------------------------------
 
 function OverviewTab({ sec }) {
+  const fr = sec.field_results || []
+
+  // For LLM-sourced fields: if the mirrored column is already set (reviewed),
+  // show it directly.  If not, look it up from field_results (preliminary).
+  const legalNameField = (() => {
+    if (sec.legal_name) return { value: sec.legal_name, isPreliminary: false }
+    return getPendingField(fr, 'legal_name')
+  })()
+
+  const shareClassField = (() => {
+    if (sec.share_class_name) return { value: sec.share_class_name, isPreliminary: false }
+    return getPendingField(fr, 'share_class_name')
+  })()
+
+  const shareTypeField = (() => {
+    if (sec.share_type) return { value: sec.share_type, isPreliminary: false }
+    return getPendingField(fr, 'share_type')
+  })()
+
+  const adrField = (() => {
+    // adr_flag is always shown from the mirrored column (bool); only mark
+    // preliminary if it hasn't been reviewed yet.
+    const pending = getPendingField(fr, 'adr_flag')
+    const isPreliminary = pending ? pending.isPreliminary : false
+    return { value: sec.adr_flag, isPreliminary }
+  })()
+
   return (
     <div className="p-4 overflow-y-auto scrollbar-thin h-full">
+      {/* ── Pipeline flow ─────────────────────────────────────────────── */}
+      <PipelineFlow sec={sec} fieldResults={fr} />
+
       <Section title="Identification">
         <MetaRow label="CIK"               value={sec.cik}                      mono />
         <MetaRow label="Ticker"            value={sec.ticker}                   mono />
@@ -91,9 +262,28 @@ function OverviewTab({ sec }) {
       </Section>
 
       <Section title="Company">
-        <MetaRow label="Company Name"      value={sec.company_name} />
-        <MetaRow label="Share Class"       value={sec.share_class_name} />
-        <MetaRow label="Share Type"        value={sec.share_type} />
+        <MetaRow label="Company Name (EDGAR)" value={sec.company_name} />
+        {legalNameField && (
+          <MetaRow
+            label="Legal Name (Filing)"
+            value={legalNameField.value}
+            preliminary={legalNameField.isPreliminary}
+          />
+        )}
+        {shareClassField && (
+          <MetaRow
+            label="Share Class"
+            value={shareClassField.value}
+            preliminary={shareClassField.isPreliminary}
+          />
+        )}
+        {shareTypeField && (
+          <MetaRow
+            label="Share Type"
+            value={shareTypeField.value}
+            preliminary={shareTypeField.isPreliminary}
+          />
+        )}
         <MetaRow label="Exchange"          value={sec.exchange} />
         <MetaRow label="Entity Type"       value={sec.entity_type} />
         <MetaRow label="SIC Code"          value={sec.sic_code ? `${sec.sic_code} — ${sec.sic_description || ''}` : null} />
@@ -104,10 +294,15 @@ function OverviewTab({ sec }) {
         <div className="flex gap-2 py-0.5">
           <span className="text-slate-400 text-xs w-40 shrink-0">ADR</span>
           <span className="text-xs font-medium">
-            {sec.adr_flag
+            {adrField.value
               ? <span className="text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">Yes</span>
               : <span className="text-slate-500">No</span>
             }
+            {adrField.isPreliminary && (
+              <span className="ml-1.5 text-[10px] font-normal text-amber-600 border border-amber-300 bg-amber-50 rounded px-1 py-px">
+                ⚑ preliminary
+              </span>
+            )}
           </span>
         </div>
       </Section>
@@ -142,12 +337,20 @@ function OverviewTab({ sec }) {
         <MetaRow label="Field Config Ver"   value={sec.field_config_version} />
         <MetaRow label="Last Fetched"       value={sec.last_fetched_at} />
         <MetaRow label="Ingested"           value={sec.ingest_timestamp} />
-        {sec.fetch_error && (
-          <div className="mt-1 bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800">
-            ⚠ {sec.fetch_error}
-          </div>
-        )}
       </Section>
+
+      {(sec.llm_input_tokens != null) && (
+        <Section title="LLM Extraction Cost">
+          <MetaRow
+            label="Tokens"
+            value={`${fmtTok(sec.llm_input_tokens)} in / ${fmtTok(sec.llm_output_tokens)} out`}
+          />
+          <MetaRow
+            label="Estimated Cost"
+            value={fmtCost(sec.llm_cost_usd)}
+          />
+        </Section>
+      )}
     </div>
   )
 }
@@ -160,6 +363,7 @@ function FieldRow({ fr, onUpdate }) {
   const [editing,    setEditing]    = useState(false)
   const [editVal,    setEditVal]    = useState('')
   const [saving,     setSaving]     = useState(false)
+  const [excerptExpanded, setExcerptExpanded] = useState(false)
 
   const displayValue = fr.reviewed_value != null ? fr.reviewed_value : fr.extracted_value
   const displayStr   = displayValue == null ? '—' : (typeof displayValue === 'boolean' ? (displayValue ? 'True' : 'False') : String(displayValue))
@@ -167,6 +371,9 @@ function FieldRow({ fr, onUpdate }) {
   const confColor = fr.confidence_score >= 0.90 ? 'text-green-600'
     : fr.confidence_score >= 0.70 ? 'text-amber-600'
     : 'text-red-600'
+
+  const excerpt     = fr.source_excerpt || ''
+  const excerptShort = excerpt.length > 80 ? excerpt.slice(0, 80) + '…' : excerpt
 
   const startEdit = () => {
     setEditVal(displayValue == null ? '' : String(displayValue))
@@ -187,7 +394,7 @@ function FieldRow({ fr, onUpdate }) {
   }
 
   return (
-    <tr className="border-t border-slate-100 hover:bg-slate-50">
+    <tr className="border-t border-slate-100 hover:bg-slate-50 align-top">
       <td className="py-2 px-3 text-xs font-mono text-slate-700 whitespace-nowrap">{fr.field_name}</td>
       <td className="py-2 px-3 text-xs text-slate-700 max-w-xs">
         {editing ? (
@@ -202,6 +409,25 @@ function FieldRow({ fr, onUpdate }) {
           <span className={fr.reviewed_value != null ? 'text-blue-700 font-medium' : ''}>
             {displayStr}
           </span>
+        )}
+      </td>
+      <td className="py-2 px-3 text-xs text-slate-500 max-w-[220px]">
+        {excerpt ? (
+          <span>
+            <span className="italic text-slate-400">
+              "{excerptExpanded ? excerpt : excerptShort}"
+            </span>
+            {excerpt.length > 80 && (
+              <button
+                onClick={() => setExcerptExpanded(v => !v)}
+                className="ml-1 text-lpa-cyan hover:underline text-[10px] font-medium"
+              >
+                {excerptExpanded ? 'less' : 'more'}
+              </button>
+            )}
+          </span>
+        ) : (
+          <span className="text-slate-300">—</span>
         )}
       </td>
       <td className="py-2 px-3 text-xs whitespace-nowrap">
@@ -266,6 +492,7 @@ function ReviewTab({ sec, onUpdate }) {
           <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide">
             <th className="py-2 px-3">Field</th>
             <th className="py-2 px-3">Value</th>
+            <th className="py-2 px-3">Source Excerpt</th>
             <th className="py-2 px-3">Conf.</th>
             <th className="py-2 px-3">Status</th>
             <th className="py-2 px-3">Actions</th>
@@ -278,7 +505,8 @@ function ReviewTab({ sec, onUpdate }) {
         </tbody>
       </table>
       <div className="px-3 py-2 text-xs text-slate-400 border-t border-slate-100">
-        Blue values have been manually reviewed. Accept or edit extracted values to move them from Needs Review to Fetched.
+        Blue values have been manually reviewed. The <em>Source Excerpt</em> column shows the verbatim
+        filing text the model used — verify it matches the value before accepting.
       </div>
     </div>
   )
@@ -581,6 +809,9 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
   const canApprove  = sec.status === 'fetched' || sec.status === 'needs_review'
   const canArchive  = sec.status !== 'archived'
 
+  // Count pending review fields for the tab label
+  const pendingCount = (sec.field_results || []).filter(f => f.review_status === 'pending').length
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
@@ -604,7 +835,9 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
                 <StatusBadge status={sec.current_status} small />
               )}
             </div>
-            <p className="text-sm text-slate-600 mt-0.5 truncate">{sec.company_name}</p>
+            <p className="text-sm text-slate-600 mt-0.5 truncate">
+              {sec.legal_name || sec.company_name}
+            </p>
             {sec.exchange && (
               <p className="text-xs text-slate-400 mt-0.5">{sec.exchange} · CIK {sec.cik}</p>
             )}
@@ -648,7 +881,7 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
       <div className="flex border-b border-slate-200 bg-white shrink-0 px-4">
         {[
           ['overview', 'Overview'],
-          ['review',   `Review (${(sec.field_results || []).length})`],
+          ['review',   `Review${pendingCount > 0 ? ` (${pendingCount} pending)` : ` (${(sec.field_results || []).length})`}`],
           ['market',   'Market Data'],
           ['links',    `Links (${(sec.links || []).length})`],
         ].map(([t, label]) => (

@@ -47,6 +47,7 @@ UNDERLYING_EXTRACTION_CHARS: int = config.UNDERLYING_EXTRACTION_CHARS
 
 # Fields the LLM is asked to populate.
 _TARGET_FIELDS = [
+    "legal_name",
     "share_class_name",
     "share_type",
     "brief_description",
@@ -56,6 +57,7 @@ _TARGET_FIELDS = [
 # Maps each target field to the section of the annual report it is drawn from.
 # Used to populate FieldResult.source_type and the DB source_type column.
 _FIELD_SOURCE_TYPES: dict[str, str] = {
+    "legal_name":        "10k_cover",
     "share_class_name":  "10k_cover",
     "share_type":        "10k_cover",
     "adr_flag":          "10k_cover",
@@ -83,6 +85,8 @@ class ExtractionResult:
     fields: list[FieldResult] = field(default_factory=list)
     raw_response: str = ""        # full Claude response text (for debugging)
     error: str | None = None      # set if Claude call or JSON parse failed
+    input_tokens: int = 0         # prompt tokens reported by the API
+    output_tokens: int = 0        # completion tokens reported by the API
 
     def get(self, field_name: str) -> FieldResult | None:
         for f in self.fields:
@@ -123,18 +127,21 @@ markdown, no commentary, no surrounding text.
 
 {
   "fields": {
+    "legal_name": <string or null>,
     "share_class_name": <string or null>,
     "share_type": <string or null>,
     "brief_description": <string or null>,
     "adr_flag": <true | false | null>
   },
   "confidence": {
+    "legal_name": <0.0 – 1.0>,
     "share_class_name": <0.0 – 1.0>,
     "share_type": <0.0 – 1.0>,
     "brief_description": <0.0 – 1.0>,
     "adr_flag": <0.0 – 1.0>
   },
   "excerpts": {
+    "legal_name": <short verbatim quote or "">,
     "share_class_name": <short verbatim quote or "">,
     "share_type": <short verbatim quote or "">,
     "brief_description": <short verbatim quote or "">,
@@ -144,6 +151,11 @@ markdown, no commentary, no surrounding text.
 
 Field definitions
 -----------------
+legal_name : The exact legal name of the registrant as stated on the cover
+    page (e.g. "Apple Inc.", "Microsoft Corporation").  This is typically
+    the line that reads "Name of registrant as specified in its charter."
+    Preserve original capitalisation exactly.
+
 share_class_name : The exact security description from the cover page
     (e.g. "Common Stock, par value $0.00001 per share").  Include par value
     if stated.
@@ -227,7 +239,11 @@ def extract_underlying_fields(
         log.error("Claude API call failed for underlying extraction: %s", exc)
         return ExtractionResult(error=str(exc))
 
-    return _parse_response(raw)
+    result = _parse_response(raw)
+    # Attach token counts so the caller can persist them for cost tracking.
+    result.input_tokens  = getattr(response.usage, "input_tokens",  0) or 0
+    result.output_tokens = getattr(response.usage, "output_tokens", 0) or 0
+    return result
 
 
 def _parse_response(raw: str) -> ExtractionResult:

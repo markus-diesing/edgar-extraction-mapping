@@ -224,8 +224,9 @@ def _upsert_security(
     cfg_version = _load_field_config_version()
 
     # Pull LLM-extracted values (defaults to None if extraction unavailable)
+    legal_name       = _get_extraction_value(extraction, "legal_name")
     share_class_name = _get_extraction_value(extraction, "share_class_name")
-    share_type = _get_extraction_value(extraction, "share_type")
+    share_type       = _get_extraction_value(extraction, "share_type")
     brief_description = _get_extraction_value(extraction, "brief_description")
 
     # Currentness
@@ -315,11 +316,28 @@ def _upsert_security(
             row.public_float_date = meta.public_float_date.isoformat() if meta.public_float_date else None
 
         # ── Tier 2 — LLM ─────────────────────────────────────────────
+        if legal_name is not None:
+            row.legal_name = legal_name
         if share_class_name is not None:
             row.share_class_name = share_class_name
         if share_type is not None:
             row.share_type = share_type
         # brief_description stored only in field_results (no direct DB column)
+
+        # ── Tier 2 — token cost ───────────────────────────────────────
+        if extraction is not None and (extraction.input_tokens or extraction.output_tokens):
+            pricing = config.CLAUDE_MODEL_REGISTRY.get(
+                config.CLAUDE_MODEL_DEFAULT,
+                config.CLAUDE_MODEL_REGISTRY[config.CLAUDE_MODEL_DEFAULT],
+            )
+            llm_cost = round(
+                extraction.input_tokens  * pricing["input_price_per_m"]  / 1_000_000 +
+                extraction.output_tokens * pricing["output_price_per_m"] / 1_000_000,
+                6,
+            )
+            row.llm_input_tokens  = extraction.input_tokens
+            row.llm_output_tokens = extraction.output_tokens
+            row.llm_cost_usd      = llm_cost
 
         # ── Tier 3 — market data ──────────────────────────────────────
         if market and market.is_ok():

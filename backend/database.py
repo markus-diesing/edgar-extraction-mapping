@@ -190,6 +190,7 @@ class UnderlyingSecurity(Base):
 
     # ── Company metadata (Tier 1 — submissions API) ───────────────────────────
     company_name             = Column(String)
+    legal_name               = Column(String)           # registrant name from 10-K cover (Tier 2 LLM)
     share_class_name         = Column(String)           # from 10-K cover page
     share_type               = Column(String)           # derived: "Domestic Common Stock" | "ADR" | …
     reporting_form           = Column(String)           # "10-K" | "20-F" | "40-F"
@@ -230,6 +231,11 @@ class UnderlyingSecurity(Base):
     hist_data_series         = Column(Text)             # JSON: [{"date": …, "close": …}, …]
     market_data_source       = Column(String, default="yahoo_finance")
     market_data_fetched_at   = Column(String)
+
+    # ── Tier 2 LLM token usage ────────────────────────────────────────────────
+    llm_input_tokens         = Column(Integer)          # prompt tokens for Tier 2 extraction call
+    llm_output_tokens        = Column(Integer)          # completion tokens
+    llm_cost_usd             = Column(Float)            # estimated cost at list-price rates
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
     # ingested → fetching → fetched → needs_review → approved | archived
@@ -499,6 +505,11 @@ def _migrate() -> None:
         ("underlying_securities", "next_expected_form",          "TEXT"),
         ("underlying_jobs",       "success",                     "INTEGER"),
         ("underlying_jobs",       "errors",                      "INTEGER"),
+        # v8 columns — legal name + LLM token cost tracking
+        ("underlying_securities", "legal_name",                  "TEXT"),
+        ("underlying_securities", "llm_input_tokens",            "INTEGER"),
+        ("underlying_securities", "llm_output_tokens",           "INTEGER"),
+        ("underlying_securities", "llm_cost_usd",                "REAL"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

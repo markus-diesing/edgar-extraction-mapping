@@ -116,6 +116,7 @@ def _security_to_dict(row: UnderlyingSecurity, include_fields: bool = False) -> 
         "source_identifier":      row.source_identifier,
         "source_identifier_type": row.source_identifier_type,
         "company_name":           row.company_name,
+        "legal_name":             row.legal_name,
         "share_class_name":       row.share_class_name,
         "share_type":             row.share_type,
         "reporting_form":         row.reporting_form,
@@ -152,6 +153,10 @@ def _security_to_dict(row: UnderlyingSecurity, include_fields: bool = False) -> 
         "hist_data_series":       _parse_json_field(row.hist_data_series),
         "market_data_source":     row.market_data_source,
         "market_data_fetched_at": row.market_data_fetched_at,
+        # llm token cost
+        "llm_input_tokens":       row.llm_input_tokens,
+        "llm_output_tokens":      row.llm_output_tokens,
+        "llm_cost_usd":           row.llm_cost_usd,
         # lifecycle
         "status":                 row.status,
         "ingest_timestamp":       row.ingest_timestamp,
@@ -592,7 +597,7 @@ def api_unlink_filing(id: str, filing_id: str) -> dict:
 # Fields that have a direct column on UnderlyingSecurity and should be
 # mirrored back when a reviewer edits the field_result value.
 _MIRRORED_FIELDS: frozenset[str] = frozenset({
-    "company_name", "share_class_name", "share_type", "ticker_bb",
+    "company_name", "legal_name", "share_class_name", "share_type", "ticker_bb",
     "exchange", "sic_code", "sic_description", "state_of_incorporation",
     "adr_flag", "closing_value", "initial_value", "shares_outstanding",
     "public_float_usd",
