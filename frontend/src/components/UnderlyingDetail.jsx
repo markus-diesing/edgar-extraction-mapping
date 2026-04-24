@@ -7,6 +7,8 @@
  *   Review     — Tier 2 LLM-extracted fields with accept / edit / reject actions
  *                and source-excerpt column for extraction validation.
  *   Market     — Tier 3 market data (prices, series preview)
+ *   10-K Source — Stored filing text slice for human validation, with direct links
+ *                to the EDGAR primary document and filing index.
  *   Links      — Linked 424B2 filings
  *
  * Props:

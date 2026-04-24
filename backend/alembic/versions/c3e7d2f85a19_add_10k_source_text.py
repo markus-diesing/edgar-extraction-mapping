@@ -17,6 +17,7 @@ Create Date: 2026-04-24
 from typing import Sequence, Union
 
 import sqlalchemy as sa
+from sqlalchemy import inspect as _sa_inspect
 from alembic import op
 
 revision: str = 'c3e7d2f85a19'
@@ -26,9 +27,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Guard against databases where _migrate() already added these columns before
+    # this Alembic revision was stamped (e.g. after a manual `alembic stamp`).
+    bind = op.get_bind()
+    existing = {c['name'] for c in _sa_inspect(bind).get_columns('underlying_securities')}
     with op.batch_alter_table('underlying_securities', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('last_10k_text',        sa.Text(),   nullable=True))
-        batch_op.add_column(sa.Column('last_10k_primary_doc', sa.String(), nullable=True))
+        if 'last_10k_text' not in existing:
+            batch_op.add_column(sa.Column('last_10k_text',        sa.Text(),   nullable=True))
+        if 'last_10k_primary_doc' not in existing:
+            batch_op.add_column(sa.Column('last_10k_primary_doc', sa.String(), nullable=True))
 
 
 def downgrade() -> None:

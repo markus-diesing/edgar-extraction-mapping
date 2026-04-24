@@ -28,31 +28,35 @@ from underlying.extractor import (
 # ---------------------------------------------------------------------------
 
 def _make_claude_response(
+    legal_name: str | None = "Microsoft Corporation",
     share_class_name: str | None = "Common Stock, $0.00001 par value per share",
     share_type: str | None = "Common Stock",
     brief_description: str | None = "Microsoft designs and sells software and cloud services.",
     adr_flag: bool = False,
     conf: float = 0.95,
 ) -> str:
-    """Build a mock Claude JSON response."""
+    """Build a mock Claude JSON response (all 5 current target fields)."""
     return json.dumps({
         "fields": {
-            "share_class_name": share_class_name,
-            "share_type": share_type,
+            "legal_name":        legal_name,
+            "share_class_name":  share_class_name,
+            "share_type":        share_type,
             "brief_description": brief_description,
-            "adr_flag": adr_flag,
+            "adr_flag":          adr_flag,
         },
         "confidence": {
-            "share_class_name": conf,
-            "share_type": conf,
+            "legal_name":        conf,
+            "share_class_name":  conf,
+            "share_type":        conf,
             "brief_description": conf,
-            "adr_flag": conf,
+            "adr_flag":          conf,
         },
         "excerpts": {
-            "share_class_name": "Common Stock, $0.00001 par value per share",
-            "share_type": "Common Stock",
+            "legal_name":        "Microsoft Corporation",
+            "share_class_name":  "Common Stock, $0.00001 par value per share",
+            "share_type":        "Common Stock",
             "brief_description": "Microsoft designs and sells software.",
-            "adr_flag": "",
+            "adr_flag":          "",
         },
     })
 
@@ -123,7 +127,7 @@ class TestParseResponse:
         raw = _make_claude_response()
         result = _parse_response(raw)
         assert result.error is None
-        assert len(result.fields) == 4
+        assert len(result.fields) == 5  # legal_name, share_class_name, share_type, brief_description, adr_flag
 
     def test_share_class_name_extracted(self):
         raw = _make_claude_response(share_class_name="Common Stock, $0.00001 par value")
@@ -196,7 +200,7 @@ class TestParseResponse:
         raw = _make_claude_response()
         result = _parse_response(raw)
         names = {f.field_name for f in result.fields}
-        assert names == {"share_class_name", "share_type", "brief_description", "adr_flag"}
+        assert names == {"legal_name", "share_class_name", "share_type", "brief_description", "adr_flag"}
 
     def test_as_dict(self):
         raw = _make_claude_response(share_type="Common Stock")
@@ -294,3 +298,41 @@ class TestExtractUnderlyingFields:
                 form="20-F",
             )
         assert result.get("adr_flag").value is True
+
+    def test_legal_name_extracted(self):
+        """legal_name is extracted with correct value and high confidence → not needs_review."""
+        raw = _make_claude_response(legal_name="Apple Inc.", conf=0.95)
+        with patch("underlying.extractor._get_client") as mock_factory:
+            mock_factory.return_value = _mock_client(raw)
+            result = extract_underlying_fields("Annual report text...", company_name="APPLE INC")
+        f = result.get("legal_name")
+        assert f is not None
+        assert f.value == "Apple Inc."
+        assert f.needs_review is False
+
+    def test_legal_name_missing_from_response_sets_needs_review(self):
+        """When Claude omits legal_name from the JSON, the field gets 0.5 confidence
+        (the _clamp_conf default) and is therefore flagged needs_review=True."""
+        # Build a response that only has the other 4 fields
+        import json as _json
+        data = _json.loads(_make_claude_response())
+        del data["fields"]["legal_name"]
+        del data["confidence"]["legal_name"]
+        del data["excerpts"]["legal_name"]
+        result = _parse_response(_json.dumps(data))
+        f = result.get("legal_name")
+        assert f is not None
+        assert f.value is None
+        assert f.needs_review is True   # missing → 0.5 conf < 0.80 threshold
+
+    def test_token_counts_captured(self):
+        """input_tokens and output_tokens are attached to ExtractionResult."""
+        raw = _make_claude_response()
+        mock_client = _mock_client(raw)
+        # Attach a usage object to the mock response
+        mock_client.messages.create.return_value.usage.input_tokens = 1200
+        mock_client.messages.create.return_value.usage.output_tokens = 80
+        with patch("underlying.extractor._get_client", return_value=mock_client):
+            result = extract_underlying_fields("some text")
+        assert result.input_tokens == 1200
+        assert result.output_tokens == 80

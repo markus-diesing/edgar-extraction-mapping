@@ -16,8 +16,8 @@ Pipeline per security
 
 Status lifecycle
 ----------------
-``ingested`` → ``fetching`` → ``fetched`` → ``needs_review``
-(if any Tier 2 field has confidence < threshold)
+``fetching`` → ``fetched``
+``fetching`` → ``needs_review``  (if any Tier 2 field has confidence < threshold)
 
 Error handling
 --------------
@@ -192,12 +192,19 @@ def _process_one(
         except Exception as exc:
             log.warning("Market data fetch failed for %s: %s", ticker, exc)
 
+    # Load field config version once — shared by both DB write helpers so that
+    # underlying_securities and field_results always record the same version string.
+    cfg_version = _load_field_config_version()
+
     # Step 5 — Upsert DB record
-    underlying_id = _upsert_security(raw_id, sec.source_identifier_type, meta, extraction, adr_flag, market, ticker, sec)
+    underlying_id = _upsert_security(
+        raw_id, sec.source_identifier_type, meta, extraction,
+        adr_flag, market, ticker, sec, cfg_version,
+    )
 
     # Step 6 — Upsert Tier 2 field results
     if extraction is not None:
-        _upsert_field_results(underlying_id, extraction, meta)
+        _upsert_field_results(underlying_id, extraction, meta, cfg_version)
 
     return underlying_id
 
@@ -219,9 +226,9 @@ def _upsert_security(
     market: MarketDataResult | None,
     ticker: str,
     resolved_sec: Any,
+    cfg_version: str,
 ) -> str:
     """Upsert the ``UnderlyingSecurity`` row.  Returns the row UUID."""
-    cfg_version = _load_field_config_version()
 
     # Pull LLM-extracted values (defaults to None if extraction unavailable)
     legal_name       = _get_extraction_value(extraction, "legal_name")
@@ -376,10 +383,9 @@ def _upsert_field_results(
     underlying_id: str,
     extraction: ExtractionResult,
     meta: UnderlyingMetadata,
+    cfg_version: str,
 ) -> None:
     """Upsert UnderlyingFieldResult rows for all Tier 2 extracted fields."""
-    cfg_version = _load_field_config_version()
-
     with db.get_session() as session:
         for fr in extraction.fields:
             existing = (

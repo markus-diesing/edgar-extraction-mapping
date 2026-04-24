@@ -16,6 +16,7 @@ Create Date: 2026-04-24
 from typing import Sequence, Union
 
 import sqlalchemy as sa
+from sqlalchemy import inspect as _sa_inspect
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -26,11 +27,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Guard against databases where _migrate() already added these columns before
+    # this Alembic revision was stamped (e.g. after a manual `alembic stamp`).
+    bind = op.get_bind()
+    existing = {c['name'] for c in _sa_inspect(bind).get_columns('underlying_securities')}
     with op.batch_alter_table('underlying_securities', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('legal_name',          sa.String(),  nullable=True))
-        batch_op.add_column(sa.Column('llm_input_tokens',   sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column('llm_output_tokens',  sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column('llm_cost_usd',       sa.Float(),   nullable=True))
+        if 'legal_name' not in existing:
+            batch_op.add_column(sa.Column('legal_name',         sa.String(),  nullable=True))
+        if 'llm_input_tokens' not in existing:
+            batch_op.add_column(sa.Column('llm_input_tokens',  sa.Integer(), nullable=True))
+        if 'llm_output_tokens' not in existing:
+            batch_op.add_column(sa.Column('llm_output_tokens', sa.Integer(), nullable=True))
+        if 'llm_cost_usd' not in existing:
+            batch_op.add_column(sa.Column('llm_cost_usd',      sa.Float(),   nullable=True))
 
 
 def downgrade() -> None:

@@ -75,6 +75,7 @@ def _make_metadata(ticker: str = "MSFT") -> UnderlyingMetadata:
             accession="0000950170-25-001",
             period_end=date(2025, 6, 30),
             filed=date(2025, 7, 30),
+            primary_document="msft-20250630.htm",
         ),
         last_quarterly=AnnualFilingRef(
             form="10-Q",
@@ -97,14 +98,31 @@ def _make_metadata(ticker: str = "MSFT") -> UnderlyingMetadata:
 
 
 def _make_extraction(confidence: float = 0.95) -> ExtractionResult:
+    """Build a mock ExtractionResult covering all 5 current target fields.
+
+    Note: FieldResult positional signature is
+        (field_name, value, confidence, source_excerpt, source_type, needs_review)
+    Using keyword args for the last two to avoid silent misassignment if the
+    dataclass gains new fields in the future.
+    """
+    nr = confidence < 0.80   # needs_review flag
     fields = [
+        FieldResult("legal_name", "Microsoft Corporation", confidence,
+                    source_excerpt="Microsoft Corporation", source_type="10k_cover",
+                    needs_review=nr),
         FieldResult("share_class_name", "Common Stock, $0.00001 par value", confidence,
-                    "Common Stock", confidence < 0.80),
-        FieldResult("share_type", "Common Stock", confidence, "Common Stock", confidence < 0.80),
+                    source_excerpt="Common Stock", source_type="10k_cover",
+                    needs_review=nr),
+        FieldResult("share_type", "Common Stock", confidence,
+                    source_excerpt="Common Stock", source_type="10k_cover",
+                    needs_review=nr),
         FieldResult("brief_description",
                     "Microsoft designs software and cloud services.", confidence,
-                    "Microsoft designs", confidence < 0.80),
-        FieldResult("adr_flag", False, confidence, "", confidence < 0.80),
+                    source_excerpt="Microsoft designs", source_type="10k_item1",
+                    needs_review=nr),
+        FieldResult("adr_flag", False, confidence,
+                    source_excerpt="", source_type="10k_cover",
+                    needs_review=nr),
     ]
     return ExtractionResult(fields=fields)
 
@@ -256,6 +274,7 @@ class TestRunIngestJob:
         self._run(in_memory_db)
         with _get_session(in_memory_db) as s:
             row = s.query(UnderlyingSecurity).first()
+        assert row.legal_name == "Microsoft Corporation"
         assert row.share_class_name == "Common Stock, $0.00001 par value"
         assert row.share_type == "Common Stock"
 
@@ -272,6 +291,7 @@ class TestRunIngestJob:
         with _get_session(in_memory_db) as s:
             results = s.query(UnderlyingFieldResult).all()
         field_names = {r.field_name for r in results}
+        assert "legal_name" in field_names
         assert "share_class_name" in field_names
         assert "share_type" in field_names
         assert "brief_description" in field_names
@@ -340,6 +360,45 @@ class TestRunIngestJob:
             job = s.get(UnderlyingJob, job_id)
         assert job.done == 2
         assert job.success == 2
+
+    def test_source_text_stored(self, in_memory_db):
+        """last_10k_text and last_10k_primary_doc are persisted after ingest."""
+        self._run(in_memory_db)
+        with _get_session(in_memory_db) as s:
+            row = s.query(UnderlyingSecurity).first()
+        # Text comes from _make_metadata().annual_filing_text
+        assert row.last_10k_text == "Microsoft is a technology company..."
+        # Primary doc comes from _make_metadata().last_annual.primary_document
+        assert row.last_10k_primary_doc == "msft-20250630.htm"
+
+    def test_llm_token_cost_stored(self, in_memory_db):
+        """Token counts and computed cost are persisted when extraction returns them."""
+        extraction = _make_extraction()
+        extraction.input_tokens  = 2_500
+        extraction.output_tokens = 150
+        job_id = create_job(["MSFT"])
+        with (
+            patch("underlying.background.resolve", return_value=_mock_resolution()),
+            patch("underlying.background.fetch_metadata", return_value=_make_metadata()),
+            patch("underlying.background.extract_underlying_fields",
+                  return_value=extraction),
+            patch("underlying.background.fetch_market_data", return_value=_make_market()),
+        ):
+            run_ingest_job(job_id, ["MSFT"])
+        with _get_session(in_memory_db) as s:
+            row = s.query(UnderlyingSecurity).first()
+        assert row.llm_input_tokens  == 2_500
+        assert row.llm_output_tokens == 150
+        assert row.llm_cost_usd is not None
+        assert row.llm_cost_usd > 0
+
+    def test_zero_tokens_skips_cost_columns(self, in_memory_db):
+        """When extraction returns zero tokens (default mock), cost columns are left None."""
+        self._run(in_memory_db)
+        with _get_session(in_memory_db) as s:
+            row = s.query(UnderlyingSecurity).first()
+        # Default _make_extraction() has input_tokens=0 / output_tokens=0
+        assert row.llm_cost_usd is None
 
 
 # ---------------------------------------------------------------------------
