@@ -39,6 +39,7 @@ from settings.router import router as settings_router
 from admin.router          import router as admin_router
 from admin.label_map_router import router as label_map_router
 from admin.schema_router import router as schema_router
+from underlying.router import router as underlying_router
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -119,6 +120,7 @@ app.include_router(settings_router, prefix="/api")
 app.include_router(admin_router,     prefix="/api")
 app.include_router(label_map_router, prefix="/api")
 app.include_router(schema_router, prefix="/api")
+app.include_router(underlying_router, prefix="/api")
 
 # Serve the docs/ directory at /docs so user_manual.html and other HTML docs
 # are on the same origin as the API (required for the in-manual chat to work).

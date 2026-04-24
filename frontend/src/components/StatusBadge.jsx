@@ -1,4 +1,5 @@
 const STATUS_STYLES = {
+  // ── 424B2 filing pipeline ─────────────────────────────────────────────────
   ingested:                      'bg-slate-100 text-slate-600 border-slate-300',
   classified:                    'bg-[#e8eefe] text-[#0c2fd4] border-[#0F3AF0]',
   needs_classification_review:   'bg-[#fff3e0] text-[#8a5c00] border-[#f59e0b]',
@@ -11,6 +12,22 @@ const STATUS_STYLES = {
   corrected:    'bg-[#e8eefe] text-[#0c2fd4] border-[#0F3AF0]',
   rejected:     'bg-[#fdf0ed] text-[#8b2616] border-[#DF4830]',
   schema_error: 'bg-[#fdf0ed] text-[#8b2616] border-[#DF4830]',
+
+  // ── Underlying security lifecycle ─────────────────────────────────────────
+  fetching:   'bg-blue-50 text-blue-700 border-blue-200',
+  fetched:    'bg-[#e8eefe] text-[#0c2fd4] border-[#0F3AF0]',
+  archived:   'bg-slate-100 text-slate-400 border-slate-200',
+
+  // ── Currentness / filing status ───────────────────────────────────────────
+  current:    'bg-[#f0fbd3] text-[#4a7c00] border-[#83D40A]',
+  late_nt:    'bg-[#fff3e0] text-[#8a5c00] border-[#f59e0b]',
+  delinquent: 'bg-[#fdf0ed] text-[#8b2616] border-[#DF4830]',
+  unknown:    'bg-slate-100 text-slate-500 border-slate-300',
+
+  // ── Field review status ───────────────────────────────────────────────────
+  running:    'bg-blue-50 text-blue-700 border-blue-200',
+  done:       'bg-[#f0fbd3] text-[#4a7c00] border-[#83D40A]',
+  error:      'bg-[#fdf0ed] text-[#8b2616] border-[#DF4830]',
 }
 
 export default function StatusBadge({ status, small }) {
