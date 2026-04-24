@@ -237,6 +237,10 @@ class UnderlyingSecurity(Base):
     llm_output_tokens        = Column(Integer)          # completion tokens
     llm_cost_usd             = Column(Float)            # estimated cost at list-price rates
 
+    # ── 10-K source text (for human validation) ───────────────────────────────
+    last_10k_text            = Column(Text)             # first UNDERLYING_EXTRACTION_CHARS chars of stripped text
+    last_10k_primary_doc     = Column(String)           # primary document filename (e.g. "msft-20250630.htm")
+
     # ── Lifecycle ─────────────────────────────────────────────────────────────
     # ingested → fetching → fetched → needs_review → approved | archived
     status                   = Column(String, nullable=False, default="ingested", index=True)
@@ -510,6 +514,9 @@ def _migrate() -> None:
         ("underlying_securities", "llm_input_tokens",            "INTEGER"),
         ("underlying_securities", "llm_output_tokens",           "INTEGER"),
         ("underlying_securities", "llm_cost_usd",                "REAL"),
+        # v9 columns — 10-K source text for human validation
+        ("underlying_securities", "last_10k_text",               "TEXT"),
+        ("underlying_securities", "last_10k_primary_doc",        "TEXT"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

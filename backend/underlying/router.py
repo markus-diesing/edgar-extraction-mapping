@@ -165,8 +165,12 @@ def _security_to_dict(row: UnderlyingSecurity, include_fields: bool = False) -> 
         "fetch_error":            row.fetch_error,
     }
     if include_fields:
-        d["field_results"] = [_field_result_to_dict(fr) for fr in row.field_results]
-        d["links"] = [_link_to_dict(lnk) for lnk in row.links]
+        d["field_results"]       = [_field_result_to_dict(fr) for fr in row.field_results]
+        d["links"]               = [_link_to_dict(lnk) for lnk in row.links]
+        # Source text is large (up to 8 KB) — only include on single-record GET,
+        # never in the paginated list to avoid bloating list responses.
+        d["last_10k_text"]       = row.last_10k_text
+        d["last_10k_primary_doc"] = row.last_10k_primary_doc
     return d
 
 

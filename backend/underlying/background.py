@@ -349,6 +349,14 @@ def _upsert_security(
             row.market_data_source  = market.source
             row.market_data_fetched_at = _now()
 
+        # ── 10-K source text (human validation) ──────────────────────
+        # Store the exact text slice the LLM received so reviewers can
+        # verify extracted values against the original filing.
+        if meta.annual_filing_text:
+            row.last_10k_text = meta.annual_filing_text[:config.UNDERLYING_EXTRACTION_CHARS]
+        if meta.last_annual:
+            row.last_10k_primary_doc = meta.last_annual.primary_document
+
         # ── Lifecycle ─────────────────────────────────────────────────
         row.status               = _status()
         row.last_fetched_at      = _now()

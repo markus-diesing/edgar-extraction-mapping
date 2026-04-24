@@ -582,6 +582,89 @@ function MarketTab({ sec }) {
 }
 
 // ---------------------------------------------------------------------------
+// 10-K source text tab
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the two EDGAR URLs for a security.
+ *   indexUrl  — filing index page (always constructible from cik + accession)
+ *   docUrl    — direct HTML document (requires primary_doc filename)
+ */
+function makeEdgarUrls(sec) {
+  if (!sec.cik || !sec.last_10k_accession) return null
+  const cikNum   = sec.cik.replace(/^0+/, '')            // strip leading zeros
+  const accNodash = sec.last_10k_accession.replace(/-/g, '')
+  const base     = `https://www.sec.gov/Archives/edgar/data/${cikNum}/${accNodash}`
+  return {
+    indexUrl: `${base}/`,
+    docUrl:   sec.last_10k_primary_doc ? `${base}/${sec.last_10k_primary_doc}` : null,
+  }
+}
+
+function SourceTab({ sec }) {
+  const urls = makeEdgarUrls(sec)
+  const text = sec.last_10k_text || null
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* ── Links bar ─────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0 flex-wrap">
+        <span className="text-xs text-slate-500 font-medium">EDGAR:</span>
+        {urls ? (
+          <>
+            {urls.docUrl && (
+              <a
+                href={urls.docUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-lpa-cyan hover:text-lpa-blue font-medium transition-colors"
+              >
+                📄 Open 10-K Document ↗
+              </a>
+            )}
+            <a
+              href={urls.indexUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
+            >
+              🗂 Filing Index ↗
+            </a>
+          </>
+        ) : (
+          <span className="text-xs text-slate-400">
+            No accession number — links unavailable
+          </span>
+        )}
+        {text && (
+          <span className="ml-auto text-[10px] text-slate-400">
+            {text.length.toLocaleString()} chars · first {(text.length / 1000).toFixed(0)}K of 10-K text
+          </span>
+        )}
+      </div>
+
+      {/* ── Text viewer ───────────────────────────────────────────────── */}
+      {text ? (
+        <div className="flex-1 min-h-0 overflow-auto scrollbar-thin p-4 bg-white">
+          <pre className="text-[11px] font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
+            {text}
+          </pre>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-slate-400 p-8 text-center">
+          <span className="text-2xl">📄</span>
+          <p>No source text stored for this security.</p>
+          <p className="text-xs text-slate-400 max-w-xs">
+            Source text is saved during ingest when LLM extraction is enabled.
+            Re-fetch this security to populate it.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Filing links tab
 // ---------------------------------------------------------------------------
 
@@ -883,6 +966,7 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
           ['overview', 'Overview'],
           ['review',   `Review${pendingCount > 0 ? ` (${pendingCount} pending)` : ` (${(sec.field_results || []).length})`}`],
           ['market',   'Market Data'],
+          ['source',   '10-K Source'],
           ['links',    `Links (${(sec.links || []).length})`],
         ].map(([t, label]) => (
           <button
@@ -904,6 +988,7 @@ export default function UnderlyingDetail({ securityId, onChanged }) {
         {tab === 'overview' && <OverviewTab sec={sec} />}
         {tab === 'review'   && <ReviewTab   sec={sec} onUpdate={load} />}
         {tab === 'market'   && <MarketTab   sec={sec} />}
+        {tab === 'source'   && <SourceTab   sec={sec} />}
         {tab === 'links'    && <LinksTab    sec={sec} onUpdate={load} />}
       </div>
     </div>
