@@ -150,7 +150,10 @@ def _process_one(
         )
 
     sec = resolution.resolved
-    assert sec is not None
+    if sec is None:
+        raise ValueError(
+            f"Resolution returned status='resolved' but resolved field is None for {raw_id!r}"
+        )
     cik = sec.cik
     ticker = sec.ticker
 
@@ -367,7 +370,7 @@ def _upsert_field_results(
                     extracted_value=value_json,
                     confidence_score=fr.confidence,
                     source_excerpt=fr.source_excerpt,
-                    source_type="10k_cover",
+                    source_type=fr.source_type,
                     is_approximate=False,
                     review_status="needs_review" if fr.needs_review else "pending",
                     field_config_version=cfg_version,

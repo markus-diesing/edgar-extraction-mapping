@@ -131,6 +131,10 @@ MARKET_DATA_PRICE_SERIES_YEARS  = 5                       # years of daily histo
 UNDERLYING_INGEST_MAX_CSV_ROWS  = 500
 UNDERLYING_JOB_POLL_INTERVAL    = 3                       # seconds (used by frontend)
 
+# Characters of stripped annual-report text passed to the Tier 2 LLM extraction
+# prompt (cover page + beginning of Item 1).  Keeping this small controls token cost.
+UNDERLYING_EXTRACTION_CHARS     = 8_000
+
 # Filing-deadline days by SEC filer category for currentness checks.
 # Keys must match the `category` field in EDGAR submissions JSON (case-insensitive compare).
 FILING_DEADLINE_DAYS: dict[str, dict[str, int | None]] = {

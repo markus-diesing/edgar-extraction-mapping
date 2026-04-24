@@ -28,7 +28,9 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
 
+import calendar
 import config
+from underlying.utils import detect_reporting_form
 
 log = logging.getLogger(__name__)
 
@@ -344,16 +346,14 @@ def compute_currentness(submissions: dict[str, Any]) -> CurrentnessReport:
 # ---------------------------------------------------------------------------
 
 def _detect_reporting_form(submissions: dict[str, Any]) -> str:
-    """Infer the primary reporting form from EDGAR submissions metadata."""
+    """Infer the primary reporting form from EDGAR submissions metadata.
+
+    Delegates to :func:`underlying.utils.detect_reporting_form` — the canonical
+    implementation shared with ``edgar_underlying_client.py``.
+    """
     recent = submissions.get("filings", {}).get("recent", {})
     forms: list[str] = recent.get("form", [])
-    has_20f = any(f == "20-F" for f in forms[:30])
-    has_40f = any(f == "40-F" for f in forms[:30])
-    if has_20f:
-        return "20-F"
-    if has_40f:
-        return "40-F"
-    return "10-K"
+    return detect_reporting_form(forms)
 
 
 def _within_18_months(date_str: str, reference: date) -> bool:

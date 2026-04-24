@@ -41,8 +41,9 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # Characters of stripped 10-K text passed to the extraction prompt.
-# Cover page is typically < 2 K, Item 1 business description < 5 K.
-UNDERLYING_EXTRACTION_CHARS = 8_000
+# Defined centrally in config.UNDERLYING_EXTRACTION_CHARS — imported below.
+# This local alias is kept so call-sites within this module stay readable.
+UNDERLYING_EXTRACTION_CHARS: int = config.UNDERLYING_EXTRACTION_CHARS
 
 # Fields the LLM is asked to populate.
 _TARGET_FIELDS = [
@@ -51,6 +52,15 @@ _TARGET_FIELDS = [
     "brief_description",
     "adr_flag",
 ]
+
+# Maps each target field to the section of the annual report it is drawn from.
+# Used to populate FieldResult.source_type and the DB source_type column.
+_FIELD_SOURCE_TYPES: dict[str, str] = {
+    "share_class_name":  "10k_cover",
+    "share_type":        "10k_cover",
+    "adr_flag":          "10k_cover",
+    "brief_description": "10k_item1",
+}
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -63,6 +73,7 @@ class FieldResult:
     value: Any                    # str | bool | None
     confidence: float             # 0.0 – 1.0
     source_excerpt: str = ""      # relevant text snippet (best-effort)
+    source_type: str = "10k_cover"  # origin section: "10k_cover" | "10k_item1"
     needs_review: bool = False    # True when confidence < threshold
 
 
@@ -248,6 +259,7 @@ def _parse_response(raw: str) -> ExtractionResult:
         value = fields_raw.get(fname)
         confidence = _clamp_conf(conf_raw.get(fname, 0.5))
         excerpt = str(excerpts_raw.get(fname, ""))[:500]   # cap excerpt length
+        src_type = _FIELD_SOURCE_TYPES.get(fname, "10k_cover")
 
         # Normalise adr_flag to bool
         if fname == "adr_flag" and value is not None:
@@ -267,6 +279,7 @@ def _parse_response(raw: str) -> ExtractionResult:
             value=value,
             confidence=confidence,
             source_excerpt=excerpt,
+            source_type=src_type,
             needs_review=confidence < threshold,
         ))
 

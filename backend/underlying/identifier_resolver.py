@@ -229,6 +229,7 @@ _FIGI_ID_TYPE_MAP = {
 }
 
 _openfigi_last_call: float = 0.0
+_openfigi_rate_lock = threading.Lock()
 
 
 def _openfigi_lookup(identifier: str, id_type: str) -> list[str]:
@@ -244,12 +245,13 @@ def _openfigi_lookup(identifier: str, id_type: str) -> list[str]:
     if not figi_type:
         return []
 
-    # Rate limiting
-    now = time.monotonic()
-    elapsed = now - _openfigi_last_call
-    if elapsed < config.OPENFIGI_RATE_LIMIT_DELAY:
-        time.sleep(config.OPENFIGI_RATE_LIMIT_DELAY - elapsed)
-    _openfigi_last_call = time.monotonic()
+    # Rate limiting — lock protects _openfigi_last_call against concurrent reads/writes
+    with _openfigi_rate_lock:
+        now = time.monotonic()
+        elapsed = now - _openfigi_last_call
+        if elapsed < config.OPENFIGI_RATE_LIMIT_DELAY:
+            time.sleep(config.OPENFIGI_RATE_LIMIT_DELAY - elapsed)
+        _openfigi_last_call = time.monotonic()
 
     payload = [{"idType": figi_type, "idValue": identifier.upper()}]
     try:

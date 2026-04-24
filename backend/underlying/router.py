@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field, field_validator
 import config
 import database as db
 from database import (
+    Filing,
     UnderlyingEditLog,
     UnderlyingFieldResult,
     UnderlyingJob,
@@ -487,11 +488,12 @@ def api_approve(id: str) -> dict:
     """Mark a security as approved (eligible for export and filing linkage)."""
     with db.get_session() as session:
         row = _get_or_404(session, UnderlyingSecurity, id, "Underlying security")
+        old_status = row.status          # capture before mutation
         row.status = "approved"
         log_row = UnderlyingEditLog(
             underlying_id=id,
             field_name="status",
-            old_value=row.status,
+            old_value=old_status,
             new_value="approved",
             action="approved",
         )
@@ -547,7 +549,6 @@ def api_link_filing(id: str, req: LinkRequest) -> dict:
     with db.get_session() as session:
         _get_or_404(session, UnderlyingSecurity, id, "Underlying security")
         # Check filing exists
-        from database import Filing
         _get_or_404(session, Filing, req.filing_id, "Filing")
 
         existing = (
@@ -588,13 +589,17 @@ def api_unlink_filing(id: str, filing_id: str) -> dict:
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Fields that have a direct column on UnderlyingSecurity and should be
+# mirrored back when a reviewer edits the field_result value.
+_MIRRORED_FIELDS: frozenset[str] = frozenset({
+    "company_name", "share_class_name", "share_type", "ticker_bb",
+    "exchange", "sic_code", "sic_description", "state_of_incorporation",
+    "adr_flag", "closing_value", "initial_value", "shares_outstanding",
+    "public_float_usd",
+})
+
+
 def _mirror_field_to_security(row: UnderlyingSecurity, field_name: str, value: Any) -> None:
     """Copy a reviewed field value back onto the master ``UnderlyingSecurity`` columns."""
-    _MIRRORED_FIELDS = {
-        "company_name", "share_class_name", "share_type", "ticker_bb",
-        "exchange", "sic_code", "sic_description", "state_of_incorporation",
-        "adr_flag", "closing_value", "initial_value", "shares_outstanding",
-        "public_float_usd",
-    }
     if field_name in _MIRRORED_FIELDS and hasattr(row, field_name):
         setattr(row, field_name, value)
