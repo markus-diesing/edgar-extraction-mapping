@@ -5,13 +5,17 @@
  *   - "Securities"  : paginated, filterable list of UnderlyingSecurity rows.
  *   - "Ingest"      : UnderlyingIngest form.
  *
+ * A persistent JobBanner is rendered between the panel header and the tab bar
+ * whenever an ingest job is running or has just completed.  It stays visible
+ * across tab switches so the user always sees progress and results.
+ *
  * Props:
  *   selectedId      string | null  — currently selected security ID
  *   onSelect(id)                   — callback when user clicks a row
  *   refreshKey      number         — increment from the parent (App) to force a list refresh
  *                                    e.g. after approve/archive from the detail panel (B2)
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api.js'
 import StatusBadge from './StatusBadge.jsx'
 import UnderlyingIngest from './UnderlyingIngest.jsx'
@@ -22,6 +26,191 @@ const STATUSES = [
   '',
   'fetching', 'fetched', 'needs_review', 'approved', 'archived',
 ]
+
+// ---------------------------------------------------------------------------
+// JobBanner — persistent job progress / results strip
+// ---------------------------------------------------------------------------
+
+/**
+ * Polls one ingest job and renders a compact status banner.
+ *
+ * Visible on both the Securities and Ingest tabs so the user always has
+ * feedback regardless of which tab they are looking at.
+ *
+ * Props:
+ *   jobId      string   — job UUID to poll
+ *   onComplete ()       — called once when job reaches done/error (refresh list)
+ *   onDismiss  ()       — called when the user clicks ✕ (clears the banner)
+ */
+function JobBanner({ jobId, onComplete, onDismiss }) {
+  const [job,       setJob]       = useState(null)
+  const [expanded,  setExpanded]  = useState(false)
+  const [pollError, setPollError] = useState(null)
+  const timerRef  = useRef(null)
+  const failRef   = useRef(0)
+  const notifiedRef = useRef(false)   // fire onComplete exactly once
+
+  useEffect(() => {
+    if (!jobId) return
+    const poll = async () => {
+      try {
+        const j = await api.underlyingJobStatus(jobId)
+        setJob(j)
+        failRef.current = 0
+        if ((j.status === 'done' || j.status === 'error') && !notifiedRef.current) {
+          notifiedRef.current = true
+          clearInterval(timerRef.current)
+          if (onComplete) onComplete()
+          // Auto-expand when done so results are immediately visible
+          setExpanded(true)
+        }
+      } catch {
+        failRef.current += 1
+        if (failRef.current >= 3) {
+          clearInterval(timerRef.current)
+          setPollError('Job status unavailable — check your connection.')
+        }
+      }
+    }
+    poll()
+    timerRef.current = setInterval(poll, 3000)
+    return () => clearInterval(timerRef.current)
+  }, [jobId])
+
+  if (pollError) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border-b border-red-200 shrink-0">
+        <span className="text-xs text-red-600 flex-1">{pollError}</span>
+        <button onClick={onDismiss} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+      </div>
+    )
+  }
+
+  const isDone     = job?.status === 'done' || job?.status === 'error'
+  const pct        = (job?.total ?? 0) > 0 ? Math.round((job.done / job.total) * 100) : 0
+  const results    = Array.isArray(job?.results) ? job.results : []
+  const errors     = results.filter(r => r.error)
+  const successes  = results.filter(r => !r.error)
+  const hasResults = results.length > 0
+
+  return (
+    <div className="border-b border-slate-200 bg-slate-50 shrink-0">
+      {/* ── Summary row ───────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-3 py-2">
+        {/* Status icon */}
+        {!job ? (
+          <span className="text-blue-400 text-xs animate-pulse">●</span>
+        ) : !isDone ? (
+          <span className="text-blue-500 text-xs animate-spin inline-block">↻</span>
+        ) : errors.length > 0 ? (
+          <span className="text-amber-500 text-xs">⚠</span>
+        ) : (
+          <span className="text-green-500 text-xs">✓</span>
+        )}
+
+        {/* Label */}
+        <span className="text-xs text-slate-700 flex-1 min-w-0 truncate">
+          {!job
+            ? 'Starting job…'
+            : isDone
+              ? `Done — ${successes.length} found${errors.length > 0 ? `, ${errors.length} failed` : ''}`
+              : `Ingesting ${job.done ?? 0} / ${job.total ?? '…'}`
+          }
+        </span>
+
+        {/* Count badges */}
+        {job && (
+          <span className="flex gap-1.5 text-[10px] font-semibold shrink-0">
+            {successes.length > 0 && (
+              <span className="text-green-600">✓{successes.length}</span>
+            )}
+            {errors.length > 0 && (
+              <span className="text-red-600">✗{errors.length}</span>
+            )}
+          </span>
+        )}
+
+        {/* Expand toggle (only when there are results) */}
+        {hasResults && (
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-slate-400 hover:text-slate-600 text-[10px] leading-none px-0.5"
+            title={expanded ? 'Collapse results' : 'Show results'}
+          >
+            {expanded ? '▴' : '▾'}
+          </button>
+        )}
+
+        {/* Dismiss — available once done */}
+        {isDone && (
+          <button
+            onClick={onDismiss}
+            className="text-slate-400 hover:text-slate-600 text-xs leading-none ml-0.5"
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* ── Progress bar (while running) ──────────────────────────────── */}
+      {!isDone && job && (
+        <div className="px-3 pb-2">
+          <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Expanded results ──────────────────────────────────────────── */}
+      {expanded && hasResults && (
+        <div className="px-3 pb-2 max-h-44 overflow-y-auto scrollbar-thin space-y-1">
+          {errors.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-red-600 uppercase tracking-wide mb-0.5">
+                Not found ({errors.length})
+              </p>
+              <div className="space-y-0.5">
+                {errors.map((r, i) => (
+                  <div
+                    key={i}
+                    className="text-[10px] text-red-700 bg-red-50 border border-red-100 rounded px-1.5 py-0.5 flex gap-1"
+                  >
+                    <span className="font-mono font-semibold">{r.identifier}</span>
+                    {r.error && (
+                      <span className="opacity-60 truncate min-w-0">— {r.error}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {successes.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-0.5">
+                Found ({successes.length})
+              </p>
+              <div className="flex flex-wrap gap-0.5">
+                {successes.map((r, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-100 rounded px-1 py-0.5"
+                  >
+                    {r.identifier}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // SecurityRow
@@ -189,23 +378,35 @@ function SecurityList({ selectedId, onSelect, refreshTrigger }) {
 export default function UnderlyingPanel({ selectedId, onSelect, refreshKey = 0 }) {
   const [tab,            setTab]            = useState('securities')
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [activeJobId,    setActiveJobId]    = useState(null)   // job being tracked
 
-  // Called immediately when a job is queued — switch to the list tab so the
-  // user can see progress without any refresh lag.
-  const onJobStarted = useCallback(() => {
+  // Called immediately when a job is queued.
+  // Captures the job ID so the banner can start polling, then switches to the
+  // list tab so the user sees securities appearing as they are ingested.
+  const onJobStarted = useCallback((jobId) => {
+    setActiveJobId(jobId)
     setTab('securities')
   }, [])
 
-  // Called when the background job reaches done/error — refresh the list so
-  // newly-ingested securities appear.  Kept separate from onJobStarted so the
-  // list refresh fires exactly once (at completion) rather than twice.
-  const onJobDone = useCallback(() => {
+  // Called by JobBanner once polling detects completion — refresh the list.
+  const onJobComplete = useCallback(() => {
     setRefreshTrigger(t => t + 1)
   }, [])
 
   return (
     <div className="flex flex-col h-full">
-      {/* Tab bar */}
+
+      {/* ── Persistent job banner ─────────────────────────────────────── */}
+      {activeJobId && (
+        <JobBanner
+          key={activeJobId}
+          jobId={activeJobId}
+          onComplete={onJobComplete}
+          onDismiss={() => setActiveJobId(null)}
+        />
+      )}
+
+      {/* ── Tab bar ───────────────────────────────────────────────────── */}
       <div className="flex border-b border-slate-200 shrink-0">
         {[['securities', 'Securities'], ['ingest', 'Ingest']].map(([t, label]) => (
           <button
@@ -222,7 +423,7 @@ export default function UnderlyingPanel({ selectedId, onSelect, refreshKey = 0 }
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* ── Tab content ───────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {tab === 'securities'
           ? (
@@ -233,7 +434,7 @@ export default function UnderlyingPanel({ selectedId, onSelect, refreshKey = 0 }
             />
           ) : (
             <div className="h-full overflow-y-auto scrollbar-thin">
-              <UnderlyingIngest onJobStarted={onJobStarted} onJobDone={onJobDone} />
+              <UnderlyingIngest onJobStarted={onJobStarted} />
             </div>
           )
         }

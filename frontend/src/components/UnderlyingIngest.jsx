@@ -1,119 +1,27 @@
 /**
- * UnderlyingIngest.jsx — Identifier entry + CSV upload panel for the Underlying module.
+ * UnderlyingIngest.jsx — Identifier entry + CSV upload form for the Underlying module.
+ *
+ * This component is a pure submission form.  Job progress tracking is handled
+ * by the parent (UnderlyingPanel) via the JobBanner component, which persists
+ * across tab switches and shows live progress + per-item results.
  *
  * Props:
- *   onJobStarted(jobId) — called immediately when a job is queued (switch to list tab, etc.)
- *   onJobDone(jobId)    — called when the background job reaches done/error status
+ *   onJobStarted(jobId) — called with the job UUID immediately after the API
+ *                         accepts the request; the parent uses this to start
+ *                         displaying the JobBanner.
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { api } from '../api.js'
-import StatusBadge from './StatusBadge.jsx'
 
-// ---------------------------------------------------------------------------
-// Job status card
-// ---------------------------------------------------------------------------
-
-function JobCard({ jobId, onDone }) {
-  const [job,       setJob]       = useState(null)
-  const [pollError, setPollError] = useState(null)
-  const timerRef    = useRef(null)
-  const failRef     = useRef(0)   // consecutive poll failures
-
-  useEffect(() => {
-    if (!jobId) return
-    const poll = async () => {
-      try {
-        const j = await api.underlyingJobStatus(jobId)
-        setJob(j)
-        failRef.current = 0
-        if (j.status === 'done' || j.status === 'error') {
-          clearInterval(timerRef.current)
-          if (onDone) onDone()
-        }
-      } catch {
-        failRef.current += 1
-        // Surface an error after 3 consecutive failures so the card doesn't
-        // stay stuck on "Starting job…" when the backend is unreachable.
-        if (failRef.current >= 3) {
-          clearInterval(timerRef.current)
-          setPollError('Job status unavailable — check your connection and retry.')
-        }
-      }
-    }
-    poll()
-    timerRef.current = setInterval(poll, 3000)
-    return () => clearInterval(timerRef.current)
-  }, [jobId])
-
-  if (!job && !pollError) return (
-    <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-700 animate-pulse">
-      Starting job…
-    </div>
-  )
-
-  if (pollError) return (
-    <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700">
-      {pollError}
-    </div>
-  )
-
-  const pct = job.total > 0 ? Math.round((job.done / job.total) * 100) : 0
-
-  return (
-    <div className="bg-white border border-slate-200 rounded p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-700">Ingest Job</span>
-        <StatusBadge status={job.status} small />
-      </div>
-      {/* Progress bar */}
-      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-lpa-cyan rounded-full transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="flex justify-between text-xs text-slate-500">
-        <span>{job.done} / {job.total} processed</span>
-        <span className="space-x-2">
-          {job.success > 0 && <span className="text-green-600">✓ {job.success} ok</span>}
-          {job.errors > 0  && <span className="text-red-600">✗ {job.errors} err</span>}
-        </span>
-      </div>
-      {/* Per-item results */}
-      {Array.isArray(job.results) && job.results.length > 0 && (
-        <div className="mt-1 max-h-28 overflow-y-auto scrollbar-thin space-y-0.5">
-          {job.results.map((r, i) => (
-            <div key={i} className={`text-xs px-2 py-0.5 rounded ${r.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-              <span className="font-mono">{r.identifier}</span>
-              {r.error && <span className="ml-1 opacity-75">— {r.error}</span>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
-export default function UnderlyingIngest({ onJobStarted, onJobDone }) {
+export default function UnderlyingIngest({ onJobStarted }) {
   const [identifiers, setIdentifiers] = useState('')
   const [fetchMarket, setFetchMarket] = useState(true)
   const [runLlm,      setRunLlm]      = useState(true)
   const [submitting,  setSubmitting]  = useState(false)
-  const [jobId,       setJobId]       = useState(null)
   const [csvFile,     setCsvFile]     = useState(null)
   const [csvName,     setCsvName]     = useState('')
   const [error,       setError]       = useState('')
   const fileInputRef = useRef(null)
-
-  const startJob = (result) => {
-    setJobId(result.job_id)
-    setError('')
-    if (onJobStarted) onJobStarted(result.job_id)
-  }
 
   // ── Manual identifier entry ────────────────────────────────────────────────
 
@@ -131,8 +39,8 @@ export default function UnderlyingIngest({ onJobStarted, onJobDone }) {
         fetch_market: fetchMarket,
         run_llm: runLlm,
       })
-      startJob(result)
-      setIdentifiers('')
+      setIdentifiers('')        // reset form — progress tracked by parent banner
+      if (onJobStarted) onJobStarted(result.job_id)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -148,10 +56,10 @@ export default function UnderlyingIngest({ onJobStarted, onJobDone }) {
     setError('')
     try {
       const result = await api.underlyingIngestCsv(csvFile)
-      startJob(result)
       setCsvFile(null)
       setCsvName('')
       if (fileInputRef.current) fileInputRef.current.value = ''
+      if (onJobStarted) onJobStarted(result.job_id)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -241,21 +149,13 @@ export default function UnderlyingIngest({ onJobStarted, onJobDone }) {
         </div>
       </div>
 
-      {/* ── Job status ────────────────────────────────────────────────────── */}
-      {jobId && (
-        <JobCard
-          key={jobId}
-          jobId={jobId}
-          onDone={onJobDone}
-        />
-      )}
-
-      {/* ── Error ─────────────────────────────────────────────────────────── */}
+      {/* ── Submission error ──────────────────────────────────────────────── */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700">
           {error}
         </div>
       )}
+
     </div>
   )
 }
