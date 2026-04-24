@@ -223,12 +223,29 @@ def decode_html(content: bytes) -> str:
 
 
 def strip_html(html: str) -> str:
-    """
-    Strip HTML tags and return plain text, removing scripts/styles.
-    Used to prepare text for Claude API calls.
+    """Strip HTML tags and return plain text, removing scripts/styles.
+
+    Also removes Inline XBRL (iXBRL) namespace header blocks that modern SEC
+    filings embed in the document before the human-readable cover page.  These
+    blocks can be 60–100 KB of FASB taxonomy URIs and XBRL context definitions
+    that would otherwise appear at the start of the extracted text and push the
+    actual filing content beyond the LLM extraction window.
+
+    Tags removed entirely (no text kept):
+    - ``ix:header`` — the main iXBRL metadata block (most of the noise)
+    - ``xbrli:context``, ``xbrli:unit`` — XBRL period/entity context defs
+    - Standard: ``script``, ``style``, ``head``, ``meta``, ``link``
+
+    Inline iXBRL value tags (``ix:nonfraction``, ``ix:nonnumeric``, etc.) are
+    NOT removed — their text content (the actual filed values) is preserved.
     """
     soup = BeautifulSoup(html, "lxml")
+    # Remove standard noise tags
     for tag in soup(["script", "style", "head", "meta", "link"]):
+        tag.decompose()
+    # Remove iXBRL header/context blocks that precede the readable content in
+    # Inline XBRL filings.  These contain only taxonomy URIs and XBRL metadata.
+    for tag in soup(["ix:header", "xbrli:context", "xbrli:unit"]):
         tag.decompose()
     text = soup.get_text(separator="\n", strip=True)
     # Collapse runs of blank lines
