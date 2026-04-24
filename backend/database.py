@@ -241,11 +241,9 @@ class UnderlyingSecurity(Base):
 
     __table_args__ = (
         # Named constraint so it appears clearly in schema introspection tools.
+        # SQLite automatically creates a B-tree index to enforce this constraint,
+        # so no separate composite Index is needed for the filter_by(cik=…, ticker=…) hot-path.
         UniqueConstraint("cik", "ticker", name="uq_underlying_cik_ticker"),
-        # Explicit composite index for the common filter_by(cik=…, ticker=…) pattern
-        # used in background.py upserts.  The UNIQUE constraint creates an index too,
-        # but naming it explicitly makes query-plan inspection unambiguous.
-        Index("ix_underlying_cik_ticker", "cik", "ticker"),
     )
 
     field_results = relationship(

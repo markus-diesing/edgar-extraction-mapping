@@ -133,12 +133,14 @@ UNDERLYING_JOB_POLL_INTERVAL    = 3                       # seconds (used by fro
 
 # Filing-deadline days by SEC filer category for currentness checks.
 # Keys must match the `category` field in EDGAR submissions JSON (case-insensitive compare).
-FILING_DEADLINE_DAYS: dict[str, dict[str, int]] = {
+FILING_DEADLINE_DAYS: dict[str, dict[str, int | None]] = {
     "large accelerated filer":  {"10-K": 60,  "10-Q": 40, "20-F": 120, "NT_EXTENSION": 15},
     "accelerated filer":        {"10-K": 75,  "10-Q": 40, "20-F": 120, "NT_EXTENSION": 15},
     "non-accelerated filer":    {"10-K": 90,  "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15},
     "smaller reporting company":{"10-K": 90,  "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15},
-    "foreign private issuer":   {"10-K": 120, "10-Q": 0,  "20-F": 120, "NT_EXTENSION": 15},
+    # Foreign private issuers file 20-F only — no 10-Q requirement.
+    # None signals the currentness engine to skip the 10-Q check entirely.
+    "foreign private issuer":   {"10-K": 120, "10-Q": None, "20-F": 120, "NT_EXTENSION": 15},
 }
 # Fallback when category is not recognised
 FILING_DEADLINE_DAYS_DEFAULT: dict[str, int] = {
