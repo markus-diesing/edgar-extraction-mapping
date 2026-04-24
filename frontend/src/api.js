@@ -10,6 +10,15 @@ const call = async (method, path, body) => {
   return data
 }
 
+/** Multipart / FormData upload helper (no Content-Type header — browser sets boundary). */
+const upload = async (path, formData) => {
+  const res = await fetch(`/api${path}`, { method: 'POST', body: formData })
+  if (res.status === 204) return null
+  const data = await res.json().catch(() => ({ detail: res.statusText }))
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+  return data
+}
+
 export const api = {
   health:       ()           => call('GET',    '/health'),
   search:       (body)       => call('POST',   '/ingest/search', body),
@@ -79,4 +88,58 @@ export const api = {
   schemaPendingDiff:     (fetchId)    => call('GET',    `/admin/schema/pending/${fetchId}`),
   schemaActivate:        (fetchId)    => call('POST',   `/admin/schema/pending/${fetchId}/activate`),
   schemaDiscard:         (fetchId)    => call('DELETE', `/admin/schema/pending/${fetchId}`),
+
+  // ── Underlying securities ─────────────────────────────────────────────────
+
+  /** Resolve an identifier to CIK + ticker (no DB write). */
+  underlyingResolve:           (identifier)       => call('GET', `/underlying/resolve?identifier=${encodeURIComponent(identifier)}`),
+
+  /** Start an async ingest job.  Returns {job_id, status, total}. */
+  underlyingIngest:            (body)             => call('POST', '/underlying/ingest', body),
+
+  /** Upload a CSV file (one 'identifier' column).  Returns {job_id, status, total}. */
+  underlyingIngestCsv: (file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return upload('/underlying/ingest/csv', fd)
+  },
+
+  /** Poll an ingest job by ID. */
+  underlyingJobStatus:         (jobId)            => call('GET',    `/underlying/jobs/${jobId}`),
+
+  /** List underlying securities (paginated + filterable). */
+  underlyingList:              (params)           => call('GET',    `/underlying/${params ? '?' + new URLSearchParams(params) : ''}`),
+
+  /** Fetch full detail for one underlying security (includes field_results). */
+  underlyingGet:               (id)               => call('GET',    `/underlying/${id}`),
+
+  /** Update / review a single extracted field. */
+  underlyingUpdateField:       (id, name, body)   => call('PUT',    `/underlying/${id}/fields/${name}`, body),
+
+  /** Approve a security (set status → 'approved'). */
+  underlyingApprove:           (id)               => call('POST',   `/underlying/${id}/approve`),
+
+  /** Re-queue a security for a full data refresh. */
+  underlyingRefetch:           (id)               => call('POST',   `/underlying/${id}/refetch`),
+
+  /** Soft-delete (archive) a security. */
+  underlyingDelete:            (id)               => call('DELETE', `/underlying/${id}`),
+
+  /** Export one security as a JSON object. */
+  underlyingExportOne:         (id)               => call('GET',    `/underlying/${id}/export`),
+
+  /** Bulk-export all securities matching a status (default: approved). */
+  underlyingBulkExport:        (status = 'approved') => call('GET', `/underlying/export?status=${status}`),
+
+  /** Get current field configuration. */
+  underlyingFieldConfig:       ()                 => call('GET',    '/underlying/field-config'),
+
+  /** Update field configuration (enable/disable, reorder, rename). */
+  underlyingUpdateFieldConfig: (body)             => call('PUT',    '/underlying/field-config', body),
+
+  /** Link an underlying security to a 424B2 filing. */
+  underlyingLinkFiling:        (id, filingId)     => call('POST',   `/underlying/${id}/links`, { filing_id: filingId }),
+
+  /** Remove the link between an underlying and a filing. */
+  underlyingUnlinkFiling:      (id, filingId)     => call('DELETE', `/underlying/${id}/links/${filingId}`),
 }

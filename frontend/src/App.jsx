@@ -9,6 +9,9 @@ import ExtractionSettings from './components/ExtractionSettings.jsx'
 import LabelMapEditor from './components/LabelMapEditor.jsx'
 import SchemaManager from './components/SchemaManager.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
+import UnderlyingPanel from './components/UnderlyingPanel.jsx'
+import UnderlyingDetail from './components/UnderlyingDetail.jsx'
+import UnderlyingFieldConfig from './components/UnderlyingFieldConfig.jsx'
 
 function HealthDot({ healthy }) {
   return (
@@ -23,8 +26,10 @@ export default function App() {
   const [sideTab,      setSideTab]      = useState('filings')  // 'filings' | 'ingest'
   const [loadingList,  setLoadingList]  = useState(false)
   const [sidebarOpen,  setSidebarOpen]  = useState(true)
-  const [mainView,     setMainView]     = useState('filings')  // 'filings' | 'expert' | 'admin'
-  const [expertTab,    setExpertTab]    = useState('hints')    // 'hints' | 'sections' | 'extraction'
+  const [mainView,          setMainView]          = useState('filings')  // 'filings' | 'expert' | 'admin' | 'underlyings'
+  const [expertTab,         setExpertTab]         = useState('hints')    // 'hints' | 'sections' | 'extraction'
+  const [selectedUnderlying, setSelectedUnderlying] = useState(null)
+  const [underlyingRefresh,  setUnderlyingRefresh]  = useState(0)        // incremented by detail-panel mutations
 
   const loadFilings = useCallback(async () => {
     setLoadingList(true)
@@ -80,7 +85,7 @@ export default function App() {
         <div className="flex items-center gap-4">
           {/* Top-level nav */}
           <nav className="flex items-center gap-1">
-            {[['filings', 'Filings'], ['expert', 'Expert ⚙'], ['admin', 'Admin']].map(([view, label]) => (
+            {[['filings', 'Filings'], ['underlyings', 'Underlyings'], ['expert', 'Expert ⚙'], ['admin', 'Admin']].map(([view, label]) => (
               <button
                 key={view}
                 onClick={() => setMainView(view)}
@@ -129,7 +134,7 @@ export default function App() {
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             {/* Expert settings tab bar */}
             <div className="flex border-b border-slate-200 bg-white shrink-0 px-4">
-              {[['hints', 'Field Hints'], ['sections', 'Section Prompts'], ['extraction', 'Extraction Settings'], ['labelmap', 'Label Map'], ['schema', 'Schema']].map(([tab, label]) => (
+              {[['hints', 'Field Hints'], ['sections', 'Section Prompts'], ['extraction', 'Extraction Settings'], ['labelmap', 'Label Map'], ['schema', 'Schema'], ['underlying_fields', 'Underlying Fields']].map(([tab, label]) => (
                 <button
                   key={tab}
                   onClick={() => setExpertTab(tab)}
@@ -152,7 +157,9 @@ export default function App() {
                     ? <LabelMapEditor />
                     : expertTab === 'schema'
                       ? <SchemaManager />
-                      : <ExtractionSettings />
+                      : expertTab === 'underlying_fields'
+                        ? <UnderlyingFieldConfig />
+                        : <ExtractionSettings />
               }
             </div>
           </div>
@@ -163,6 +170,45 @@ export default function App() {
           <div className="flex-1 min-h-0 overflow-hidden">
             <AdminPanel />
           </div>
+        )}
+
+        {/* Underlyings view — sidebar (list + ingest) + detail panel */}
+        {mainView === 'underlyings' && (
+          <>
+            <div className="w-72 flex flex-col shrink-0 bg-white border-r border-slate-200 overflow-hidden">
+              {/* Underlyings sidebar header with bulk-export */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50 shrink-0">
+                <span className="text-xs font-semibold text-slate-600">Underlying Securities</span>
+                <button
+                  onClick={async () => {
+                    try {
+                      const data = await api.underlyingBulkExport('approved')
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+                      const url  = URL.createObjectURL(blob)
+                      const a    = document.createElement('a'); a.href = url
+                      a.download = 'underlying_approved.json'; a.click()
+                      URL.revokeObjectURL(url)
+                    } catch (e) { alert(e.message) }
+                  }}
+                  className="text-xs text-lpa-cyan hover:text-lpa-blue font-medium"
+                  title="Export all approved securities as JSON"
+                >
+                  ↓ Export approved
+                </button>
+              </div>
+              <UnderlyingPanel
+                selectedId={selectedUnderlying}
+                onSelect={setSelectedUnderlying}
+                refreshKey={underlyingRefresh}
+              />
+            </div>
+            <div className="flex-1 min-w-0 overflow-hidden bg-white">
+              <UnderlyingDetail
+                securityId={selectedUnderlying}
+                onChanged={() => setUnderlyingRefresh(t => t + 1)}
+              />
+            </div>
+          </>
         )}
 
         {/* Filings view — sidebar + detail */}
