@@ -31,6 +31,7 @@ from ingest.edgar_client import (
     decode_html,
 )
 from underlying.currentness import compute_currentness, CurrentnessReport
+from underlying.utils import detect_reporting_form
 
 log = logging.getLogger(__name__)
 
@@ -236,13 +237,12 @@ def _extract_from_submissions(data: dict[str, Any], cik_padded: str) -> Underlyi
 
 
 def _detect_reporting_form(forms: list[str]) -> str:
-    """Infer the primary reporting form from the filing history (first 30 entries)."""
-    sample = forms[:30]
-    if any(f == "20-F" for f in sample):
-        return "20-F"
-    if any(f == "40-F" for f in sample):
-        return "40-F"
-    return "10-K"
+    """Infer the primary reporting form from the filing history (first 30 entries).
+
+    Delegates to :func:`underlying.utils.detect_reporting_form` — the canonical
+    implementation shared with ``currentness.py``.
+    """
+    return detect_reporting_form(forms)
 
 
 def _find_most_recent_filing(
