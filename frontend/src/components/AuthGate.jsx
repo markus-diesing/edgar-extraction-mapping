@@ -5,18 +5,21 @@ import { loginRequest } from '../auth/msalConfig.js'
 import { setTokenProvider } from '../api.js'
 
 export default function AuthGate({ children }) {
-  const { instance, inProgress, accounts } = useMsal()
+  const { instance, inProgress } = useMsal()
   const isAuthenticated = useIsAuthenticated()
 
-  // Wire the token provider as soon as MSAL finishes initialising.
   useEffect(() => {
-    if (!isAuthenticated || accounts.length === 0) return
+    if (!isAuthenticated) return
 
     setTokenProvider(async () => {
+      // Look up the account at call time so we never close over a stale value.
+      const account = instance.getAllAccounts()[0] ?? instance.getActiveAccount()
+      if (!account) return null
+
       try {
         const result = await instance.acquireTokenSilent({
           ...loginRequest,
-          account: accounts[0],
+          account,
         })
         return result.accessToken
       } catch (err) {
@@ -28,9 +31,8 @@ export default function AuthGate({ children }) {
       }
     })
     return () => setTokenProvider(null)
-  }, [isAuthenticated, instance, accounts])
+  }, [isAuthenticated, instance])
 
-  // MSAL is still loading (redirect/popup in flight)
   if (inProgress !== InteractionStatus.None) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-950">
