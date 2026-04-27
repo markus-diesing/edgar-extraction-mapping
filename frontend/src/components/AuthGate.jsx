@@ -5,26 +5,22 @@ import { loginRequest } from '../auth/msalConfig.js'
 import { setTokenProvider } from '../api.js'
 
 export default function AuthGate({ children }) {
-  const { instance, inProgress } = useMsal()
+  const { instance, inProgress, accounts } = useMsal()
   const isAuthenticated = useIsAuthenticated()
 
   // Wire the token provider as soon as MSAL finishes initialising.
   useEffect(() => {
-    if (!isAuthenticated) return
-
-    // acquireTokenSilent requires an active account to be set.
-    if (!instance.getActiveAccount()) {
-      const accounts = instance.getAllAccounts()
-      if (accounts.length > 0) instance.setActiveAccount(accounts[0])
-    }
+    if (!isAuthenticated || accounts.length === 0) return
 
     setTokenProvider(async () => {
       try {
-        const result = await instance.acquireTokenSilent(loginRequest)
+        const result = await instance.acquireTokenSilent({
+          ...loginRequest,
+          account: accounts[0],
+        })
         return result.accessToken
       } catch (err) {
         if (err instanceof InteractionRequiredAuthError) {
-          // Cached token expired or consent needed — restart the login flow.
           instance.loginRedirect(loginRequest)
           return null
         }
@@ -32,7 +28,7 @@ export default function AuthGate({ children }) {
       }
     })
     return () => setTokenProvider(null)
-  }, [isAuthenticated, instance])
+  }, [isAuthenticated, instance, accounts])
 
   // MSAL is still loading (redirect/popup in flight)
   if (inProgress !== InteractionStatus.None) {
