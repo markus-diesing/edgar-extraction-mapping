@@ -1,0 +1,68 @@
+# ── EDGAR — Production Docker Compose ─────────────────────────────────────────
+#
+# Start with:   ./start-prod.sh
+# Update:       git pull && docker compose -f docker-compose.prod.yml up --build -d
+# Logs:         docker compose -f docker-compose.prod.yml logs -f
+#
+# Ports exposed to the host:
+#   443  → Nginx (HTTPS) — main entry point
+#   80   → Nginx (redirects to HTTPS)
+
+services:
+
+  # ── Nginx reverse proxy ───────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  # ── Backend ───────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AZURE_TENANT_ID=0513f305-0dbb-4e4e-b311-98405b8dc943
+      - AZURE_CLIENT_ID=cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5
+      - AZURE_AI_ENDPOINT=
+      - AZURE_AI_API_KEY=
+      - AZURE_AI_MODEL=qwen3:14b
+    volumes:
+      - edgar-data:/app/data
+      - edgar-logs:/app/logs
+    restart: unless-stopped
+
+  # ── Frontend ──────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
+      - VITE_AZURE_TENANT_ID=0513f305-0dbb-4e4e-b311-98405b8dc943
+      - VITE_AZURE_CLIENT_ID=cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5
+    restart: unless-stopped
+
+  # ── Ollama (local LLM) ────────────────────────────────────────────────────────
+  # Qwen3-14b is pulled automatically on first start by start-prod.sh.
+  # Model files are persisted in the ollama-models volume (~9 GB).
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  edgar-data:      # SQLite database + downloaded filings
+  edgar-logs:      # application logs
+  ollama-models:   # Qwen3-14b model weights (~9 GB, downloaded once)
