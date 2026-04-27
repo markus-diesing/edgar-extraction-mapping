@@ -11,6 +11,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# ── Detect docker compose command ─────────────────────────────────────────────
+if docker compose version &>/dev/null 2>&1; then
+    DC="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    DC="docker-compose"
+else
+    echo "ERROR: neither 'docker compose' nor 'docker-compose' found."
+    exit 1
+fi
+
 # ── TLS certificate ────────────────────────────────────────────────────────────
 echo "Checking TLS certificate..."
 bash "$ROOT/nginx/generate-cert.sh"
@@ -32,17 +42,17 @@ fi
 # ── Start containers ───────────────────────────────────────────────────────────
 echo ""
 echo "Starting EDGAR (production)..."
-docker compose -f "$ROOT/docker-compose.prod.yml" up --build -d "$@"
+$DC -f "$ROOT/docker-compose.prod.yml" up --build -d "$@"
 
 # ── Pull Qwen3-14b into Ollama ─────────────────────────────────────────────────
 echo ""
 echo "Waiting for Ollama to be ready..."
-until docker compose -f "$ROOT/docker-compose.prod.yml" exec -T ollama ollama list &>/dev/null; do
+until $DC -f "$ROOT/docker-compose.prod.yml" exec -T ollama ollama list &>/dev/null; do
     sleep 3
 done
 
 echo "Pulling Qwen3-14b (~9 GB — this takes a few minutes on first run)..."
-docker compose -f "$ROOT/docker-compose.prod.yml" exec -T ollama ollama pull qwen3:14b
+$DC -f "$ROOT/docker-compose.prod.yml" exec -T ollama ollama pull qwen3:14b
 
 echo ""
 echo "EDGAR is running at https://$(hostname -I | awk '{print $1}')"
