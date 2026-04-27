@@ -192,7 +192,8 @@ class UnderlyingSecurity(Base):
     # ── Company metadata (Tier 1 — submissions API) ───────────────────────────
     company_name             = Column(String)
     legal_name               = Column(String)           # registrant name from 10-K cover (Tier 2 LLM)
-    share_class_name         = Column(String)           # from 10-K cover page
+    share_class_name         = Column(String)           # class name only, no par value (10-K cover, Tier 2 LLM)
+    par_value                = Column(String)           # e.g. "$0.001 par value" (10-K cover, Tier 2 LLM)
     share_type               = Column(String)           # derived: "Domestic Common Stock" | "ADR" | …
     reporting_form           = Column(String)           # "10-K" | "20-F" | "40-F"
     filer_category           = Column(String)

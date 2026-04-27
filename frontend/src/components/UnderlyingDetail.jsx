@@ -237,6 +237,11 @@ function OverviewTab({ sec }) {
     return getPendingField(fr, 'share_class_name')
   })()
 
+  const parValueField = (() => {
+    if (sec.par_value) return { value: sec.par_value, isPreliminary: false }
+    return getPendingField(fr, 'par_value')
+  })()
+
   const shareTypeField = (() => {
     if (sec.share_type) return { value: sec.share_type, isPreliminary: false }
     return getPendingField(fr, 'share_type')
@@ -297,6 +302,13 @@ function OverviewTab({ sec }) {
             label="Share Class"
             value={shareClassField.value}
             preliminary={shareClassField.isPreliminary}
+          />
+        )}
+        {parValueField && (
+          <MetaRow
+            label="Par Value"
+            value={parValueField.value}
+            preliminary={parValueField.isPreliminary}
           />
         )}
         {shareTypeField && (

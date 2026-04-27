@@ -188,9 +188,9 @@ def _process_one(
         extraction_text = item1_window
 
         # Build the LLM input: cover page + Item 1 window.
-        # legal_name, share_class_name, share_type, and adr_flag all live on
-        # the 10-K cover page (first ~1 000 chars), which the Item 1 window
-        # does not include (Item 1 may be 50 000+ chars into the filing).
+        # legal_name, share_class_name, par_value, share_type, and adr_flag
+        # all live on the 10-K cover page (first ~1 000 chars), which the
+        # Item 1 window does not include (Item 1 may be 50 000+ chars in).
         # Prepending the cover page restores those fields without requiring a
         # larger overall extraction window — the extractor still truncates the
         # combined text to UNDERLYING_EXTRACTION_CHARS internally.
@@ -206,6 +206,7 @@ def _process_one(
                 filing_text=extraction_input,
                 company_name=meta.company_name,
                 form=meta.reporting_form,
+                ticker=ticker,
             )
             # C4: surface JSON parse / API errors so they appear in fetch_error
             # rather than silently producing zero field_results.
@@ -296,6 +297,7 @@ def _upsert_security(
     # Pull LLM-extracted values (defaults to None if extraction unavailable)
     legal_name       = _get_extraction_value(extraction, "legal_name")
     share_class_name = _get_extraction_value(extraction, "share_class_name")
+    par_value        = _get_extraction_value(extraction, "par_value")
     share_type       = _get_extraction_value(extraction, "share_type")
     brief_description = _get_extraction_value(extraction, "brief_description")
 
@@ -394,6 +396,8 @@ def _upsert_security(
             row.legal_name = legal_name
         if share_class_name is not None:
             row.share_class_name = share_class_name
+        if par_value is not None:
+            row.par_value = par_value
         if share_type is not None:
             row.share_type = share_type
         # brief_description stored only in field_results (no direct DB column)

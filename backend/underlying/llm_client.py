@@ -165,35 +165,31 @@ def try_repair_json(raw: str) -> dict | None:
 
 _NULL_STR  = {"anyOf": [{"type": "string"},  {"type": "null"}]}
 _NULL_BOOL = {"anyOf": [{"type": "boolean"}, {"type": "null"}]}
+_ALL_FIELDS = ["legal_name", "share_class_name", "par_value", "share_type",
+               "brief_description", "adr_flag"]
 _FIELDS_SCHEMA = {
     "type": "object",
     "properties": {
         "legal_name":        _NULL_STR,
         "share_class_name":  _NULL_STR,
+        "par_value":         _NULL_STR,
         "share_type":        _NULL_STR,
         "brief_description": _NULL_STR,
         "adr_flag":          _NULL_BOOL,
     },
-    "required": ["legal_name", "share_class_name", "share_type",
-                 "brief_description", "adr_flag"],
+    "required": _ALL_FIELDS,
     "additionalProperties": False,
 }
 _CONF_SCHEMA = {
     "type": "object",
-    "properties": {k: {"type": "number"} for k in
-                   ["legal_name", "share_class_name", "share_type",
-                    "brief_description", "adr_flag"]},
-    "required": ["legal_name", "share_class_name", "share_type",
-                 "brief_description", "adr_flag"],
+    "properties": {k: {"type": "number"} for k in _ALL_FIELDS},
+    "required": _ALL_FIELDS,
     "additionalProperties": False,
 }
 _EXCERPT_SCHEMA = {
     "type": "object",
-    "properties": {k: {"type": "string"} for k in
-                   ["legal_name", "share_class_name", "share_type",
-                    "brief_description", "adr_flag"]},
-    "required": ["legal_name", "share_class_name", "share_type",
-                 "brief_description", "adr_flag"],
+    "properties": {k: {"type": "string"} for k in _ALL_FIELDS},
+    "required": _ALL_FIELDS,
     "additionalProperties": False,
 }
 _UNDERLYING_JSON_SCHEMA = {

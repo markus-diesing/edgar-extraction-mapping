@@ -7,7 +7,8 @@ available from EDGAR structured data (Tier 1) or market data (Tier 3).
 Target fields
 -------------
 legal_name         Exact legal name of the registrant (cover page)
-share_class_name   e.g. "Common Stock, $0.00001 par value per share"
+share_class_name   e.g. "Class A Common Stock" (class name only, NO par value)
+par_value          e.g. "$0.001 par value" (separate from class name)
 share_type         e.g. "Common Stock"
 brief_description  1–2 sentence company description from Item 1
 adr_flag           True if the filing describes ADR / ADS shares
@@ -54,6 +55,7 @@ UNDERLYING_EXTRACTION_CHARS: int = config.UNDERLYING_EXTRACTION_CHARS
 _TARGET_FIELDS = [
     "legal_name",
     "share_class_name",
+    "par_value",
     "share_type",
     "brief_description",
     "adr_flag",
@@ -62,6 +64,7 @@ _TARGET_FIELDS = [
 _FIELD_SOURCE_TYPES: dict[str, str] = {
     "legal_name":        "10k_cover",
     "share_class_name":  "10k_cover",
+    "par_value":         "10k_cover",
     "share_type":        "10k_cover",
     "adr_flag":          "10k_cover",
     "brief_description": "10k_item1",
@@ -119,6 +122,7 @@ markdown, no commentary, no surrounding text.
   "fields": {
     "legal_name": <string or null>,
     "share_class_name": <string or null>,
+    "par_value": <string or null>,
     "share_type": <string or null>,
     "brief_description": <string or null>,
     "adr_flag": <true | false | null>
@@ -126,6 +130,7 @@ markdown, no commentary, no surrounding text.
   "confidence": {
     "legal_name": <0.0 – 1.0>,
     "share_class_name": <0.0 – 1.0>,
+    "par_value": <0.0 – 1.0>,
     "share_type": <0.0 – 1.0>,
     "brief_description": <0.0 – 1.0>,
     "adr_flag": <0.0 – 1.0>
@@ -133,6 +138,7 @@ markdown, no commentary, no surrounding text.
   "excerpts": {
     "legal_name": <short verbatim quote or "">,
     "share_class_name": <short verbatim quote or "">,
+    "par_value": <short verbatim quote or "">,
     "share_type": <short verbatim quote or "">,
     "brief_description": <short verbatim quote or "">,
     "adr_flag": <short verbatim quote or "">
@@ -146,9 +152,18 @@ legal_name : The exact legal name of the registrant as stated on the cover
     the line that reads "Name of registrant as specified in its charter."
     Preserve original capitalisation exactly.
 
-share_class_name : The exact security description from the cover page
-    (e.g. "Common Stock, par value $0.00001 per share").  Include par value
-    if stated.
+share_class_name : The share class name ONLY — do NOT include par value.
+    Examples: "Common Stock", "Class A Common Stock", "Class C Capital Stock",
+    "Ordinary Shares", "American Depositary Shares".
+    IMPORTANT — multi-class filers: if the cover page lists multiple share
+    classes (e.g. Class A + Class C), extract the class whose Trading Symbol
+    matches the Ticker provided in the user message.  If no Ticker is given,
+    extract the first / primary listed class.
+
+par_value : The par value of the share as stated on the cover page, exactly
+    as written (e.g. "$0.001 par value", "par value $0.00001 per share",
+    "no par value").  null if par value is not stated.
+    IMPORTANT — multi-class filers: match the same row as share_class_name.
 
 share_type : Simplified security type.  Choose ONE of:
     "Common Stock", "Preferred Stock", "American Depositary Share",
@@ -171,15 +186,27 @@ adr_flag : true if the registered security is an American Depositary Share
 """
 
 
-def _build_user_prompt(filing_text: str, company_name: str, form: str) -> str:
+def _build_user_prompt(
+    filing_text: str,
+    company_name: str,
+    form: str,
+    ticker: str = "",
+) -> str:
     truncated = filing_text[:UNDERLYING_EXTRACTION_CHARS]
+    ticker_line = f"Ticker: {ticker}\n" if ticker else ""
     return (
         f"Company: {company_name}\n"
-        f"Filing form: {form}\n\n"
-        f"--- FILING TEXT (first {UNDERLYING_EXTRACTION_CHARS} characters) ---\n"
+        f"Filing form: {form}\n"
+        f"{ticker_line}"
+        f"\n--- FILING TEXT (first {UNDERLYING_EXTRACTION_CHARS} characters) ---\n"
         f"{truncated}\n"
         f"--- END OF TEXT ---\n\n"
         "Extract the requested fields from the text above."
+        + (
+            f"  For share_class_name and par_value extract the row whose"
+            f" Trading Symbol is {ticker}."
+            if ticker else ""
+        )
     )
 
 
@@ -192,6 +219,7 @@ def extract_underlying_fields(
     filing_text:  str,
     company_name: str = "",
     form:         str = "10-K",
+    ticker:       str = "",
     model:        str | None = None,
 ) -> ExtractionResult:
     """Call the configured LLM to extract Tier 2 fields from annual report text.
@@ -204,6 +232,10 @@ def extract_underlying_fields(
         Company name added to the prompt for context.
     form:
         Filing form type ("10-K" | "20-F").
+    ticker:
+        Exchange ticker symbol for this specific security.  Used to
+        disambiguate share_class_name / par_value in multi-class filings
+        (e.g. GOOGL → Class A Common Stock; GOOG → Class C Capital Stock).
     model:
         Optional model override.  When set and the active provider is
         ``"anthropic"``, this value replaces the configured model name.
@@ -230,12 +262,12 @@ def extract_underlying_fields(
     if model and cfg.provider == "anthropic":
         cfg.model = model
 
-    user_prompt = _build_user_prompt(filing_text, company_name, form)
+    user_prompt = _build_user_prompt(filing_text, company_name, form, ticker)
 
     log.info(
-        "Underlying LLM extraction: company=%r form=%s chars=%d "
+        "Underlying LLM extraction: company=%r ticker=%r form=%s chars=%d "
         "provider=%s model=%s",
-        company_name, form, len(filing_text), cfg.provider, cfg.model,
+        company_name, ticker, form, len(filing_text), cfg.provider, cfg.model,
     )
 
     try:
