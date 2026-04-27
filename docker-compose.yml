@@ -20,6 +20,12 @@ services:
     environment:
       # Injected by start.sh from macOS Keychain — never stored in this file.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AZURE_TENANT_ID=0513f305-0dbb-4e4e-b311-98405b8dc943
+      - AZURE_CLIENT_ID=cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5
+      # AI Foundry — leave blank for local dev; set via Container Apps in Azure.
+      - AZURE_AI_ENDPOINT=
+      - AZURE_AI_API_KEY=
+      - AZURE_AI_MODEL=Qwen2.5-32B-Instruct
     volumes:
       # Source — bind mount enables uvicorn --reload on file save
       - ./backend:/app/backend
@@ -42,6 +48,8 @@ services:
       # Tells vite.config.js where to proxy /api calls.
       # Inside Docker the backend is reachable via its service name.
       - VITE_BACKEND_URL=http://backend:8000
+      - VITE_AZURE_TENANT_ID=0513f305-0dbb-4e4e-b311-98405b8dc943
+      - VITE_AZURE_CLIENT_ID=cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5
     volumes:
       # Source — Vite watches for changes and hot-reloads the browser
       - ./frontend/src:/app/src
