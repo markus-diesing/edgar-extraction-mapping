@@ -63,19 +63,33 @@ def get_current_user(
     token = credentials.credentials
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
-        # Entra access tokens for custom scopes carry aud = "api://<client-id>"
-        # (the Application ID URI).  Accept both forms so the check works
-        # whether or not the "api://" prefix was used when registering the app.
-        claims = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256"],
-            audience=[
-                config.AZURE_CLIENT_ID,
-                f"api://{config.AZURE_CLIENT_ID}",
-            ],
-            issuer=f"https://login.microsoftonline.com/{config.AZURE_TENANT_ID}/v2.0",
-        )
+        # Audience: accept both the bare GUID and the "api://<client-id>" URI form.
+        # Issuer: accept both v2 (login.microsoftonline.com/.../v2.0) and v1
+        # (sts.windows.net/...) — the version depends on the App Registration
+        # manifest's accessTokenAcceptedVersion setting (null/1 → v1, 2 → v2).
+        valid_issuers = [
+            f"https://login.microsoftonline.com/{config.AZURE_TENANT_ID}/v2.0",
+            f"https://sts.windows.net/{config.AZURE_TENANT_ID}/",
+        ]
+        last_exc: PyJWTError | None = None
+        claims = None
+        for issuer in valid_issuers:
+            try:
+                claims = jwt.decode(
+                    token,
+                    signing_key.key,
+                    algorithms=["RS256"],
+                    audience=[
+                        config.AZURE_CLIENT_ID,
+                        f"api://{config.AZURE_CLIENT_ID}",
+                    ],
+                    issuer=issuer,
+                )
+                break
+            except PyJWTError as exc:
+                last_exc = exc
+        if claims is None:
+            raise last_exc  # type: ignore[misc]
     except PyJWTError as exc:
         log.warning("Token validation failed: %s", exc)
         raise HTTPException(
