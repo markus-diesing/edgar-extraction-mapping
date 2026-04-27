@@ -518,6 +518,8 @@ def _migrate() -> None:
         # v9 columns — 10-K source text for human validation
         ("underlying_securities", "last_10k_text",               "TEXT"),
         ("underlying_securities", "last_10k_primary_doc",        "TEXT"),
+        # v10 columns — all-tickers list for multi-class CIK visibility
+        ("underlying_securities", "all_tickers",                 "TEXT"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:

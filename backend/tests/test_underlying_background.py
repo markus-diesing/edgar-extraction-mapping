@@ -390,6 +390,51 @@ class TestRunIngestJob:
         # Primary doc comes from _make_metadata().last_annual.primary_document
         assert row.last_10k_primary_doc == "msft-20250630.htm"
 
+    def test_all_tickers_stored_for_multi_class_cik(self, in_memory_db):
+        """all_tickers column captures all sibling tickers from the resolved security.
+
+        Simulates a KKR-like company: one CIK, four listed series.  Even though
+        the resolver auto-picks 'KKR' as the single row, the full ticker list
+        must be persisted so the UI can display sibling classes in the overview.
+        """
+        import json as _json
+        from underlying.identifier_resolver import ResolutionResult, ResolvedSecurity
+
+        multi_sec = ResolvedSecurity(
+            cik="0001404912",
+            ticker="KKR",
+            company_name="KKR & CO INC",
+            exchange="NYSE",
+            tickers=["KKR", "KKR-PD", "KKRS", "KKRT"],
+            exchanges=["NYSE", "NYSE", "NYSE", "NYSE"],
+            source_identifier="KKR",
+            source_identifier_type="ticker",
+        )
+        resolution = ResolutionResult(status="resolved", resolved=multi_sec)
+        job_id = create_job(["KKR"])
+        with (
+            patch("underlying.background.resolve", return_value=resolution),
+            patch("underlying.background.fetch_metadata", return_value=_make_metadata()),
+            patch("underlying.background.extract_underlying_fields",
+                  return_value=_make_extraction()),
+            patch("underlying.background.fetch_market_data", return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
+        ):
+            run_ingest_job(job_id, ["KKR"], fetch_market=True)
+        with _get_session(in_memory_db) as s:
+            row = s.query(UnderlyingSecurity).first()
+        assert row.all_tickers is not None, "all_tickers should be stored for a multi-class CIK"
+        assert _json.loads(row.all_tickers) == ["KKR", "KKR-PD", "KKRS", "KKRT"]
+
+    def test_all_tickers_null_for_single_class(self, in_memory_db):
+        """When the resolved security has no sibling tickers, all_tickers stays NULL."""
+        # Default _mock_resolution() creates ResolvedSecurity with tickers=[] (falsy)
+        self._run(in_memory_db)
+        with _get_session(in_memory_db) as s:
+            row = s.query(UnderlyingSecurity).first()
+        assert row.all_tickers is None
+
     def test_llm_token_cost_stored(self, in_memory_db):
         """Token counts and computed cost are persisted when extraction returns them.
 

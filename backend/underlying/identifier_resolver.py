@@ -463,6 +463,10 @@ def _resolve_via_openfigi(identifier: str, id_type: str) -> ResolutionResult:
             candidates.append(result.resolved)
         elif result.status == "multi_class":
             candidates.extend(result.candidates)
+        # status="not_found" (404) or status="error" (5xx / network):
+        # silently skip this ticker and try the next one.  Non-HTTP exceptions
+        # propagate to resolve() which surfaces them as status="error" — this is
+        # intentional: network failures should not silently produce not_found.
 
     if not candidates:
         return ResolutionResult(status="not_found")
