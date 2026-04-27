@@ -1,7 +1,26 @@
+// Set by AuthGate once MSAL is initialised. Called before every request to
+// get a fresh (or cached) access token. Returns the token string or null.
+let _getToken = null
+export const setTokenProvider = (fn) => { _getToken = fn }
+
+const _authHeader = async () => {
+  if (!_getToken) return {}
+  try {
+    const token = await _getToken()
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
+}
+
 const call = async (method, path, body) => {
+  const headers = {
+    ...(body ? { 'Content-Type': 'application/json' } : {}),
+    ...(await _authHeader()),
+  }
   const res = await fetch(`/api${path}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   })
   if (res.status === 204) return null
@@ -12,7 +31,8 @@ const call = async (method, path, body) => {
 
 /** Multipart / FormData upload helper (no Content-Type header — browser sets boundary). */
 const upload = async (path, formData) => {
-  const res = await fetch(`/api${path}`, { method: 'POST', body: formData })
+  const headers = await _authHeader()
+  const res = await fetch(`/api${path}`, { method: 'POST', headers, body: formData })
   if (res.status === 204) return null
   const data = await res.json().catch(() => ({ detail: res.statusText }))
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)

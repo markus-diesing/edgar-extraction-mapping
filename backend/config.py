@@ -29,6 +29,12 @@ PRISM_SCHEMA_ARCHIVE_DIR = SCHEMAS_DIR / "archive"
 ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # ---------------------------------------------------------------------------
+# Microsoft Entra ID (Azure AD) — SSO
+# ---------------------------------------------------------------------------
+AZURE_TENANT_ID: str = os.environ.get("AZURE_TENANT_ID", "")
+AZURE_CLIENT_ID: str = os.environ.get("AZURE_CLIENT_ID", "")
+
+# ---------------------------------------------------------------------------
 # Claude model registry
 #
 # Pricing in USD per million tokens.
