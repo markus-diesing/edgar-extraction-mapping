@@ -16,10 +16,15 @@ WORKDIR /app/backend
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ── Source (overridden at runtime by the volume mount in dev) ─────────────────
+# ── Source ────────────────────────────────────────────────────────────────────
 COPY backend/ .
+
+# ── Static assets expected at /app/{files,schemas,docs} by config.py ─────────
+# In local dev these are bind-mounted; in production they are baked into the image.
+COPY files/    /app/files/
+COPY schemas/  /app/schemas/
+COPY docs/     /app/docs/
 
 EXPOSE 8000
 
-# --reload watches /app/backend — works because source is bind-mounted in dev.
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
