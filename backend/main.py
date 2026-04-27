@@ -22,13 +22,14 @@ load_api_key()
 
 import anthropic as _anthropic
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import config
 import database
 import schema_loader
+from auth import get_current_user
 from ingest.router   import router as ingest_router
 from classify.router import router as classify_router
 from extract.router  import router as extract_router
@@ -39,6 +40,7 @@ from settings.router import router as settings_router
 from admin.router          import router as admin_router
 from admin.label_map_router import router as label_map_router
 from admin.schema_router import router as schema_router
+from underlying.router import router as underlying_router
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -100,11 +102,17 @@ app = FastAPI(
     description="Local pipeline: EDGAR 424B2 → PRISM schema extraction",
     version="0.1.0",
     lifespan=lifespan,
+    dependencies=[Depends(get_current_user)],
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://edgar.l-p-a.dev",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -119,6 +127,7 @@ app.include_router(settings_router, prefix="/api")
 app.include_router(admin_router,     prefix="/api")
 app.include_router(label_map_router, prefix="/api")
 app.include_router(schema_router, prefix="/api")
+app.include_router(underlying_router, prefix="/api")
 
 # Serve the docs/ directory at /docs so user_manual.html and other HTML docs
 # are on the same origin as the API (required for the in-manual chat to work).

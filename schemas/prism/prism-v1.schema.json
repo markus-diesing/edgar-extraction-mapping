@@ -1,68 +1,8 @@
 {
-    "$id": "https://www.l-p-a.com/prism.v1.schema.json",
+    "$id": "https://www.l-p-a.com/prism.v2.schema.json",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "PRISM Data Model",
     "oneOf": [
-        {
-            "type": "object",
-            "properties": {
-                "model": {
-                    "const": "yieldEnhancementCoupon"
-                },
-                "identifiers": {
-                    "$ref": "#/$defs/Identifiers"
-                },
-                "structuredProductsGeneric": {
-                    "$ref": "#/$defs/structuredProductsGeneric"
-                },
-                "downsideRisk": {
-                    "$ref": "#/$defs/downsideRisk"
-                },
-                "funding": {
-                    "$ref": "#/$defs/funding"
-                },
-                "coupon": {
-                    "$ref": "#/$defs/coupon"
-                },
-                "underlyingTerms": {
-                    "$ref": "#/$defs/underlyingTerms"
-                },
-                "underlyings": {
-                    "$ref": "#/$defs/underlyings"
-                },
-                "parties": {
-                    "type": "object",
-                    "properties": {
-                        "calculationAgent": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "guarantor": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "issuer": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "marketMaker": {
-                            "$ref": "#/$defs/Party"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "portfolios": {
-                    "$ref": "#/$defs/Portfolios"
-                }
-            },
-            "required": [
-                "model",
-                "identifiers",
-                "structuredProductsGeneric",
-                "downsideRisk",
-                "funding",
-                "coupon",
-                "underlyingTerms"
-            ],
-            "additionalProperties": false
-        },
         {
             "type": "object",
             "description": "Company shares of various types.",
@@ -93,205 +33,6 @@
             "required": [
                 "model",
                 "identifiers"
-            ],
-            "additionalProperties": false
-        },
-        {
-            "type": "object",
-            "description": "Classic barrier reverse convertible with a variety of standard coupon types. The downside risk is only activated if the barrier is breached.",
-            "properties": {
-                "model": {
-                    "const": "yieldEnhancementBarrierCoupon"
-                },
-                "identifiers": {
-                    "$ref": "#/$defs/Identifiers"
-                },
-                "structuredProductsGeneric": {
-                    "$ref": "#/$defs/structuredProductsGeneric"
-                },
-                "downsideRisk": {
-                    "$ref": "#/$defs/downsideRisk"
-                },
-                "funding": {
-                    "$ref": "#/$defs/funding"
-                },
-                "coupon": {
-                    "$ref": "#/$defs/coupon"
-                },
-                "barrier": {
-                    "$ref": "#/$defs/barrier"
-                },
-                "underlyingTerms": {
-                    "$ref": "#/$defs/underlyingTerms"
-                },
-                "underlyings": {
-                    "$ref": "#/$defs/underlyings"
-                },
-                "parties": {
-                    "type": "object",
-                    "properties": {
-                        "calculationAgent": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "guarantor": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "issuer": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "marketMaker": {
-                            "$ref": "#/$defs/Party"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "portfolios": {
-                    "$ref": "#/$defs/Portfolios"
-                }
-            },
-            "required": [
-                "model",
-                "identifiers",
-                "structuredProductsGeneric",
-                "downsideRisk",
-                "funding",
-                "coupon",
-                "barrier",
-                "underlyingTerms"
-            ],
-            "additionalProperties": false
-        },
-        {
-            "type": "object",
-            "description": "Reverse convertible with downside risk if the final fixing is below the strike. Supports multiple coupon types and includes an autocall feature.",
-            "properties": {
-                "model": {
-                    "const": "yieldEnhancementAutocallCoupon"
-                },
-                "identifiers": {
-                    "$ref": "#/$defs/Identifiers"
-                },
-                "structuredProductsGeneric": {
-                    "$ref": "#/$defs/structuredProductsGeneric"
-                },
-                "autocall": {
-                    "$ref": "#/$defs/autocall"
-                },
-                "coupon": {
-                    "$ref": "#/$defs/coupon"
-                },
-                "funding": {
-                    "$ref": "#/$defs/funding"
-                },
-                "downsideRisk": {
-                    "$ref": "#/$defs/downsideRisk"
-                },
-                "underlyingTerms": {
-                    "$ref": "#/$defs/underlyingTerms"
-                },
-                "underlyings": {
-                    "$ref": "#/$defs/underlyings"
-                },
-                "parties": {
-                    "type": "object",
-                    "properties": {
-                        "calculationAgent": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "guarantor": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "issuer": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "marketMaker": {
-                            "$ref": "#/$defs/Party"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "portfolios": {
-                    "$ref": "#/$defs/Portfolios"
-                }
-            },
-            "required": [
-                "model",
-                "identifiers",
-                "structuredProductsGeneric",
-                "autocall",
-                "coupon",
-                "funding",
-                "downsideRisk",
-                "underlyingTerms"
-            ],
-            "additionalProperties": false
-        },
-        {
-            "type": "object",
-            "description": "Reverse convertible where the downside risk is activated if the barrier is breached. Supports multiple coupon types and includes an autocall feature.",
-            "properties": {
-                "model": {
-                    "const": "yieldEnhancementAutocallBarrierCoupon"
-                },
-                "identifiers": {
-                    "$ref": "#/$defs/Identifiers"
-                },
-                "structuredProductsGeneric": {
-                    "$ref": "#/$defs/structuredProductsGeneric"
-                },
-                "autocall": {
-                    "$ref": "#/$defs/autocall"
-                },
-                "barrier": {
-                    "$ref": "#/$defs/barrier"
-                },
-                "coupon": {
-                    "$ref": "#/$defs/coupon"
-                },
-                "funding": {
-                    "$ref": "#/$defs/funding"
-                },
-                "downsideRisk": {
-                    "$ref": "#/$defs/downsideRisk"
-                },
-                "underlyingTerms": {
-                    "$ref": "#/$defs/underlyingTerms"
-                },
-                "underlyings": {
-                    "$ref": "#/$defs/underlyings"
-                },
-                "parties": {
-                    "type": "object",
-                    "properties": {
-                        "calculationAgent": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "guarantor": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "issuer": {
-                            "$ref": "#/$defs/Party"
-                        },
-                        "marketMaker": {
-                            "$ref": "#/$defs/Party"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "portfolios": {
-                    "$ref": "#/$defs/Portfolios"
-                }
-            },
-            "required": [
-                "model",
-                "identifiers",
-                "structuredProductsGeneric",
-                "autocall",
-                "barrier",
-                "coupon",
-                "funding",
-                "downsideRisk",
-                "underlyingTerms"
             ],
             "additionalProperties": false
         },
@@ -345,8 +86,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "otcDerivativesGeneric": {
-                    "$ref": "#/$defs/otcDerivativesGeneric"
+                "otcDerivativesGeneral": {
+                    "$ref": "#/$defs/otcDerivativesGeneral"
                 },
                 "equityForward": {
                     "$ref": "#/$defs/equityForward"
@@ -382,7 +123,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "otcDerivativesGeneric",
+                "otcDerivativesGeneral",
                 "equityForward",
                 "knockOut",
                 "underlyingTerms"
@@ -408,6 +149,7 @@
                     "$ref": "#/$defs/IsoCurrencyCode"
                 },
                 "depositaryReceiptType": {
+                    "description": "The classification of the depositary receipt, indicating its issuance jurisdiction or market.",
                     "enum": [
                         "EDR",
                         "GDR",
@@ -428,7 +170,563 @@
         },
         {
             "type": "object",
-            "description": "Reverse convertible with downside risk if the final fixing is below the strike and additional autocall feature.",
+            "description": "Classic Bonus Certificate where the investor gets at least the bonus amount if the barrier is not breached. If the repayment from the underlying exposure leads to higher repayments, the investor is eligible to receive these instead. ",
+            "properties": {
+                "model": {
+                    "const": "participationBonus"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "underlyingExposure",
+                "bonus",
+                "barrier",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "This payoff corresponds to the structure commonly referred to in the DACH market as an Airbag Tracker Certificate. The investor participates linearly in the underlying performance from 0% up to the strike, at which point 100% of the notional amount or issue price is repaid. Between the strike and 100% of the relevant initial underlying level, the payoff remains on a plateau. Once the underlying exceeds 100% of its initial level, the product resumes upside participation on a 1:1 basis, meaning the redemption amount increases by 1% for every 1% rise in the underlying.",
+            "properties": {
+                "model": {
+                    "const": "participationAirbag"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "airbagParticipation": {
+                    "$ref": "#/$defs/airbagParticipation"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "airbagParticipation",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Payoff known as tracker certificate or tracker notes. Provides linear participation to the investor.",
+            "properties": {
+                "model": {
+                    "const": "participation"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "underlyingExposure",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "At maturity, the investor is exposed to the downside performance of the underlying from the strike level down to zero if the strike condition is satisfied. If the strike condition is not met, the investor receives repayment of the issue price or notional amount together with the digital payout.",
+            "properties": {
+                "model": {
+                    "const": "participationAirbagDigital"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "airbagParticipation": {
+                    "$ref": "#/$defs/airbagParticipation"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "digitalPayout": {
+                    "$ref": "#/$defs/digitalPayout"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "airbagParticipation",
+                "funding",
+                "digitalPayout",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "At maturity, the investor is exposed to the downside performance of the underlying from the strike level down to zero if the strike condition is satisfied. If the strike condition is not satisfied, the investor receives repayment of the issue price or notional amount. The digital payout is paid only if, in addition, the barrier condition is satisfied.",
+            "properties": {
+                "model": {
+                    "const": "participationAirbagDigitalBarrier"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "airbagParticipation": {
+                    "$ref": "#/$defs/airbagParticipation"
+                },
+                "digitalPayout": {
+                    "$ref": "#/$defs/digitalPayout"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "airbagParticipation",
+                "digitalPayout",
+                "funding",
+                "barrier",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "At maturity, the investor is exposed to the downside performance of the underlying from the strike level down to zero if the strike condition is satisfied. If the strike condition is not met, the investor receives the maximum of the underlying return multiplied with the issue price or notional and the bonus amount.",
+            "properties": {
+                "model": {
+                    "const": "participationAirbagBonus"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "airbagParticipation": {
+                    "$ref": "#/$defs/airbagParticipation"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "airbagParticipation",
+                "funding",
+                "bonus",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "At maturity, if the kick-in barrier has been breached during the observation period, the investor is exposed to the downside performance of the underlying on a 1:1 basis from the initial level down to zero, and the redemption amount reflects the negative performance of the underlying. If the kick-in barrier has not been breached, the investor receives repayment of the issue price or notional amount, regardless of the performance of the underlying. The digital payout is paid only if, in addition, the barrier condition is satisfied.",
+            "properties": {
+                "model": {
+                    "const": "participationDigitalBarrier"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "digitalPayout": {
+                    "$ref": "#/$defs/digitalPayout"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "barrier",
+                "digitalPayout",
+                "funding",
+                "underlyingExposure",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Barrier reverse convertible with downside risk only activated if the barrier is breached, potential full loss, support for multiple coupon types, and the ability to be redeemed early through an autocall mechanism.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementAutocallBarrierCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "autocall",
+                "barrier",
+                "coupon",
+                "funding",
+                "downsideRisk",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "At maturity, if the underlying is at or above the digital barrier, investors receive principal plus the digital return. If the underlying is below the digital barrier but above the buffer level, investors receive the principal only, with no additional return. If the underlying falls below the buffer, losses apply beyond the buffer threshold on a 1:1 basis, with the buffer absorbing declines within its range.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferDigital"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "digitalPayout": {
+                    "$ref": "#/$defs/digitalPayout"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "digitalPayout",
+                "bufferedAirbagParticipation",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike, potential full loss, and the ability to be redeemed early through an autocall mechanism.",
             "properties": {
                 "model": {
                     "const": "yieldEnhancementAutocall"
@@ -436,11 +734,472 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "structuredProductsGeneric": {
-                    "$ref": "#/$defs/structuredProductsGeneric"
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
                 },
                 "downsideRisk": {
                     "$ref": "#/$defs/downsideRisk"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "autocall",
+                "funding",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike, potential full loss, support for multiple coupon types, and the ability to be redeemed early through an autocall mechanism.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementAutocallCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "autocall",
+                "coupon",
+                "funding",
+                "downsideRisk",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Barrier reverse convertible with downside risk only activated if the barrier is breached, potential full loss, and support for a variety of standard coupon types.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementBarrierCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "funding",
+                "coupon",
+                "barrier",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk determined by a buffer mechanism, limited loss and a minimum redemption amount, support for multiple coupon types, and the ability to be redeemed early through an autocall mechanism. If the underlying falls below the strike, the product performs better than a comparable non-buffer structure at each level, as losses are reduced until the minimum redemption is reached.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementBufferAutocallCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "bufferedDownsideRisk": {
+                    "$ref": "#/$defs/bufferedDownsideRisk"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "autocall",
+                "coupon",
+                "funding",
+                "bufferedDownsideRisk",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike, limited loss and a minimum redemption amount, and support for multiple coupon types. If the underlying falls below the strike, the product performs better than a comparable non-buffer structure at each level, as losses are reduced until the minimum redemption is reached.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementBufferCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "bufferedDownsideRisk": {
+                    "$ref": "#/$defs/bufferedDownsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "bufferedDownsideRisk",
+                "funding",
+                "coupon",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike, potential full loss, and support for multiple coupon types.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "funding",
+                "coupon",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Barrier reverse convertible with downside risk only activated if the barrier is breached, potential full loss, and the ability to be redeemed early through an autocall mechanism.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementAutocallBarrier"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "autocall",
+                "barrier",
+                "downsideRisk",
+                "funding",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk determined by a buffer mechanism, limited loss and a minimum redemption amount, and the ability to be redeemed early through an autocall mechanism. If the underlying falls below the strike, the product performs better than a comparable non-buffer structure at each level, as losses are reduced until the minimum redemption is reached.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementBufferAutocall"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "bufferedDownsideRisk": {
+                    "$ref": "#/$defs/bufferedDownsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
                 },
                 "autocall": {
                     "$ref": "#/$defs/autocall"
@@ -476,27 +1235,1212 @@
             "required": [
                 "model",
                 "identifiers",
-                "structuredProductsGeneric",
-                "downsideRisk",
+                "structuredProductsGeneral",
+                "bufferedDownsideRisk",
+                "funding",
                 "autocall",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Classic Bonus Certificate with a cap where the investor gets at least the bonus amount supported by a buffer mechanism that mitigates downside risk and defines a minimum redemption amount. If the repayment from the underlying exposure leads to higher repayments, the investor participates in the upside up to the predefined cap.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferBonusCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "bufferedAirbagParticipation",
+                "bonus",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Classic Bonus Certificate with a cap where the investor gets at least the bonus amount if the barrier is not breached. If the repayment from the underlying exposure leads to higher repayments, the investor is eligible to receive these instead. However, the maximum repayment is limited by a cap, so gains are only realized up to this predefined level.",
+            "properties": {
+                "model": {
+                    "const": "participationBonusCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "underlyingExposure",
+                "barrier",
+                "bonus",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike, potential full loss, support for multiple coupon types, and allows the issuer to redeem the product early at predefined dates and conditions, thereby ending the investment before maturity.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementCallableCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "issuerCall": {
+                    "$ref": "#/$defs/issuerCall"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "funding",
+                "coupon",
+                "issuerCall",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Barrier reverse convertible with downside risk only activated if the barrier is breached, potential full loss, support for a variety of standard coupon types, and allows the issuer to redeem the product early at predefined dates and conditions, thereby ending the investment before maturity.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementCallableBarrierCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "issuerCall": {
+                    "$ref": "#/$defs/issuerCall"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "barrier",
+                "coupon",
+                "issuerCall",
+                "funding",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike, limited loss and a minimum redemption amount, support for multiple coupon types, and allows the issuer to redeem the product early at predefined dates and conditions, thereby ending the investment before maturity. If the underlying falls below the strike, the product performs better than a comparable non-buffer structure at each level, as losses are reduced until the minimum redemption is reached.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementBufferCallableCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "bufferedDownsideRisk": {
+                    "$ref": "#/$defs/bufferedDownsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "issuerCall": {
+                    "$ref": "#/$defs/issuerCall"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "bufferedDownsideRisk",
+                "funding",
+                "coupon",
+                "issuerCall",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Classic Bonus Certificate with leveraged upside participation and cap where the investor gets at least the bonus amount if the barrier is not breached. If the repayment from the underlying exposure leads to higher repayments, the investor participates in the upside with a participation factor greater than 1, allowing for amplified gains. However, the maximum repayment is limited by a cap, so gains are only realized up to this predefined level.",
+            "properties": {
+                "model": {
+                    "const": "participationBonusUpsideParticipationCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "upsideParticipation": {
+                    "$ref": "#/$defs/upsideParticipation"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "underlyingExposure",
+                "barrier",
+                "bonus",
+                "upsideParticipation",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Classic Bonus Certificate with leveraged upside participation and cap where the investor gets at least the bonus amount supported by a buffer mechanism that mitigates downside risk and defines a minimum redemption amount. If the repayment from the underlying exposure leads to higher repayments, the investor participates in the upside with a participation factor greater than 1, allowing for amplified gains. However, the maximum repayment is limited by a cap, so gains are only realized up to this predefined level.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferBonusUpsideParticipationCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "upsideParticipation": {
+                    "$ref": "#/$defs/upsideParticipation"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "bonus",
+                "bufferedAirbagParticipation",
+                "upsideParticipation",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Classic Bonus Certificate where the investor gets at least the bonus amount supported by a buffer mechanism that mitigates downside risk and defines a minimum redemption amount. If the repayment from the underlying exposure leads to higher repayments, the investor is eligible to receive these instead.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferBonus"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "bonus": {
+                    "$ref": "#/$defs/bonus"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "funding",
+                "bufferedAirbagParticipation",
+                "bonus",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "An OTC swap in which one side replicates the payoff of an autocallable barrier note with conditional coupons — the \"structured leg\" — against a floating or fixed rate leg paid by the counterparty in return.\nIf an autocall event is triggered, the swap is cancelled and the redemption value is paid by the floating or fixed leg receiver to the structured leg receiver.\nIf the knock-in barrier is breached, the structured leg receiver pays an amount equal to 100% minus the final performance of the relevant underlying(s), where performance is measured as final price divided by strike price.",
+            "properties": {
+                "model": {
+                    "const": "otcAutocallBarrierCouponSwap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "otcDerivativesGeneral": {
+                    "$ref": "#/$defs/otcDerivativesGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "interestLeg": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "structuredSwap": {
+                    "$ref": "#/$defs/structuredSwap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "referenceRates": {
+                    "$ref": "#/$defs/referenceRates"
+                },
+                "fxConversionRates": {
+                    "$ref": "#/$defs/fxConversionRates"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "counterParty": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "otcDerivativesGeneral",
+                "downsideRisk",
+                "barrier",
+                "coupon",
+                "interestLeg",
+                "structuredSwap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate where the investor participates in the upside performance of the underlying on a 1:1 basis. Below the twinWin strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the barrier is breached during the observation period, the downside profit effect is cancelled and the investor is exposed to the actual loss of the underlying on a 1:1 basis from the initial level down to zero.",
+            "properties": {
+                "model": {
+                    "const": "participationTwinWin"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "barrier",
+                "underlyingExposure",
+                "funding",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate with a cap where the investor participates in the upside performance of the underlying on a 1:1 basis up to a predefined maximum repayment level. Below the twinWin strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the barrier is breached during the observation period, the downside profit effect is cancelled and the investor is exposed to the actual loss of the underlying on a 1:1 basis from the initial level down to zero.",
+            "properties": {
+                "model": {
+                    "const": "participationTwinWinCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "barrier",
+                "underlyingExposure",
+                "funding",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate where the investor participates in the upside performance of the underlying on a 1:1 basis. Below the strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the underlying breaches the airbag strike level, the mirror effect is cancelled and the investor is exposed to the actual loss of the underlying on a 1:1 basis from the strike level down to zero.",
+            "properties": {
+                "model": {
+                    "const": "participationAirbagTwinWin"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "airbagParticipation": {
+                    "$ref": "#/$defs/airbagParticipation"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "airbagParticipation",
+                "funding",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "A benchmark interest rate used as a reference for floating rate instruments, OTC derivatives, and other interest-bearing products. Examples include SOFR, EURIBOR, and SARON.",
+            "properties": {
+                "model": {
+                    "const": "interestRate"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "rateTenor": {
+                    "description": "The tenor of the interest rate, expressed as an ISO 8601 duration. Defines the fixing period for which the rate is published, such as overnight, one month, or three months.",
+                    "enum": [
+                        "P1D",
+                        "P6M",
+                        "P1W",
+                        "P1Y",
+                        "P3M",
+                        "P1M"
+                    ]
+                },
+                "parties": {
+                    "type": "object",
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "model",
+                "identifiers"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "An exchange rate between two currencies, used as an underlying for FX derivatives and dual currency products, or referenced for currency conversion. The instrument currency represents the price currency in which one unit of the base currency is quoted.",
+            "properties": {
+                "model": {
+                    "const": "fxRate"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "baseCurrency": {
+                    "description": "The base currency of an FX rate pair, representing the currency being priced. One unit of the base currency is expressed as an amount in the instrument currency. Only monetary currencies are valid values for this field.",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "parties": {
+                    "type": "object",
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "model",
+                "identifiers"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate with a buffer mechanism, leveraged upside participation from the upside strike, and a cap where the investor participates in the upside performance of the underlying with a participation factor that may amplify or reduce upside gains, up to a predefined maximum repayment level. Below the twinWin strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the underlying breaches the airbag strike level, the downside profit effect is cancelled and the investor is exposed to the downside performance of the underlying on a 1:1 basis from the airbag strike level, with losses floored at the minimum redemption amount.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferTwinWinUpsideParticipationCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "upsideParticipation": {
+                    "$ref": "#/$defs/upsideParticipation"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "bufferedAirbagParticipation",
+                "upsideParticipation",
+                "funding",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate with a buffer mechanism where the investor participates in the upside performance of the underlying on a 1:1 basis above the twinWin strike. Below the twinWin strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the underlying breaches the airbag strike level, the downside profit effect is cancelled and the investor is exposed to the downside performance of the underlying on a 1:1 basis from the airbag strike level, with losses floored at the minimum redemption amount defined by the buffer.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferTwinWin"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "bufferedAirbagParticipation",
+                "funding",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate with a buffer mechanism and a cap where the investor participates in the upside performance of the underlying on a 1:1 basis above the twinWin strike up to a predefined maximum repayment level. Below the twinWin strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the underlying breaches the airbag strike level, the downside profit effect is cancelled and the investor is exposed to the downside performance of the underlying on a 1:1 basis from the airbag strike level, with losses floored at the minimum redemption amount.",
+            "properties": {
+                "model": {
+                    "const": "participationBufferTwinWinCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "bufferedAirbagParticipation": {
+                    "$ref": "#/$defs/bufferedAirbagParticipation"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "bufferedAirbagParticipation",
+                "funding",
+                "cap",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Twin Win Certificate with leveraged upside participation beginning from the upside participation strike level and a cap where the investor participates in the upside performance of the underlying with a participation factor that may amplify or reduce upside gains, up to a predefined maximum repayment level. Below the twinWin strike, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. If the barrier is breached during the observation period, the mirror effect is cancelled and the investor is exposed to the actual loss of the underlying on a 1:1 basis from the initial level down to zero.",
+            "properties": {
+                "model": {
+                    "const": "participationTwinWinUpsideParticipationCap"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "twinWinParticipation": {
+                    "$ref": "#/$defs/twinWinParticipation"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingExposure": {
+                    "$ref": "#/$defs/underlyingExposure"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "cap": {
+                    "$ref": "#/$defs/cap"
+                },
+                "upsideParticipation": {
+                    "$ref": "#/$defs/upsideParticipation"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "twinWinParticipation",
+                "barrier",
+                "underlyingExposure",
+                "funding",
+                "cap",
+                "upsideParticipation",
                 "underlyingTerms"
             ],
             "additionalProperties": false
         }
     ],
     "$defs": {
+        "airbagParticipation": {
+            "type": "object",
+            "description": "This feature models a linear participation up to the strike, then transitions into a plateau until the relevant underlying reaches 100% of its reference level. Beyond that point, upside participation resumes on a full 1:1 basis.",
+            "properties": {
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
+                },
+                "participationPercent": {
+                    "type": "number",
+                    "description": "The percentage of the underlying asset’s positive performance above the strike level that is reflected in the structured product’s payoff.",
+                    "minimum": 0.0
+                },
+                "ratio": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "The meaning of this field depends on the asset type. For equities, it shows the amount unrounded of underlyings that would be received in a physical settlement. For FX, it contains the amount in the alternative currency that would be received when using the strike rate. ",
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "autocall": {
             "type": "object",
             "description": "Contains fields related to the standard autocall feature.",
             "properties": {
+                "observationFrequency": {
+                    "description": "Interval at which events are observed.",
+                    "$ref": "#/$defs/Frequency"
+                },
                 "offsetBusinessDays": {
                     "type": "integer",
                     "description": "Defines the period given in business days between an observation date and the respective payment.",
                     "minimum": 0
                 },
-                "observationFrequency": {
-                    "description": "Interval at which events are observed.",
-                    "$ref": "#/$defs/Frequency"
+                "autocallMemoryFlag": {
+                    "description": "If this is set to true, underlyings can breach the autocall level on different observation dates for the early redemption to be triggered (breaches are memorized for each underlying separately). ",
+                    "type": "boolean"
                 },
                 "autocallPayments": {
                     "type": "object",
@@ -507,10 +2451,6 @@
                         }
                     },
                     "additionalProperties": false
-                },
-                "autocallMemoryFlag": {
-                    "description": "If this is set to true, underlyings can breach the autocall level on different observation dates for the early redemption to be triggered (breaches are memorized for each underlying separately). ",
-                    "type": "boolean"
                 }
             },
             "additionalProperties": false
@@ -522,6 +2462,122 @@
                 "triggerDetails": {
                     "description": "Contains all fields relevant to a trigger event.",
                     "$ref": "#/$defs/TriggerDetailsType"
+                }
+            },
+            "additionalProperties": false
+        },
+        "bonus": {
+            "type": "object",
+            "description": "Feature that locks in a minimum payment amount as long as certain conditions apply. Different to digital features, the bonus will allow for higher return values if other features lead to higher returns.",
+            "properties": {
+                "bonusAmount": {
+                    "type": "number",
+                    "description": "The absolute value in instrument currency that the investor receives as minimum as long as the bonus conditions are met.",
+                    "minimum": 0
+                },
+                "bonusPercent": {
+                    "type": "number",
+                    "description": "The relative value to the issue price or denomination that the investor receives as minimum as long as the bonus conditions are met.",
+                    "minimum": 0
+                },
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
+                }
+            },
+            "additionalProperties": false
+        },
+        "bufferedAirbagParticipation": {
+            "type": "object",
+            "description": "This feature models a linear participation up to the strike, then transitions into a plateau until the relevant underlying reaches 100% of its reference level. Beyond that point, upside participation resumes on a full 1:1 basis. It incorporates a buffer mechanism to provide partial downside protection by absorbing losses up to a predefined level, so that only declines beyond the buffer threshold impact the redemption.",
+            "properties": {
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
+                },
+                "participationPercent": {
+                    "type": "number",
+                    "description": "The percentage of the underlying asset’s positive performance above the strike level that is reflected in the structured product’s payoff.",
+                    "minimum": 0.0
+                },
+                "ratio": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "The meaning of this field depends on the asset type. For equities, it shows the amount unrounded of underlyings that would be received in a physical settlement. For FX, it contains the amount in the alternative currency that would be received when using the strike rate. ",
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "minimumRepaymentPercent": {
+                    "type": "number",
+                    "description": "Defines the minimum payout at maturity, expressed as a percentage of the product’s denomination.",
+                    "minimum": 0
+                },
+                "minimumRepaymentAmount": {
+                    "type": "number",
+                    "description": "Defines the minimum payout at maturity, expressed as an absolute amount of the product’s denomination.",
+                    "minimum": 0
+                }
+            },
+            "additionalProperties": false
+        },
+        "bufferedDownsideRisk": {
+            "type": "object",
+            "description": "This feature is mainly used for yield enhancement models (often called reverse convertibles in Europe). These typically have limited or no upside participation but may offer coupon payments or similar features that provide a limited yield. The buffer feature adds partial downside protection by absorbing a predefined portion of losses, allowing investors to pursue yield enhancement while reducing exposure to moderate declines in the underlying asset.",
+            "properties": {
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
+                },
+                "ratio": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "The meaning of this field depends on the asset type. For equities, it shows the amount unrounded of underlyings that would be received in a physical settlement. For FX, it contains the amount in the alternative currency that would be received when using the strike rate. ",
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "participationPercent": {
+                    "type": "number",
+                    "description": "The percentage of the underlying asset’s positive performance above the strike level that is reflected in the structured product’s payoff.",
+                    "minimum": 0.0
+                },
+                "minimumRepaymentPercent": {
+                    "type": "number",
+                    "description": "Defines the minimum payout at maturity, expressed as a percentage of the product’s denomination.",
+                    "minimum": 0
+                },
+                "minimumRepaymentAmount": {
+                    "type": "number",
+                    "description": "Defines the minimum payout at maturity, expressed as an absolute amount of the product’s denomination.",
+                    "minimum": 0
+                }
+            },
+            "additionalProperties": false
+        },
+        "cap": {
+            "type": "object",
+            "description": "Defines the maximum repayment of a product at maturity excluding coupons.",
+            "properties": {
+                "maximumRepaymentAmount": {
+                    "type": "number",
+                    "description": "Defines the maximum payout at maturity, expressed as an absolute amount of the product’s denomination.",
+                    "minimum": 0
+                },
+                "maximumRepaymentPercent": {
+                    "type": "number",
+                    "description": "Defines the maximum payout at maturity, expressed as a percentage of the product’s denomination.",
+                    "minimum": 0
+                },
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
                 }
             },
             "additionalProperties": false
@@ -566,6 +2622,21 @@
             },
             "additionalProperties": false
         },
+        "digitalPayout": {
+            "type": "object",
+            "description": "This feature provides for the payment of a fixed amount once the relevant condition is met. In exchange, any further participation in the underlying performance is excluded. The triggering condition is typically linked to threshold levels defined by other payoff features.",
+            "properties": {
+                "digitalAmount": {
+                    "type": "number",
+                    "description": "The value that the investor gets from the digital payment in absolute terms in the applicable currency units.\nThis field contains only the payment excluding the notional or initial price that is repaid as well."
+                },
+                "digitalReturn": {
+                    "type": "number",
+                    "description": "The value that the investor gets from the digital payment relative to the issue price or notional. \nThis field contains only the payment excluding the notional or initial price that is repaid as well."
+                }
+            },
+            "additionalProperties": false
+        },
         "downsideRisk": {
             "type": "object",
             "description": "This feature is mainly used for yield enhancement models (often called reverse convertibles in Europe). These typically have limited or no upside participation but may offer coupon payments or similar features that provide a limited yield.",
@@ -587,6 +2658,7 @@
                 },
                 "participationPercent": {
                     "type": "number",
+                    "description": "The percentage of the underlying asset’s positive performance above the strike level that is reflected in the structured product’s payoff.",
                     "minimum": 0.0
                 }
             },
@@ -634,14 +2706,19 @@
                     },
                     "additionalProperties": false
                 },
+                "strikeRelative": {
+                    "type": "number",
+                    "description": "Fixed relative Strike value that might be known only after the initial fixing date in some cases."
+                },
                 "upsideFactor": {
                     "type": "number",
                     "description": "Multiplier used for amounts or shares if the value is above / at or above the threshold.",
                     "minimum": 0.01
                 },
-                "strikeRelative": {
+                "downsideFactor": {
                     "type": "number",
-                    "description": "Fixed relative Strike value that might be known only after the initial fixing date in some cases."
+                    "description": "Multiplier used for amounts or shares if the value is below/ at or below the threshold.",
+                    "minimum": 0.01
                 },
                 "equityForwardStrips": {
                     "type": "object",
@@ -652,11 +2729,6 @@
                         }
                     },
                     "additionalProperties": false
-                },
-                "downsideFactor": {
-                    "type": "number",
-                    "description": "Multiplier used for amounts or shares if the value is below/ at or below the threshold.",
-                    "minimum": 0.01
                 }
             },
             "additionalProperties": false
@@ -679,6 +2751,20 @@
                     "type": "number",
                     "description": "The buy price at issuance relative to the denomination of the instrument.",
                     "minimum": 0.0
+                },
+                "reofferPricePercent": {
+                    "type": "number",
+                    "description": "The re-offer price is a primary-market placement/settlement price used in the distribution chain; it can be the same as the issue price but does not have to be. Differences, when they exist, reflect how distribution economics and fees are arranged, and additional fees may also be applied by distributors to end investors depending on the channel."
+                }
+            },
+            "additionalProperties": false
+        },
+        "fxConversionRates": {
+            "type": "object",
+            "description": "Reference to an FX rate used exclusively for currency conversion of cashflows across the instrument. This rate is not a performance reference and does not drive any payoff condition in most models. It is distinct from an FX rate used as an underlying, where the FX rate itself is the primary performance reference of the instrument.",
+            "patternProperties": {
+                "^[A-Za-z]\\w*$": {
+                    "$ref": "#/$defs/Reference"
                 }
             },
             "additionalProperties": false
@@ -688,6 +2774,32 @@
             "patternProperties": {
                 "^[A-Za-z]\\w*$": {
                     "$ref": "#/$defs/Reference"
+                }
+            },
+            "additionalProperties": false
+        },
+        "issuerCall": {
+            "type": "object",
+            "description": "A feature that gives the issuer the right to redeem the structured product early, typically at predefined dates and conditions.",
+            "properties": {
+                "issuerCallSchedule": {
+                    "type": "object",
+                    "description": "Contains a list of all Issuer Call events.",
+                    "patternProperties": {
+                        "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$": {
+                            "$ref": "#/$defs/IssuerCallSchedule"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "issuerCallFrequency": {
+                    "description": "Tracks how often the issuer is entitled to early redeem the product (e.g., monthly, quarterly, or annually).",
+                    "$ref": "#/$defs/Frequency"
+                },
+                "offsetBusinessDays": {
+                    "type": "integer",
+                    "description": "Defines the period given in business days between an observation date and the respective payment.",
+                    "minimum": 0
                 }
             },
             "additionalProperties": false
@@ -703,39 +2815,73 @@
             },
             "additionalProperties": false
         },
-        "otcDerivativesGeneric": {
+        "otcDerivativesGeneral": {
             "type": "object",
             "description": "Fields that are used across all OTC derivatives.",
             "properties": {
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
                 "name": {
                     "type": "string",
                     "description": "Full name of the instrument."
-                },
-                "expiryDate": {
-                    "description": "Date on which a trade between parties ends.",
-                    "$ref": "#/$defs/Date"
                 },
                 "settlementDate": {
                     "description": "Date on which all payment obligations for a trade are fulfilled.",
                     "$ref": "#/$defs/Date"
                 },
-                "instrumentCurrency": {
-                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
-                    "$ref": "#/$defs/IsoCurrencyCode"
+                "expiryDate": {
+                    "description": "Date on which a trade between parties ends.",
+                    "$ref": "#/$defs/Date"
+                },
+                "tradeDate": {
+                    "description": "Mostly used for OTC deals. Contains the date on which the agreement becomes effective between the parties.",
+                    "$ref": "#/$defs/Date"
+                },
+                "tradedUnits": {
+                    "type": "string",
+                    "description": "For OTC deals, this field contains the number of traded units."
                 }
             },
             "additionalProperties": false
         },
-        "structuredProductsGeneric": {
+        "referenceRates": {
+            "type": "object",
+            "description": "Reference role that is used for income calculations like floating payments and similar.",
+            "patternProperties": {
+                "^[A-Za-z]\\w*$": {
+                    "$ref": "#/$defs/Reference"
+                }
+            },
+            "additionalProperties": false
+        },
+        "structuredProductsGeneral": {
             "type": "object",
             "description": "Contains fields that all structured products share.",
             "properties": {
-                "instrumentDataStatus": {
-                    "description": "Provides information on the lifecycle of the instrument data.",
+                "subscriptionEndDate": {
+                    "description": "Last date on which investors can subscribe.",
+                    "$ref": "#/$defs/Date"
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "quotation": {
+                    "description": "Defines if the instrument is quoted in percentage relative to the denomination or in absolute currency.",
                     "enum": [
-                        "final",
-                        "indicative"
+                        "absolute",
+                        "relative"
                     ]
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "quantoFlag": {
+                    "description": "If true, the product is not subject to FX risk.",
+                    "type": "boolean"
                 },
                 "settlement": {
                     "description": "Defines how the repayment of the instrument for the holder can happen.",
@@ -745,39 +2891,16 @@
                         "cash"
                     ]
                 },
-                "name": {
-                    "type": "string",
-                    "description": "Full name of the instrument."
-                },
-                "quotation": {
-                    "description": "Defines if the instrument is quoted in percentage relative to the denomination or in absolute currency.",
-                    "enum": [
-                        "absolute",
-                        "relative"
-                    ]
-                },
-                "subscriptionBeginDate": {
-                    "description": "First date on which investors can subscribe to buy the instrument.",
-                    "$ref": "#/$defs/Date"
-                },
-                "maturityDate": {
-                    "description": "Date on which the payoff amount—or shares in the case of physical delivery—are booked to the holder’s account.",
-                    "$ref": "#/$defs/Date"
-                },
-                "finalFixingDate": {
-                    "description": "Date on which all parameters to determine the final payoff amount to the holder of the instrument are fixed.",
+                "initialFixingDate": {
+                    "description": "Date on which the parameters and underlying strike values are determined.",
                     "$ref": "#/$defs/Date"
                 },
                 "initialPaymentDate": {
                     "description": "The date on which the price for the instrument is deducted from the account of the buyer.",
                     "$ref": "#/$defs/Date"
                 },
-                "initialFixingDate": {
-                    "description": "Date on which the parameters and underlying strike values are determined.",
-                    "$ref": "#/$defs/Date"
-                },
-                "subscriptionEndDate": {
-                    "description": "Last date on which investors can subscribe.",
+                "finalFixingDate": {
+                    "description": "Date on which all parameters to determine the final payoff amount to the holder of the instrument are fixed.",
                     "$ref": "#/$defs/Date"
                 },
                 "issuePrice": {
@@ -789,13 +2912,69 @@
                     "description": "The number of instruments that are supplied by the issuer.",
                     "minimum": 1
                 },
-                "quantoFlag": {
-                    "description": "If true, the product is not subject to FX risk.",
-                    "type": "boolean"
+                "maturityDate": {
+                    "description": "Date on which the payoff amount—or shares in the case of physical delivery—are booked to the holder’s account.",
+                    "$ref": "#/$defs/Date"
                 },
-                "instrumentCurrency": {
-                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
-                    "$ref": "#/$defs/IsoCurrencyCode"
+                "subscriptionBeginDate": {
+                    "description": "First date on which investors can subscribe to buy the instrument.",
+                    "$ref": "#/$defs/Date"
+                },
+                "instrumentDataStatus": {
+                    "description": "Provides information on the lifecycle of the instrument data.",
+                    "enum": [
+                        "final",
+                        "indicative"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "structuredSwap": {
+            "type": "object",
+            "description": "Contains fields that define the leg structure of a swap in which one leg replicates the payoff of a structured instrument. The structured leg and its counterpart are defined at model level.",
+            "properties": {
+                "structuredLegReceiver": {
+                    "description": "Identifies which party receives the structured leg cashflows. This also implicitly determines the that the second leg is paid by the chosen party in this field.",
+                    "$ref": "#/$defs/SwapParty"
+                }
+            },
+            "additionalProperties": false
+        },
+        "twinWinParticipation": {
+            "type": "object",
+            "description": "Provides a positive return on the downside performance of the relevant underlying, measured from the strike level. If the underlying finishes below the strike at maturity, the negative performance relative to the strike is inverted as a positive return, scaled by the downside participation percent. The downside return is only realised if no other condition has cancelled it — for example, if a barrier has been breached during the observation period, the effect is lost and the investor is exposed to the actual loss. The interaction with barrier and other features is defined at model level.",
+            "properties": {
+                "downsideParticipationPercent": {
+                    "type": "number",
+                    "description": "The participation rate applied to the downside return. A value of 1 means the negative performance of the underlying relative to the strike is reflected as an equal positive return. "
+                },
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
+                }
+            },
+            "additionalProperties": false
+        },
+        "underlyingExposure": {
+            "type": "object",
+            "description": "Feature that is the equivalent of buying a given amount of the underlying (e.g. linear participation)",
+            "properties": {
+                "ratio": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "The meaning of this field depends on the asset type. For equities, it shows the amount unrounded of underlyings that would be received in a physical settlement. For FX, it contains the amount in the alternative currency that would be received when using the strike rate. ",
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "participationPercent": {
+                    "type": "number",
+                    "description": "The percentage of the underlying asset’s positive performance above the strike level that is reflected in the structured product’s payoff.",
+                    "minimum": 0.0
                 }
             },
             "additionalProperties": false
@@ -841,6 +3020,22 @@
                         "worstOf",
                         "bestOf"
                     ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "upsideParticipation": {
+            "type": "object",
+            "description": "Modifies the participation rate applied to the upside performance of the underlying asset above the relevant strike level. A participation factor greater than 1 amplifies gains while a factor below 1 reduces them. This feature is typically combined with a cap. In structured product markets this payoff is commonly referred to as an outperformance certificate regardless of whether the participation factor is above or below 1.",
+            "properties": {
+                "participationPercent": {
+                    "type": "number",
+                    "description": "The percentage of the underlying asset’s positive performance above the strike level that is reflected in the structured product’s payoff.",
+                    "minimum": 0.0
+                },
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
                 }
             },
             "additionalProperties": false
@@ -897,6 +3092,10 @@
                 "triggerDetails": {
                     "description": "Contains information on the trigger mechanism of the coupon.",
                     "$ref": "#/$defs/TriggerDetailsType"
+                },
+                "memoryFlag": {
+                    "description": "Indicates whether the structured product uses a memory coupon feature, meaning missed coupons from prior periods can accumulate and be paid later if the coupon condition is subsequently met.",
+                    "type": "boolean"
                 },
                 "paymentDate": {
                     "description": "Date on which the holder receives the payment (cashflow date).",
@@ -982,6 +3181,23 @@
         "Date": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "DateList": {
+            "type": "object",
+            "properties": {
+                "notificationDateList": {
+                    "description": "Date list on which the issuer can anounce that the product will be early redeemed.",
+                    "items": {
+                        "$ref": "#/$defs/Date"
+                    },
+                    "type": "array"
+                },
+                "repaymentDate": {
+                    "description": "Date on which the repaymentAmount is repaid.",
+                    "$ref": "#/$defs/Date"
+                }
+            },
+            "additionalProperties": true
         },
         "DateListTrigger": {
             "type": "object",
@@ -1365,11 +3581,21 @@
                     "description": "The Valor number is a code that identifies listed securities and financial instruments in Switzerland and serves a similar purpose to CUSIP or WKN in the North American and German markets, respectively. The Valor number is incorporated into the Swiss ISIN.",
                     "pattern": "^[1-9][0-9]*$"
                 },
+                "commonCode": {
+                    "type": "string",
+                    "description": "A numeric security identifier assigned by the international clearing systems (primarily Euroclear and Clearstream) to uniquely identify a financial instrument for settlement and clearing purposes.",
+                    "pattern": "^^\\d{9}$$"
+                },
+                "bmoOtcIdentifier": {
+                    "type": "string",
+                    "description": "Identifier for BMO OTC instruments.",
+                    "pattern": "^$"
+                },
                 "figi": {
                     "type": "object",
                     "description": "The Financial Instrument Global Identifier (FIGI) (formerly Bloomberg Global Identifier (BBGID)) is an open standard and unique identifier of financial instruments.",
                     "patternProperties": {
-                        "^[0-9]+$": {
+                        "^[A-Z][A-Z0-9]$": {
                             "type": "string",
                             "pattern": "^[A-Z][A-Z]G[BCDFGHJKLMNPQRSTVWXYZ0-9]{8}[0-9]$"
                         }
@@ -1436,6 +3662,81 @@
                 "XAG"
             ]
         },
+        "IssuerCallDates": {
+            "oneOf": [
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Period"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "period"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/DateList"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "dateList"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/SingleDate"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "singleDate"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                }
+            ],
+            "unevaluatedProperties": false
+        },
+        "IssuerCallSchedule": {
+            "type": "object",
+            "properties": {
+                "repaymentAmount": {
+                    "type": "number",
+                    "description": "The amount that the issuer is required to pay back to the investor if they early redeem the product."
+                },
+                "dates": {
+                    "$ref": "#/$defs/IssuerCallDates"
+                }
+            },
+            "additionalProperties": true
+        },
         "Monthly": {
             "type": "object",
             "properties": {
@@ -1482,6 +3783,24 @@
                 "paymentAmount": {
                     "type": "number",
                     "description": "Absolute value for one payment date in the applicable currency."
+                }
+            },
+            "additionalProperties": true
+        },
+        "Period": {
+            "type": "object",
+            "properties": {
+                "repaymentDate": {
+                    "description": "Date on which the repaymentAmount is repaid.",
+                    "$ref": "#/$defs/Date"
+                },
+                "notificationEndDate": {
+                    "description": "End date on which the issuer can anounce that the product will be early redeemed.",
+                    "$ref": "#/$defs/Date"
+                },
+                "notificationStartDate": {
+                    "description": "Start date on which the issuer can anounce that the product will be early redeemed.",
+                    "$ref": "#/$defs/Date"
                 }
             },
             "additionalProperties": true
@@ -1604,6 +3923,16 @@
                     "description": "The Valor number is a code that identifies listed securities and financial instruments in Switzerland and serves a similar purpose to CUSIP or WKN in the North American and German markets, respectively. The Valor number is incorporated into the Swiss ISIN.",
                     "pattern": "^[1-9][0-9]*$"
                 },
+                "commonCode": {
+                    "type": "string",
+                    "description": "A numeric security identifier assigned by the international clearing systems (primarily Euroclear and Clearstream) to uniquely identify a financial instrument for settlement and clearing purposes.",
+                    "pattern": "^^\\d{9}$$"
+                },
+                "bmoOtcIdentifier": {
+                    "type": "string",
+                    "description": "Identifier for BMO OTC instruments.",
+                    "pattern": "^$"
+                },
                 "figi": {
                     "type": "string",
                     "description": "The Financial Instrument Global Identifier (FIGI) (formerly Bloomberg Global Identifier (BBGID)) is an open standard and unique identifier of financial instruments.",
@@ -1614,6 +3943,20 @@
         },
         "SemiAnnually": {
             "type": "object",
+            "additionalProperties": true
+        },
+        "SingleDate": {
+            "type": "object",
+            "properties": {
+                "repaymentDate": {
+                    "description": "Date on which the repaymentAmount is repaid.",
+                    "$ref": "#/$defs/Date"
+                },
+                "notificationDate": {
+                    "description": "Date on which the issuer can anounce that the product will be early redeemed.",
+                    "$ref": "#/$defs/Date"
+                }
+            },
             "additionalProperties": true
         },
         "SingleDateTrigger": {
@@ -1683,6 +4026,12 @@
                 }
             },
             "additionalProperties": true
+        },
+        "SwapParty": {
+            "enum": [
+                "mainParty",
+                "counterParty"
+            ]
         },
         "ThresholdComparatorType": {
             "enum": [

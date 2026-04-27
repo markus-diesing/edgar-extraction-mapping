@@ -28,6 +28,16 @@ _DEFAULTS: dict = {
     "section_merge_confidence_delta": config.SECTION_MERGE_CONFIDENCE_DELTA,
     "classification_gate_confidence": config.CLASSIFICATION_GATE_CONFIDENCE,
     "claude_model":                   config.CLAUDE_MODEL_DEFAULT,
+
+    # Underlying Securities LLM — independent of the Filings pipeline.
+    # provider: "anthropic" | "openai-compatible" | "ollama"
+    # endpoint: base URL (blank → provider default from llm_client.PROVIDER_DEFAULTS)
+    # model:    model identifier string (blank → sensible provider default)
+    # api_key:  optional; stored plaintext (local research tool — no production secrets)
+    "underlying_llm_provider": "anthropic",
+    "underlying_llm_endpoint": "",
+    "underlying_llm_model":    "",
+    "underlying_llm_api_key":  "",
 }
 
 

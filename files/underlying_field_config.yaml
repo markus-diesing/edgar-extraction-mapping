@@ -1,0 +1,136 @@
+# Underlying Data Module — Field Configuration
+#
+# Controls which fields are queried and displayed for underlying securities.
+#
+# Rules:
+#   - Disabling a field stops it from being queried for *new* records.
+#   - Existing data in disabled fields is preserved and still viewable.
+#   - The list order controls display order in the review UI.
+#   - display_name overrides the auto-generated label in the UI.
+#
+# version is incremented on every PUT /api/underlying/field-config call.
+# It is stored on each UnderlyingSecurity so we know which config produced its data.
+#
+version: "1"
+fields:
+  # ── Identity ───────────────────────────────────────────────────────────────
+  - name: company_name
+    display_name: "Company Name"
+    enabled: true
+
+  - name: share_class_name
+    display_name: "Share Class"
+    enabled: true
+
+  - name: ticker
+    display_name: "Ticker"
+    enabled: true
+
+  - name: ticker_bb
+    display_name: "Bloomberg Ticker"
+    enabled: true
+
+  - name: exchange
+    display_name: "Exchange"
+    enabled: true
+
+  - name: share_type
+    display_name: "Share Type"
+    enabled: true
+
+  - name: reporting_form
+    display_name: "Reporting Form"
+    enabled: true
+
+  # ── Regulatory / filing status ─────────────────────────────────────────────
+  - name: current_status
+    display_name: "Filing Status"
+    enabled: true
+
+  - name: filer_category
+    display_name: "Filer Category"
+    enabled: true
+
+  - name: last_10k_period
+    display_name: "Last 10-K Period End"
+    enabled: true
+
+  - name: last_10k_filed
+    display_name: "Last 10-K Filed"
+    enabled: true
+
+  - name: last_10q_period
+    display_name: "Last 10-Q Period End"
+    enabled: true
+
+  - name: last_10q_filed
+    display_name: "Last 10-Q Filed"
+    enabled: true
+
+  - name: next_expected_filing
+    display_name: "Next Filing Due"
+    enabled: true
+
+  - name: nt_flag
+    display_name: "NT Filing on Record"
+    enabled: true
+
+  # ── Company description ────────────────────────────────────────────────────
+  - name: brief_description
+    display_name: "Brief Description"
+    enabled: true
+
+  - name: sic_code
+    display_name: "SIC Code"
+    enabled: true
+
+  - name: sic_description
+    display_name: "SIC Description"
+    enabled: true
+
+  - name: state_of_incorporation
+    display_name: "State of Incorporation"
+    enabled: true
+
+  - name: adr_flag
+    display_name: "ADR"
+    enabled: true
+
+  # ── XBRL quantitative facts ────────────────────────────────────────────────
+  - name: shares_outstanding
+    display_name: "Shares Outstanding"
+    enabled: true
+
+  - name: public_float_usd
+    display_name: "Public Float (USD)"
+    enabled: true
+
+  # ── Market data (Tier 3 — yfinance, approximate) ───────────────────────────
+  - name: initial_value
+    display_name: "Initial Value"
+    enabled: true
+
+  - name: initial_value_date
+    display_name: "Initial Value Date"
+    enabled: true
+
+  - name: closing_value
+    display_name: "Closing Value"
+    enabled: true
+
+  - name: closing_value_date
+    display_name: "Closing Value Date"
+    enabled: true
+
+  - name: hist_data_series
+    display_name: "Historical Price Series"
+    enabled: true
+
+  # ── Expert / low-level fields (disabled by default) ───────────────────────
+  - name: fiscal_year_end
+    display_name: "Fiscal Year End (MMDD)"
+    enabled: false
+
+  - name: cik
+    display_name: "EDGAR CIK"
+    enabled: false

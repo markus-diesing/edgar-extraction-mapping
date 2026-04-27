@@ -266,8 +266,12 @@ async function loadManifest() {
 // ── Render ────────────────────────────────────────────────────────────────────
 function renderManifest(data) {
   const list = document.getElementById('doc-list');
+  // Hide status-bar BEFORE clearing list.innerHTML — status-bar is a child of
+  // doc-list, so clearing innerHTML removes it from the DOM first, making the
+  // subsequent getElementById call return null and crash silently.
+  const sb = document.getElementById('status-bar');
+  if (sb) sb.style.display = 'none';
   list.innerHTML = '';
-  document.getElementById('status-bar').style.display = 'none';
 
   let totalFiles = 0;
   data.categories.forEach(cat => {

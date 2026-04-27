@@ -1,0 +1,34 @@
+{
+  "fetch_id": "20260326_125552",
+  "source_url": "http://10.10.21.57:30080/api/schema/json",
+  "active_schema_id": "https://www.l-p-a.com/prism.v1.schema.json",
+  "new_schema_id": "https://www.l-p-a.com/prism.v1.schema.json",
+  "active_content_hash": "01f46cb409cac6a5",
+  "new_content_hash": "01f46cb409cac6a5",
+  "same_content": true,
+  "summary": {
+    "breaking": 0,
+    "caution": 0,
+    "safe": 0,
+    "models_added": 0,
+    "models_removed": 0,
+    "fields_added": 0,
+    "fields_removed": 0,
+    "type_changes": 0,
+    "enum_changes": 0,
+    "defs_added": 0,
+    "defs_removed": 0,
+    "defs_changed": 0
+  },
+  "impact": {
+    "parsers_at_risk": [],
+    "label_map_entries_at_risk": [],
+    "issuer_yaml_at_risk": [],
+    "db_rows_affected": 0,
+    "active_models_affected": [],
+    "active_model_filing_counts": {}
+  },
+  "def_changes": [],
+  "model_changes": [],
+  "fetched_at": "2026-03-26T12:55:52.557501+00:00"
+}

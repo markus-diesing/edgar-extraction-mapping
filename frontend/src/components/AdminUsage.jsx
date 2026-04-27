@@ -4,20 +4,24 @@
  * Cost & Usage analytics tab in the Admin panel.
  *
  * Sections:
- *   1. Summary KPI tiles
- *   2. Spend over time (stacked bar chart — Day / Week / Month)
- *   3. Cost by process step
- *   4. Cost by PRISM product type + by issuer
- *   5. Unit economics
- *   6. Prompt caching panel
- *   7. Projection
- *   8. Model comparison calculator
- *   9. Model configuration (active model selector)
- *  10. Commercial signals (stage-2 overhead, efficiency trend)
+ *   1.  Summary KPI tiles
+ *   2.  Spend over time (stacked bar chart — Day / Week / Month)
+ *   3.  Cost by process step
+ *   4.  Cost by PRISM product type + by issuer
+ *   5.  Unit economics
+ *   6.  Prompt caching panel
+ *   7.  Projection
+ *   8.  Model comparison calculator
+ *   9.  Model configuration — Filings (active Claude model selector)
+ *  10.  Underlying Securities — LLM configuration (provider / endpoint / model)
+ *  11.  Underlying Securities — token usage stats
+ *  12.  Commercial signals (stage-2 overhead, efficiency trend)
  *
  * Data sources:
  *   GET /api/admin/usage/summary
  *   GET /api/admin/usage/timeline?granularity=week
+ *   GET /api/admin/underlying-llm/settings
+ *   GET /api/admin/underlying-llm/usage
  */
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api.js'
@@ -369,7 +373,8 @@ function ModelConfig({ availableModels, activeModel, onModelChanged }) {
     setMsg('')
     try {
       await api.updateSettings({ claude_model: selected })
-      setMsg(`✓ Active model changed to ${selected}`)
+      const name = availableModels?.find(m => m.model_id === selected)?.display_name || selected
+      setMsg(`✓ Active model changed to ${name}`)
       onModelChanged?.()
       setTimeout(() => setMsg(''), 4000)
     } catch (e) {
@@ -437,7 +442,299 @@ function ModelConfig({ availableModels, activeModel, onModelChanged }) {
 }
 
 // ---------------------------------------------------------------------------
-// 10. Commercial signals
+// 10. Underlying LLM — configuration + usage
+// ---------------------------------------------------------------------------
+
+const PROVIDER_LABELS = {
+  'anthropic':         'Anthropic (cloud)',
+  'openai-compatible': 'LM Studio / OpenAI-compatible (local)',
+  'ollama':            'Ollama (local)',
+}
+const PROVIDER_NOTES = {
+  'anthropic':         'Shares the active model and API key from the Filings configuration — no separate setup required',
+  'openai-compatible': 'Any server exposing /v1/chat/completions — e.g. LM Studio at 192.168.210.239:1234',
+  'ollama':            'Native Ollama /api/chat endpoint — e.g. http://localhost:11434',
+}
+const PROVIDER_DEFAULTS = {
+  'anthropic':         '',
+  'openai-compatible': 'http://192.168.210.239:1234',
+  'ollama':            'http://localhost:11434',
+}
+const MODEL_PLACEHOLDERS = {
+  'anthropic':         'e.g. claude-sonnet-4-6',
+  'openai-compatible': 'e.g. qwen3-14b-mlx',
+  'ollama':            'e.g. qwen3:14b',
+}
+
+function UnderlyingLlmConfig() {
+  const [provider,       setProvider]       = useState('anthropic')
+  const [endpoint,       setEndpoint]       = useState('')
+  const [model,          setModel]          = useState('')
+  const [apiKey,         setApiKey]         = useState('')
+  const [showKey,        setShowKey]        = useState(false)
+  const [availModels,    setAvailModels]    = useState([])
+  const [loadingModels,  setLoadingModels]  = useState(false)
+  const [saving,         setSaving]         = useState(false)
+  const [testing,        setTesting]        = useState(false)
+  const [testResult,     setTestResult]     = useState(null)
+  const [msg,            setMsg]            = useState('')
+
+  // Load current settings on mount
+  useEffect(() => {
+    api.underlyingLlmGetSettings().then(s => {
+      setProvider(s.provider || 'anthropic')
+      setEndpoint(s.endpoint || '')
+      setModel(s.model || '')
+      // api_key is masked — don't pre-fill
+    }).catch(() => {})
+  }, [])
+
+  const fetchModels = async () => {
+    setLoadingModels(true)
+    try {
+      const d = await api.underlyingLlmGetModels()
+      setAvailModels(d.models || [])
+    } catch {
+      setAvailModels([])
+    } finally {
+      setLoadingModels(false)
+    }
+  }
+
+  const doSave = async () => {
+    setSaving(true)
+    setMsg('')
+    try {
+      const body = { provider, endpoint, model }
+      if (apiKey) body.api_key = apiKey
+      await api.underlyingLlmUpdateSettings(body)
+      setMsg('✓ Settings saved')
+      setTimeout(() => setMsg(''), 3000)
+      setApiKey('')          // clear after save
+    } catch (e) {
+      setMsg(`Error: ${e.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const doTest = async () => {
+    // Save first so the test fires against the current form state
+    setSaving(true)
+    setTestResult(null)
+    try {
+      const body = { provider, endpoint, model }
+      if (apiKey) body.api_key = apiKey
+      await api.underlyingLlmUpdateSettings(body)
+      setApiKey('')
+      setTesting(true)
+      const r = await api.underlyingLlmTest()
+      setTestResult(r)
+    } catch (e) {
+      setTestResult({ ok: false, message: e.message })
+    } finally {
+      setSaving(false)
+      setTesting(false)
+    }
+  }
+
+  const isLocal = provider !== 'anthropic'
+  const effEndpoint = endpoint || PROVIDER_DEFAULTS[provider] || ''
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg p-4 max-w-xl">
+      <p className="text-xs text-slate-400 mb-4">
+        Takes effect on the next Re-Fetch or ingest run — no restart required.
+      </p>
+
+      {/* Provider */}
+      <div className="mb-5">
+        <label className="block text-xs font-semibold text-slate-600 mb-2">Provider</label>
+        <div className="space-y-2">
+          {Object.entries(PROVIDER_LABELS).map(([val, label]) => (
+            <label key={val} className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="radio" name="ul-provider" value={val}
+                checked={provider === val}
+                onChange={() => {
+                  setProvider(val)
+                  setAvailModels([])
+                  setTestResult(null)
+                  // Clear the endpoint state when switching to Anthropic so the
+                  // stale LM Studio URL is not re-saved on the next Save / Test.
+                  if (val === 'anthropic') setEndpoint('')
+                }}
+                className="mt-0.5 accent-blue-600"
+              />
+              <div>
+                <span className="text-xs font-medium text-slate-700">{label}</span>
+                <span className="block text-xs text-slate-400">{PROVIDER_NOTES[val]}</span>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Anthropic info box — replaces all config fields */}
+      {!isLocal && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 space-y-1">
+          <p className="font-semibold">Uses Filings configuration</p>
+          <p>
+            The active Claude model and API key are shared with the Filings pipeline.
+            To change the model, use the{' '}
+            <span className="font-medium">Model configuration — Filings</span>{' '}
+            section above.
+          </p>
+        </div>
+      )}
+
+      {/* Endpoint URL — local providers only */}
+      {isLocal && (
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-slate-600 mb-1">Endpoint URL</label>
+          <input
+            type="text" value={endpoint}
+            onChange={e => setEndpoint(e.target.value)}
+            placeholder={effEndpoint}
+            className="w-full text-sm border border-slate-200 rounded px-2.5 py-1.5 font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <p className="text-xs text-slate-400 mt-0.5">Base URL without trailing slash. Leave blank to use the default shown above.</p>
+        </div>
+      )}
+
+      {/* Model — local providers only */}
+      {isLocal && (
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-slate-600 mb-1">Model</label>
+          <div className="flex gap-2">
+            {availModels.length > 0 ? (
+              <select
+                value={model}
+                onChange={e => setModel(e.target.value)}
+                className="flex-1 text-sm border border-slate-200 rounded px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                {model && !availModels.includes(model) && (
+                  <option value={model}>{model} (current)</option>
+                )}
+                {availModels.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            ) : (
+              <input
+                type="text" value={model}
+                onChange={e => setModel(e.target.value)}
+                placeholder={MODEL_PLACEHOLDERS[provider] || ''}
+                className="flex-1 text-sm border border-slate-200 rounded px-2.5 py-1.5 font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            )}
+            <button
+              onClick={fetchModels} disabled={loadingModels}
+              title="Fetch available models from endpoint"
+              className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded transition-colors disabled:opacity-50"
+            >
+              {loadingModels ? '…' : '⟳'}
+            </button>
+          </div>
+          {availModels.length === 0 && (
+            <p className="text-xs text-slate-400 mt-0.5">
+              Click ⟳ to fetch the model list from the endpoint, or type a model name manually.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* API key — local providers only */}
+      {isLocal && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowKey(k => !k)}
+            className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
+          >
+            <span>{showKey ? '▾' : '▸'}</span>
+            <span>API key <span className="text-slate-300">(optional — most local servers don't require one)</span></span>
+          </button>
+          {showKey && (
+            <input
+              type="password" value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              placeholder="Leave blank if not required"
+              className="w-full text-sm border border-slate-200 rounded px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={doSave} disabled={saving || testing}
+          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors disabled:opacity-40"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          onClick={doTest} disabled={saving || testing}
+          className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium border border-slate-200 rounded transition-colors disabled:opacity-40"
+        >
+          {testing ? 'Testing…' : 'Test Connection'}
+        </button>
+      </div>
+
+      {/* Test result */}
+      {testResult && (
+        <div className={`mt-3 px-3 py-2 rounded text-xs font-medium ${
+          testResult.ok
+            ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+            : 'bg-red-50 border border-red-200 text-red-700'
+        }`}>
+          {testResult.ok ? '✓' : '✗'} {testResult.message}
+        </div>
+      )}
+
+      {msg && (
+        <p className={`mt-2 text-xs font-medium ${msg.startsWith('Error') ? 'text-red-600' : 'text-emerald-600'}`}>
+          {msg}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function UnderlyingLlmUsage({ usage }) {
+  if (!usage) return <p className="text-slate-400 text-xs">No underlying extraction calls yet.</p>
+  if (usage.total_calls === 0) {
+    return <p className="text-slate-400 text-xs">No underlying extraction calls recorded yet.</p>
+  }
+  const isLocal = usage.total_cost_usd === 0 && usage.total_calls > 0
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="bg-slate-50 border border-slate-200 rounded px-3 py-2">
+        <p className="text-xs text-slate-400">Extractions run</p>
+        <p className="text-base font-bold text-slate-800 mt-0.5">{fmtNum(usage.total_calls)}</p>
+        <p className="text-xs text-slate-400">securities processed</p>
+      </div>
+      <div className="bg-slate-50 border border-slate-200 rounded px-3 py-2">
+        <p className="text-xs text-slate-400">Input tokens</p>
+        <p className="text-base font-bold text-slate-800 mt-0.5">{fmtK(usage.total_input_tokens)}</p>
+        {usage.avg_input_tokens && <p className="text-xs text-slate-400">{fmtNum(usage.avg_input_tokens)} avg/call</p>}
+      </div>
+      <div className="bg-slate-50 border border-slate-200 rounded px-3 py-2">
+        <p className="text-xs text-slate-400">Output tokens</p>
+        <p className="text-base font-bold text-slate-800 mt-0.5">{fmtK(usage.total_output_tokens)}</p>
+        {usage.avg_output_tokens && <p className="text-xs text-slate-400">{fmtNum(usage.avg_output_tokens)} avg/call</p>}
+      </div>
+      <div className="bg-slate-50 border border-slate-200 rounded px-3 py-2">
+        <p className="text-xs text-slate-400">API cost</p>
+        <p className={`text-base font-bold mt-0.5 ${isLocal ? 'text-emerald-700' : 'text-slate-800'}`}>
+          {isLocal ? 'local ($0)' : fmt$(usage.total_cost_usd, 4)}
+        </p>
+        {isLocal && <p className="text-xs text-slate-400">hardware cost not tracked</p>}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 11. Commercial signals
 // ---------------------------------------------------------------------------
 
 function CommercialSignals({ ue, summary }) {
@@ -485,6 +782,7 @@ function CommercialSignals({ ue, summary }) {
 export default function AdminUsage() {
   const [summary,     setSummary]     = useState(null)
   const [timeline,    setTimeline]    = useState(null)
+  const [ulUsage,     setUlUsage]     = useState(null)
   const [granularity, setGranularity] = useState('week')
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState('')
@@ -507,10 +805,19 @@ export default function AdminUsage() {
     }
   }, [granularity])
 
+  const loadUlUsage = useCallback(async () => {
+    try {
+      const data = await api.underlyingLlmGetUsage()
+      setUlUsage(data)
+    } catch {
+      // non-fatal
+    }
+  }, [])
+
   useEffect(() => {
     setLoading(true)
-    Promise.all([loadSummary(), loadTimeline()]).finally(() => setLoading(false))
-  }, [loadSummary, loadTimeline])
+    Promise.all([loadSummary(), loadTimeline(), loadUlUsage()]).finally(() => setLoading(false))
+  }, [loadSummary, loadTimeline, loadUlUsage])
 
   if (loading) {
     return <div className="flex items-center justify-center h-full text-slate-400 text-sm">Loading…</div>
@@ -616,8 +923,8 @@ export default function AdminUsage() {
 
         <hr className="border-slate-100 mb-6" />
 
-        {/* ── 9. Model configuration ── */}
-        <Section title="Model configuration">
+        {/* ── 9. Model configuration (Filings) ── */}
+        <Section title="Model configuration — Filings">
           <ModelConfig
             availableModels={summary.available_models}
             activeModel={summary.active_model}
@@ -627,7 +934,21 @@ export default function AdminUsage() {
 
         <hr className="border-slate-100 mb-6" />
 
-        {/* ── 10. Commercial signals ── */}
+        {/* ── 10. Underlying Securities — LLM configuration ── */}
+        <Section title="Underlying Securities — LLM configuration">
+          <UnderlyingLlmConfig />
+        </Section>
+
+        <hr className="border-slate-100 mb-6" />
+
+        {/* ── 11. Underlying Securities — token usage ── */}
+        <Section title="Underlying Securities — token usage">
+          <UnderlyingLlmUsage usage={ulUsage} />
+        </Section>
+
+        <hr className="border-slate-100 mb-6" />
+
+        {/* ── 12. Commercial signals (Filings) ── */}
         <Section title="Commercial signals">
           <CommercialSignals
             ue={ue}

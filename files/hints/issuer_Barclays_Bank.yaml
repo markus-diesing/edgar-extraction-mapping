@@ -117,7 +117,7 @@ field_hints:
     format: Absolute price or index level, e.g. "$150.00" or "19,324.56"
     typical_location: KEY TERMS table; per-underlying sub-table
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Maturity Date
     label_in_doc: 'Maturity Date:* (with asterisk footnote marker)'
@@ -217,6 +217,6 @@ table_labels:
   # Fixed-coupon barrier note variant (e.g. CUSIP 06744EE37)
   # These labels appear in fixed-coupon products with physical delivery
   "Fixed Coupon":                     "coupon.rate"
-  "Initial Valuation Date":           "structuredProductsGeneric.tradeDate"
+  "Initial Valuation Date":           "structuredProductsGeneral.tradeDate"
   "Denominations":                    "product.denomination"
   "Final Underlier Value":            "underlyingTerms.underlyingAssets[*].finalLevel"

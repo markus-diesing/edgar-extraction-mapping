@@ -115,28 +115,28 @@ field_hints:
       beyond buffer). If buffer = 15%, downside threshold = 85%, loss only occurs below
       85% and is multiplied by 1/(1-buffer). Verify against PRISM schema buffer field.
 
-  structuredProductsGeneric.tradeDate:
+  structuredProductsGeneral.tradeDate:
     synonyms:
       - Trade Date
     label_in_doc: "Trade Date** in Key Dates table"
     format: "Date string, e.g. 'March 27, 2026'"
     typical_location: Key Dates table on front cover
 
-  structuredProductsGeneric.issueDate:
+  structuredProductsGeneral.issueDate:
     synonyms:
       - Settlement Date
     label_in_doc: "Settlement Date** in Key Dates table"
     format: "Date string, e.g. 'March 31, 2026'"
     typical_location: Key Dates table on front cover
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Maturity Date
     label_in_doc: Maturity Date in Key Dates table
     format: Date string
     typical_location: Key Dates table
 
-  structuredProductsGeneric.valuationDate:
+  structuredProductsGeneral.valuationDate:
     synonyms:
       - Final Valuation Date
     label_in_doc: Final Valuation Date in Key Dates table
@@ -259,7 +259,7 @@ field_hints:
       May include selling concession footnote; use the headline price.
     typical_location: Note Offering table; cover page
 
-  structuredProductsGeneric.instrumentCurrency:
+  structuredProductsGeneral.instrumentCurrency:
     synonyms:
       - USD
       - U.S. dollars
@@ -267,7 +267,7 @@ field_hints:
     format: '"USD"'
     typical_location: Throughout the document; not labeled as a field
 
-  structuredProductsGeneric.settlement:
+  structuredProductsGeneral.settlement:
     synonyms:
       - cash settlement
       - cash payment
@@ -319,9 +319,9 @@ table_labels:
   "Bloomberg Tickers":                "underlyingTerms.underlyingAssets[*].bloombergTicker"
   "Bloomberg Ticker":                 "underlyingTerms.underlyingAssets[*].bloombergTicker"
   # Dates
-  "Trade Date":                       "structuredProductsGeneric.tradeDate"
-  "Settlement Date":                  "structuredProductsGeneric.issueDate"
-  "Final Valuation Date":             "structuredProductsGeneric.valuationDate"
-  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  "Trade Date":                       "structuredProductsGeneral.tradeDate"
+  "Settlement Date":                  "structuredProductsGeneral.issueDate"
+  "Final Valuation Date":             "structuredProductsGeneral.valuationDate"
+  "Maturity Date":                    "structuredProductsGeneral.maturityDate"
   # ISIN is explicit in UBS Note Offering table
   "ISIN":                             "identifiers.isin"

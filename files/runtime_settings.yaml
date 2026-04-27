@@ -1,3 +1,6 @@
-sectioned_extraction: false
+sectioned_extraction: true
 section_merge_confidence_delta: 0.1
 classification_gate_confidence: 0.85
+underlying_llm_provider: anthropic
+underlying_llm_endpoint: ''
+underlying_llm_model: ''

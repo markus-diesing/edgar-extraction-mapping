@@ -133,7 +133,7 @@ field_hints:
       Also described as "the closing level of the [Index] on the Pricing Date".
     typical_location: Key Terms table
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Stated Maturity Date
       - Due Date
@@ -224,10 +224,10 @@ table_labels:
   "Interest Barrier":                 "coupon.barrierLevel"
   "Interest Barrier/Trigger Value":   "barrier.triggerDetails.triggerLevel"
   # Date labels
-  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
-  "Original Issue Date (Settlement Date)": "structuredProductsGeneric.issueDate"
-  "Stated Maturity Date":             "structuredProductsGeneric.maturityDate"
-  "Final Review Date":                "structuredProductsGeneric.valuationDate"
+  "Pricing Date":                     "structuredProductsGeneral.tradeDate"
+  "Original Issue Date (Settlement Date)": "structuredProductsGeneral.issueDate"
+  "Stated Maturity Date":             "structuredProductsGeneral.maturityDate"
+  "Final Review Date":                "structuredProductsGeneral.valuationDate"
   # Underlying
   "Index":                            "underlyingTerms.underlyingAssets[*].name"
   "Initial Value":                    "underlyingTerms.underlyingAssets[*].initialLevel"

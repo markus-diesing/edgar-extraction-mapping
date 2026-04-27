@@ -18,11 +18,14 @@ frontend/.vite/
 # ── Data: regenerable / binary / large ───────────────────────────────────────
 # SQLite database — binary, changes constantly; use manual snapshots instead
 data/db/
+backend/edgar_data.db
 # Raw 424B2 HTML + images — re-downloadable from SEC EDGAR
 data/filings/
 # Generated export JSON/CSV — reproducible by re-running export
 data/exports/
 logs/
+# EDGAR ticker → CIK cache — regenerated automatically on first run
+files/company_tickers_cache.json
 
 # ── Credentials ───────────────────────────────────────────────────────────────
 .env
@@ -51,3 +54,4 @@ Thumbs.db
 
 # ── Claude Code internal ──────────────────────────────────────────────────────
 .claude/
+nginx/certs/

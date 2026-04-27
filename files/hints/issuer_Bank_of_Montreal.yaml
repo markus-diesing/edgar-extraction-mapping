@@ -111,28 +111,28 @@ field_hints:
     format: "'Interest, if payable, will be paid on the 3rd day of each month (or, if such day is not a business day, the next following business day), beginning on [date] and ending on the Maturity Date.'"
     typical_location: Key Terms table
 
-  structuredProductsGeneric.tradeDate:
+  structuredProductsGeneral.tradeDate:
     synonyms:
       - Pricing Date
     label_in_doc: "Pricing Date:"
     format: Date string in Terms of the Notes table
     typical_location: Terms of the Notes table, first row
 
-  structuredProductsGeneric.issueDate:
+  structuredProductsGeneral.issueDate:
     synonyms:
       - Settlement Date
     label_in_doc: "Settlement Date:"
     format: Date string
     typical_location: Terms of the Notes table and Key Terms table
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Maturity Date
     label_in_doc: "Maturity Date:"
     format: Date string
     typical_location: Terms of the Notes table and Key Terms table
 
-  structuredProductsGeneric.valuationDate:
+  structuredProductsGeneral.valuationDate:
     synonyms:
       - Valuation Date
     label_in_doc: "Valuation Date:"
@@ -146,7 +146,7 @@ field_hints:
     format: "'With respect to each Reference Asset, the closing level of that Reference Asset on the Valuation Date.'"
     typical_location: "Key Terms table 'Final Level' row"
 
-  structuredProductsGeneric.notional:
+  structuredProductsGeneral.notional:
     synonyms:
       - Principal Amount
     label_in_doc: Principal Amount column in Specific Terms table
@@ -197,6 +197,59 @@ field_hints:
     format: "'BMOCM' (BMO Capital Markets Corp.)"
     typical_location: Key Terms table
 
+  # ── OTC-specific fields (otcAutocallBarrierCouponSwap model) ───────────────
+
+  identifiers.bmoOtcIdentifier:
+    synonyms:
+      - BMO OTC Identifier
+      - BMO Reference
+      - OTC Reference Number
+    label_in_doc: Varies — typically in the swap confirmation header.
+    format: "String identifier assigned by BMO for bilateral OTC instruments."
+    typical_location: Swap confirmation cover page or identifier table.
+    _note: Only present on otcAutocallBarrierCouponSwap filings, not standard 424B2 notes.
+
+  identifiers.commonCode:
+    synonyms:
+      - Common Code
+      - Euroclear Code
+      - Clearstream Code
+    label_in_doc: Common Code (in identifier table alongside ISIN)
+    format: "9-digit numeric string, e.g. '123456789'"
+    typical_location: Identifier table on cover or term sheet.
+    _note: Present on internationally cleared BMO OTC instruments.
+
+  otcDerivativesGeneral.tradeDate:
+    synonyms:
+      - Trade Date
+      - Pricing Date
+    label_in_doc: "Trade Date: or Pricing Date:"
+    format: ISO date YYYY-MM-DD
+    typical_location: OTC swap confirmation header / term sheet.
+    _note: >
+      In BMO OTC filings, 'Trade Date' or 'Pricing Date' in the confirmation
+      header maps to otcDerivativesGeneral.tradeDate (NOT structuredProductsGeneral.initialFixingDate).
+
+  otcDerivativesGeneral.tradedUnits:
+    synonyms:
+      - Traded Units
+      - Number of Units
+      - Notional Units
+      - Quantity
+    label_in_doc: "Traded Units: or Number of Units:"
+    format: "String (numeric quantity), e.g. '1000'"
+    typical_location: OTC swap confirmation — principal terms table.
+
+  structuredSwap.structuredLegReceiver:
+    synonyms:
+      - Structured Leg Receiver
+      - Counterparty receiving structured leg
+    label_in_doc: Varies — derived from swap party roles in the confirmation.
+    format: "SwapParty discriminated union — 'buyer' or 'seller'"
+    _note: >
+      Identifies which swap party (buyer or seller) receives the structured
+      leg cashflows. The other party pays the floating/interest leg.
+
 general_notes: >
   Bank of Montreal 424B2 supplements use three layered tables: 'Terms of the Notes'
   (brief dates), 'Specific Terms of the Notes' (multi-column grid), then 'Key Terms of
@@ -216,6 +269,15 @@ general_notes: >
   Products labelled yieldEnhancementBarrierCoupon (no autocall clause in Key Terms)
   have no autocall — leave all autocall fields null for those.
 
+  OTC PRODUCTS (otcAutocallBarrierCouponSwap model): BMO also files OTC swap
+  confirmations for bilateral transactions. These use the otcAutocallBarrierCouponSwap
+  model. Key differences from standard 424B2 notes: (1) no funding/structuredProductsGeneral
+  block — use otcDerivativesGeneral instead; (2) identifiers include bmoOtcIdentifier
+  and/or commonCode (9-digit Euroclear code); (3) a structuredSwap block identifies which
+  party receives the structured leg; (4) an interestLeg block describes the floating/fixed
+  counterparty leg. The v2 PRISM schema specifically enables these fields (bmoOtcIdentifier,
+  commonCode, otcDerivativesGeneral.tradeDate, otcDerivativesGeneral.tradedUnits).
+
 # ── Programmatic extraction (Tier 1) ───────────────────────────────────────
 key_terms_table_heading: "Specific Terms of the Notes:"
 
@@ -225,10 +287,10 @@ table_labels:
   "Trigger Level":                    "barrier.triggerDetails.triggerLevel"
   "Coupon Barrier Level":             "coupon.barrierLevel"
   # BOM uses "Pricing Date" for trade date
-  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
-  "Settlement Date":                  "structuredProductsGeneric.issueDate"
-  "Valuation Date":                   "structuredProductsGeneric.valuationDate"
-  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  "Pricing Date":                     "structuredProductsGeneral.tradeDate"
+  "Settlement Date":                  "structuredProductsGeneral.issueDate"
+  "Valuation Date":                   "structuredProductsGeneral.valuationDate"
+  "Maturity Date":                    "structuredProductsGeneral.maturityDate"
   # Reference assets
   "Reference Asset":                  "underlyingTerms.underlyingAssets[*].name"
   "Reference Assets":                 "underlyingTerms.underlyingAssets[*].name"

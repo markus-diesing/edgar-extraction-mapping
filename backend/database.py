@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    Boolean, Column, Float, ForeignKey, Integer, String, Text, UniqueConstraint,
+    Boolean, Column, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint,
     create_engine, event, text,
 )
 from sqlalchemy.exc import OperationalError
@@ -165,6 +165,206 @@ class ClassificationFeedback(Base):
     filing = relationship("Filing", back_populates="classification_feedback")
 
 
+# ---------------------------------------------------------------------------
+# Underlying Data Module — ORM models
+# ---------------------------------------------------------------------------
+
+class UnderlyingSecurity(Base):
+    """
+    Master record for one underlying reference security (one row per share class).
+
+    A company with multiple listed classes (e.g. Alphabet GOOGL / GOOG) produces
+    two separate rows sharing the same ``cik`` but with different ``ticker`` values.
+    The ``UniqueConstraint("cik", "ticker")`` enforces this de-duplication.
+    """
+    __tablename__ = "underlying_securities"
+
+    id                       = Column(String, primary_key=True, default=_uuid)
+
+    # ── Identification ────────────────────────────────────────────────────────
+    cik                      = Column(String, index=True)
+    ticker                   = Column(String, index=True)
+    ticker_bb                = Column(String)           # Bloomberg ticker (user-supplied)
+    all_tickers              = Column(Text)             # JSON array: all tickers for this CIK (incl. preferred/note series)
+    source_identifier        = Column(String)           # raw value the user typed
+    source_identifier_type   = Column(String)           # ticker|isin|cusip|cik|name|bb_ticker
+
+    # ── Company metadata (Tier 1 — submissions API) ───────────────────────────
+    company_name             = Column(String)
+    legal_name               = Column(String)           # registrant name from 10-K cover (Tier 2 LLM)
+    share_class_name         = Column(String)           # class name only, no par value (10-K cover, Tier 2 LLM)
+    par_value                = Column(String)           # e.g. "$0.001 par value" (10-K cover, Tier 2 LLM)
+    share_type               = Column(String)           # derived: "Domestic Common Stock" | "ADR" | …
+    reporting_form           = Column(String)           # "10-K" | "20-F" | "40-F"
+    filer_category           = Column(String)
+    fiscal_year_end          = Column(String)           # MMDD, e.g. "0630"
+    exchange                 = Column(String)
+    sic_code                 = Column(String)
+    sic_description          = Column(String)
+    state_of_incorporation   = Column(String)
+    entity_type              = Column(String)           # raw from submissions
+    adr_flag                 = Column(Boolean, default=False)
+
+    # ── Filing references ─────────────────────────────────────────────────────
+    last_10k_accession       = Column(String)
+    last_10k_filed           = Column(String)           # ISO date YYYY-MM-DD
+    last_10k_period          = Column(String)           # report period end date
+    last_10q_accession       = Column(String)
+    last_10q_filed           = Column(String)
+    last_10q_period          = Column(String)
+
+    # ── Currentness (computed from submissions data) ──────────────────────────
+    current_status           = Column(String)           # current|late_nt|delinquent|unknown
+    nt_flag                  = Column(Boolean, default=False)
+    next_expected_filing     = Column(String)           # ISO date of next required form
+    next_expected_form       = Column(String)           # "10-K" | "10-Q" | "20-F"
+
+    # ── XBRL structured facts (Tier 1) ────────────────────────────────────────
+    shares_outstanding       = Column(Float)
+    shares_outstanding_date  = Column(String)
+    public_float_usd         = Column(Float)
+    public_float_date        = Column(String)
+
+    # ── Market data (Tier 3 — yfinance, user-editable) ───────────────────────
+    closing_value            = Column(Float)
+    closing_value_date       = Column(String)
+    initial_value            = Column(Float)
+    initial_value_date       = Column(String)           # date the user chose for lookup
+    hist_data_series         = Column(Text)             # JSON: [{"date": …, "close": …}, …]
+    market_data_source       = Column(String, default="yahoo_finance")
+    market_data_fetched_at   = Column(String)
+
+    # ── Tier 2 LLM token usage ────────────────────────────────────────────────
+    llm_input_tokens         = Column(Integer)          # prompt tokens for Tier 2 extraction call
+    llm_output_tokens        = Column(Integer)          # completion tokens
+    llm_cost_usd             = Column(Float)            # estimated cost at list-price rates
+
+    # ── 10-K source text (for human validation) ───────────────────────────────
+    last_10k_text            = Column(Text)             # first UNDERLYING_EXTRACTION_CHARS chars of stripped text
+    last_10k_primary_doc     = Column(String)           # primary document filename (e.g. "msft-20250630.htm")
+
+    # ── Lifecycle ─────────────────────────────────────────────────────────────
+    # ingested → fetching → fetched → needs_review → approved | archived
+    status                   = Column(String, nullable=False, default="ingested", index=True)
+    ingest_timestamp         = Column(String, nullable=False, default=_now, index=True)
+    last_fetched_at          = Column(String)
+    field_config_version     = Column(String)           # config snapshot at ingest time
+    fetch_error              = Column(Text)             # last error message if fetch failed
+
+    __table_args__ = (
+        # Named constraint so it appears clearly in schema introspection tools.
+        # SQLite automatically creates a B-tree index to enforce this constraint,
+        # so no separate composite Index is needed for the filter_by(cik=…, ticker=…) hot-path.
+        UniqueConstraint("cik", "ticker", name="uq_underlying_cik_ticker"),
+    )
+
+    field_results = relationship(
+        "UnderlyingFieldResult",
+        back_populates="underlying",
+        cascade="all, delete-orphan",
+    )
+    edit_log = relationship(
+        "UnderlyingEditLog",
+        back_populates="underlying",
+        cascade="all, delete-orphan",
+    )
+    links = relationship(
+        "UnderlyingLink",
+        back_populates="underlying",
+        cascade="all, delete-orphan",
+    )
+
+
+class UnderlyingFieldResult(Base):
+    """
+    Per-field extracted value for one underlying security.
+
+    Mirrors the shape of ``FieldResult`` used in the extraction pipeline so
+    that the same review UI patterns apply. One row per (underlying, field_name).
+    """
+    __tablename__ = "underlying_field_results"
+
+    id               = Column(String, primary_key=True, default=_uuid)
+    underlying_id    = Column(String, ForeignKey("underlying_securities.id"), nullable=False)
+    field_name       = Column(String, nullable=False)
+    extracted_value  = Column(Text)             # JSON-encoded
+    confidence_score = Column(Float)            # 1.0 for Tier 1; model score for Tier 2
+    source_excerpt   = Column(Text)             # supporting text snippet (Tier 2 only)
+    # submissions_api | xbrl_dei | 10k_cover | 10k_item1 | manual | yahoo_finance
+    source_type      = Column(String, default="manual")
+    is_approximate   = Column(Boolean, default=False)   # True for market data fields
+    # pending | accepted | corrected | rejected
+    review_status    = Column(String, default="pending")
+    reviewed_value   = Column(Text)             # JSON-encoded analyst override
+    reviewed_at      = Column(String)
+    field_config_version = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint("underlying_id", "field_name", name="uq_field_result_underlying_field"),
+    )
+
+    underlying = relationship("UnderlyingSecurity", back_populates="field_results")
+
+
+class UnderlyingEditLog(Base):
+    """Audit trail for all review actions on underlying field values."""
+    __tablename__ = "underlying_edit_log"
+
+    id             = Column(String, primary_key=True, default=_uuid)
+    underlying_id  = Column(String, ForeignKey("underlying_securities.id"), nullable=False)
+    field_name     = Column(String, nullable=False)
+    old_value      = Column(Text)
+    new_value      = Column(Text)
+    # edited | accepted | rejected | approved | refetched
+    action         = Column(String, nullable=False)
+    edited_at      = Column(String, nullable=False, default=_now)
+
+    underlying = relationship("UnderlyingSecurity", back_populates="edit_log")
+
+
+class UnderlyingLink(Base):
+    """
+    Many-to-many join between 424B2 filings and underlying securities.
+
+    Populated automatically from ``classification_product_features.underlyings``
+    when a filing is classified, and also manually via the UI.
+    """
+    __tablename__ = "underlying_links"
+
+    id             = Column(String, primary_key=True, default=_uuid)
+    filing_id      = Column(String, ForeignKey("filings.id"), nullable=False)
+    underlying_id  = Column(String, ForeignKey("underlying_securities.id"), nullable=False)
+    linked_at      = Column(String, nullable=False, default=_now)
+    # "classification_features" | "manual"
+    link_source    = Column(String, default="manual")
+
+    __table_args__ = (UniqueConstraint("filing_id", "underlying_id"),)
+
+    filing     = relationship("Filing")
+    underlying = relationship("UnderlyingSecurity", back_populates="links")
+
+
+class UnderlyingJob(Base):
+    """
+    Background ingest job tracker.
+
+    One row per queued ingest request. The frontend polls
+    ``GET /api/underlying/jobs/{job_id}`` to follow progress.
+    """
+    __tablename__ = "underlying_jobs"
+
+    id           = Column(String, primary_key=True, default=_uuid)
+    # pending | running | done | error
+    status       = Column(String, nullable=False, default="pending")
+    total        = Column(Integer, default=0)    # total identifiers queued
+    done         = Column(Integer, default=0)    # completed (success + error)
+    success      = Column(Integer, default=0)
+    errors       = Column(Integer, default=0)
+    results      = Column(Text)                  # JSON: [{identifier, underlying_id?, error?}, …]
+    created_at   = Column(String, nullable=False, default=_now)
+    updated_at   = Column(String, nullable=False, default=_now)
+
+
 class LabelMissLog(Base):
     """
     Tracks label strings that html_extractor saw in Key Terms tables but could
@@ -205,14 +405,89 @@ class ApiUsageLog(Base):
 # ---------------------------------------------------------------------------
 
 def init_db() -> None:
-    """Create all tables if they don't exist. Safe to call on every startup."""
+    """Create all tables and apply pending Alembic migrations.
+
+    Strategy
+    --------
+    * **Fresh install** (no ``alembic_version`` table): ``create_all()`` builds
+      the complete schema — tables, indexes, and named constraints — from the ORM
+      models.  We then *stamp* Alembic at ``head`` so it won't re-apply
+      migrations that are already reflected in the schema.
+    * **Existing install** (``alembic_version`` present): ``create_all()`` is a
+      no-op for existing tables; Alembic's ``upgrade head`` applies any
+      outstanding migrations in order.
+
+    The legacy ``_migrate()`` call is kept as a safety net for databases that
+    predate Alembic (all its ``ALTER TABLE ADD COLUMN`` operations are idempotent
+    and swallow ``OperationalError`` when the column already exists).
+    """
     config.ensure_dirs()
-    Base.metadata.create_all(engine)
-    _migrate()
+    is_fresh = not _alembic_version_exists()
+    Base.metadata.create_all(engine)   # idempotent: creates new tables only
+    if is_fresh:
+        # Stamp without running migrations — create_all() already produced the
+        # full schema (including H3 indexes).
+        _alembic_stamp("head")
+    else:
+        # Apply any migrations that haven't been applied yet.
+        _alembic_upgrade()
+    _migrate()   # legacy ADD COLUMN safety net (all calls are idempotent no-ops)
+
+
+# ---------------------------------------------------------------------------
+# Alembic helpers (imported lazily to avoid circular imports: env.py → database)
+# ---------------------------------------------------------------------------
+
+def _alembic_cfg():
+    """Return an AlembicConfig pointed at our alembic.ini."""
+    from pathlib import Path as _Path
+    from alembic.config import Config as _AlembicConfig
+    _ini = _Path(__file__).parent / "alembic.ini"
+    _cfg = _AlembicConfig(str(_ini))
+    _cfg.set_main_option("sqlalchemy.url", f"sqlite:///{config.DB_PATH}")
+    return _cfg
+
+
+def _alembic_upgrade() -> None:
+    """Apply all pending Alembic migrations (``alembic upgrade head``)."""
+    import logging as _logging
+    from alembic import command as _cmd
+    _log = _logging.getLogger(__name__)
+    try:
+        _cmd.upgrade(_alembic_cfg(), "head")
+    except Exception as exc:
+        _log.error("Alembic upgrade failed: %s", exc, exc_info=True)
+        raise
+
+
+def _alembic_stamp(revision: str) -> None:
+    """Stamp the database at *revision* without running migrations."""
+    import logging as _logging
+    from alembic import command as _cmd
+    _log = _logging.getLogger(__name__)
+    try:
+        _cmd.stamp(_alembic_cfg(), revision)
+    except Exception as exc:
+        _log.error("Alembic stamp failed: %s", exc, exc_info=True)
+        raise
+
+
+def _alembic_version_exists() -> bool:
+    """Return True if the ``alembic_version`` table exists in the database."""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'")
+        ).scalar()
+        return row is not None
 
 
 def _migrate() -> None:
-    """Add new columns to existing tables without dropping data."""
+    """Legacy ADD COLUMN migrations — kept for pre-Alembic databases.
+
+    Each entry is idempotent: SQLite raises ``OperationalError`` if the column
+    already exists and we swallow it silently.  New schema changes should be
+    added as proper Alembic revision files instead.
+    """
     migrations = [
         # v1 columns
         ("filings",       "ingest_started_at",                  "TEXT"),
@@ -231,6 +506,21 @@ def _migrate() -> None:
         ("field_results",      "source",                         "TEXT"),
         # v6 columns — label miss log deduplication
         ("label_miss_log",     "dismissed",                      "INTEGER"),
+        # v7 columns — underlying data module
+        ("underlying_securities", "fetch_error",                 "TEXT"),
+        ("underlying_securities", "next_expected_form",          "TEXT"),
+        ("underlying_jobs",       "success",                     "INTEGER"),
+        ("underlying_jobs",       "errors",                      "INTEGER"),
+        # v8 columns — legal name + LLM token cost tracking
+        ("underlying_securities", "legal_name",                  "TEXT"),
+        ("underlying_securities", "llm_input_tokens",            "INTEGER"),
+        ("underlying_securities", "llm_output_tokens",           "INTEGER"),
+        ("underlying_securities", "llm_cost_usd",                "REAL"),
+        # v9 columns — 10-K source text for human validation
+        ("underlying_securities", "last_10k_text",               "TEXT"),
+        ("underlying_securities", "last_10k_primary_doc",        "TEXT"),
+        # v10 columns — all-tickers list for multi-class CIK visibility
+        ("underlying_securities", "all_tickers",                 "TEXT"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:
@@ -238,7 +528,7 @@ def _migrate() -> None:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 conn.commit()
             except OperationalError:
-                pass  # column already exists — SQLite raises OperationalError on duplicate ADD COLUMN
+                pass  # column already exists — swallow silently
 
 
 def get_session() -> Session:

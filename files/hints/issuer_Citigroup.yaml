@@ -119,7 +119,7 @@ field_hints:
       indicate it is set on the pricing date.
     typical_location: Per-underlying sub-table in KEY TERMS; also in Preliminary Terms
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Maturity date
     label_in_doc: "Maturity date:"
@@ -157,7 +157,7 @@ field_hints:
     format: "100.00% of principal or $1,000 per security; footnoted with cost breakdown"
     typical_location: KEY TERMS table
 
-  structuredProductsGeneric.tradeDate:
+  structuredProductsGeneral.tradeDate:
     synonyms:
       - Pricing Date
       - Pricing date
@@ -166,7 +166,7 @@ field_hints:
     format: ISO date string YYYY-MM-DD
     typical_location: KEY TERMS table; cover page
 
-  structuredProductsGeneric.issueDate:
+  structuredProductsGeneral.issueDate:
     synonyms:
       - Settlement date
       - Issue date
@@ -175,7 +175,7 @@ field_hints:
     format: ISO date string YYYY-MM-DD. Typically T+3 from Pricing date.
     typical_location: KEY TERMS table
 
-  structuredProductsGeneric.valuationDate:
+  structuredProductsGeneral.valuationDate:
     synonyms:
       - Final valuation date
       - Final observation date
@@ -275,7 +275,7 @@ field_hints:
     format: "100% of principal → 1.00. Footnoted with underwriting discounts."
     typical_location: KEY TERMS table
 
-  structuredProductsGeneric.instrumentCurrency:
+  structuredProductsGeneral.instrumentCurrency:
     synonyms:
       - USD
       - U.S. dollars
@@ -283,7 +283,7 @@ field_hints:
     format: '"USD"'
     typical_location: Throughout the document
 
-  structuredProductsGeneric.settlement:
+  structuredProductsGeneral.settlement:
     synonyms:
       - cash payment
       - cash settlement
@@ -347,11 +347,11 @@ table_labels:
   "Contingent Coupon":                "coupon.rate"
   "Contingent Coupon Rate":           "coupon.rate"
   # Dates
-  "Pricing date":                     "structuredProductsGeneric.tradeDate"
-  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
-  "Issue date":                       "structuredProductsGeneric.issueDate"
-  "Issue Date":                       "structuredProductsGeneric.issueDate"
-  "Maturity date":                    "structuredProductsGeneric.maturityDate"
-  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
-  "Valuation date":                   "structuredProductsGeneric.valuationDate"
-  "Valuation Date":                   "structuredProductsGeneric.valuationDate"
+  "Pricing date":                     "structuredProductsGeneral.tradeDate"
+  "Pricing Date":                     "structuredProductsGeneral.tradeDate"
+  "Issue date":                       "structuredProductsGeneral.issueDate"
+  "Issue Date":                       "structuredProductsGeneral.issueDate"
+  "Maturity date":                    "structuredProductsGeneral.maturityDate"
+  "Maturity Date":                    "structuredProductsGeneral.maturityDate"
+  "Valuation date":                   "structuredProductsGeneral.valuationDate"
+  "Valuation Date":                   "structuredProductsGeneral.valuationDate"

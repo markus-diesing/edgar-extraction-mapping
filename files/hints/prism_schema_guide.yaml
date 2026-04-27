@@ -296,12 +296,12 @@ underlyingObservation:
 
 
 # ===========================================================================
-# 7. structuredProductsGeneric fields — filing vocabulary mapping
+# 7. structuredProductsGeneral fields — filing vocabulary mapping
 # ===========================================================================
 
-structuredProductsGeneric_field_map:
+structuredProductsGeneral_field_map:
   description: >
-    Key fields in structuredProductsGeneric and how they map to common
+    Key fields in structuredProductsGeneral and how they map to common
     filing label vocabulary across all issuers.
 
   fields:
@@ -452,3 +452,292 @@ underlyings_pattern:
     A Reference is an object with a "$ref" key containing the identifier
     (ISIN, CUSIP, Bloomberg ticker, or index code) of the underlying instrument.
     Use the ISIN if available; otherwise use the Bloomberg ticker or exchange ticker.
+
+
+# ===========================================================================
+# 11. PARTICIPATION MODEL FAMILY (v2 — capital protection / tracker products)
+# ===========================================================================
+
+participation_model_family:
+  description: >
+    Capital protection or tracker products that provide upside participation
+    in an underlying (index, basket) with varying degrees of downside protection.
+    Added in PRISM v2. These are entirely different from yieldEnhancement* products:
+    they focus on participation in underlying performance, not contingent yield.
+
+  key_block_underlyingExposure:
+    description: >
+      Central block for all participation models. Defines how the investor
+      participates in the underlying's return.
+    fields:
+      participationPercent:
+        description: >
+          Participation rate in the underlying upside return, as a decimal fraction.
+          '100% participation' → 1.00; '120% participation' → 1.20.
+        filing_labels: [Participation Rate, Participation Level, Upside Participation, participation rate]
+      ratio:
+        description: >
+          Number of underlying units per note denomination (e.g. 1.0 for 1:1 tracking).
+        filing_labels: [Ratio, Exchange Ratio, conversion ratio]
+
+  participation_models_overview:
+    participation:
+      description: "Linear tracker / tracker certificate. No protection. Participates 1:1 or at participationPercent in the underlying."
+      required_blocks: [identifiers, structuredProductsGeneral, underlyingExposure, underlyingTerms]
+      optional_blocks: [underlyings, parties, portfolios]
+
+    participationBonus:
+      description: >
+        Classic Bonus Certificate. Minimum bonus payout if barrier not breached;
+        full upside participation if underlying outperforms the bonus. Includes
+        downside risk if barrier is breached (similar to a reverse convertible).
+      required_blocks: [identifiers, structuredProductsGeneral, funding, underlyingExposure, bonus, barrier, underlyingTerms]
+      key_blocks:
+        bonus:
+          fields: [bonusAmount, bonusPercent, strikeDetails]
+          description: "Minimum bonus return — paid if barrier not breached and underlying underperforms."
+        barrier:
+          description: "Downside barrier — if breached, bonus protection is lost."
+
+    participationTwinWin:
+      description: >
+        Twin-Win Certificate. Provides positive participation in BOTH upside and
+        downside moves of the underlying (downside return is mirrored as positive).
+        If the barrier is breached, downside protection is lost.
+      required_blocks: [identifiers, structuredProductsGeneral, underlyingExposure, twinWinParticipation, underlyingTerms]
+      key_blocks:
+        twinWinParticipation:
+          fields: [downsideParticipationPercent, strikeDetails]
+          description: "Rate at which the (mirrored) downside return is captured."
+
+    participationAirbag:
+      description: >
+        Airbag protection variant. The airbag provides reduced loss below a strike
+        level, cushioning the downside. Upside participation is also included.
+      required_blocks: [identifiers, structuredProductsGeneral, underlyingExposure, airbagParticipation, underlyingTerms]
+      key_blocks:
+        airbagParticipation:
+          fields: [strikeDetails, participationPercent, ratio]
+
+    participationBufferBonus:
+      description: >
+        Buffer + Bonus. Combines a capital buffer (minimum repayment percent) with
+        a bonus certificate structure. The buffer provides partial loss protection
+        even if the barrier is breached.
+      required_blocks: [identifiers, structuredProductsGeneral, funding, underlyingExposure, bufferedDownsideRisk, bonus, underlyingTerms]
+      key_blocks:
+        bufferedDownsideRisk:
+          fields: [strikeDetails, ratio, participationPercent, minimumRepaymentPercent, minimumRepaymentAmount]
+          description: "Defines the buffer — minimum repayment as fraction of denomination."
+
+  filing_vocabulary_for_participation:
+    upside_participation:
+      - Participation Rate
+      - Upside Participation
+      - participation in the appreciation
+      - leveraged upside
+      - cap on upside (if cap block present)
+    bonus_level:
+      - Bonus Level
+      - Bonus Amount
+      - Minimum Redemption Amount
+      - Floor Level
+    barrier:
+      - Barrier Level
+      - Protection Barrier
+      - Knock-In Barrier
+      - Capital Protection Level
+    twin_win:
+      - Twin-Win
+      - TwinWin
+      - Bear Participation
+      - Downside Participation Rate
+    buffer:
+      - Buffer
+      - Capital Buffer
+      - Minimum Repayment
+      - Protected Amount
+
+
+# ===========================================================================
+# 12. YIELD ENHANCEMENT — CALLABLE & BUFFER VARIANTS (v2 new models)
+# ===========================================================================
+
+yield_enhancement_new_variants:
+  description: >
+    PRISM v2 adds several new yieldEnhancement model variants. These extend the
+    existing yieldEnhancementAutocallBarrierCoupon / yieldEnhancementBarrierCoupon
+    family with two new structural features: (1) ISSUER CALL (discretionary, not
+    level-triggered) and (2) BUFFER/PARTIAL PROTECTION (minimum repayment floor
+    even if barrier is breached). Recognising which variant to use is critical.
+
+  model_selection_guide:
+    step_1_identify_call_type: >
+      Does the product have early redemption?
+        YES → Is it level-triggered (fires automatically when underlying >= threshold)?
+          YES → autocall model family (yieldEnhancementAutocall*)
+          NO  → issuer call model family (yieldEnhancementCallable*)
+        NO → non-callable model (yieldEnhancementBarrierCoupon, yieldEnhancementCoupon)
+    step_2_identify_downside_protection: >
+      Does the product have a BUFFER providing partial loss protection?
+        YES → buffered* variant (bufferedDownsideRisk block, minimumRepaymentPercent > 0)
+        NO  → standard barrier or downside risk (full loss below barrier)
+    step_3_identify_coupon: >
+      Does the product pay a contingent or fixed coupon?
+        YES → *Coupon variant
+        NO  → no Coupon suffix
+
+  new_models_detail:
+    yieldEnhancementCallableBarrierCoupon:
+      description: >
+        Barrier reverse convertible with ISSUER CALL (not autocall). The issuer
+        may discretionarily redeem the notes on specified call dates. Has a barrier
+        for principal protection and pays contingent coupons.
+      required_blocks: [identifiers, structuredProductsGeneral, downsideRisk, barrier, coupon, issuerCall, funding, underlyingTerms]
+      optional_blocks: [referenceRates, underlyings, parties]
+      vs_autocall: >
+        Use this (not yieldEnhancementAutocallBarrierCoupon) when the filing says
+        'we may redeem at our option' or 'at our election' without an underlying
+        level trigger. The issuer decides when to call.
+
+    yieldEnhancementCallableCoupon:
+      description: >
+        Reverse convertible with issuer call. No barrier — full downside exposure
+        to the underlying. Issuer may call early at its discretion.
+      required_blocks: [identifiers, structuredProductsGeneral, downsideRisk, coupon, issuerCall, funding, underlyingTerms]
+
+    yieldEnhancementBufferCoupon:
+      description: >
+        Barrier reverse convertible with BUFFERED downside protection (minimum
+        repayment floor). If barrier is breached, investor still receives at least
+        the minimum repayment amount. Has contingent coupon.
+      required_blocks: [identifiers, structuredProductsGeneral, bufferedDownsideRisk, funding, coupon, underlyingTerms]
+      optional_blocks: [referenceRates, underlyings, parties]
+      key_block:
+        bufferedDownsideRisk:
+          description: >
+            Replaces downsideRisk + barrier combination. The buffer limits the
+            maximum loss — investor cannot lose more than (1 - minimumRepaymentPercent).
+          fields: [strikeDetails, ratio, participationPercent, minimumRepaymentPercent, minimumRepaymentAmount]
+
+    yieldEnhancementBufferAutocall:
+      description: >
+        Autocall with buffered downside. If the autocall condition is not met and
+        the underlying declines, the buffer ensures a minimum repayment. No coupon.
+      required_blocks: [identifiers, structuredProductsGeneral, bufferedDownsideRisk, funding, autocall, underlyingTerms]
+
+    yieldEnhancementBufferAutocallCoupon:
+      description: >
+        Autocall with buffered downside AND contingent coupon. The complete
+        buffered-autocall product with income.
+      required_blocks: [identifiers, structuredProductsGeneral, bufferedDownsideRisk, funding, autocall, coupon, underlyingTerms]
+
+    yieldEnhancementBufferCallableCoupon:
+      description: >
+        Callable (issuer-discretionary) with buffered downside and coupon.
+      required_blocks: [identifiers, structuredProductsGeneral, bufferedDownsideRisk, funding, coupon, issuerCall, underlyingTerms]
+
+    yieldEnhancementAutocallBarrier:
+      description: >
+        Autocall with barrier — no coupon. Autocall fires when underlying ≥ call level.
+        Barrier provides conditional downside protection. No coupon payments.
+      required_blocks: [identifiers, structuredProductsGeneral, downsideRisk, barrier, funding, autocall, underlyingTerms]
+
+  issuerCall_block:
+    description: >
+      The issuerCall block is used in yieldEnhancementCallable* models.
+      It is NOT a discriminated union — just a plain object.
+    fields:
+      issuerCallSchedule:
+        type: object (keyed by ISO-8601 datetime)
+        description: >
+          Each entry: {repaymentAmount: <number>, dates: {IssuerCallDates}}.
+          repaymentAmount is the absolute amount per note (e.g. 1000 for par).
+      issuerCallFrequency:
+        type: Frequency discriminated union
+        description: How often the issuer may exercise the call option.
+        output_format: '{"$type": "quarterly"}'
+      offsetBusinessDays:
+        type: integer
+        description: Settlement lag in business days between call notice and payment.
+
+
+# ===========================================================================
+# 13. OTC AUTOCALL BARRIER COUPON SWAP (BMO OTC model)
+# ===========================================================================
+
+otcAutocallBarrierCouponSwap_guide:
+  description: >
+    OTC swap in which one leg replicates an autocallable barrier coupon note (the
+    "structured leg") against a floating or fixed rate leg. Used by Bank of Montreal
+    for bilateral OTC transactions rather than public note issuances.
+    Added in PRISM v2, driven by BMO OTC data requirements.
+
+  key_differences_from_note_models: >
+    - Uses otcDerivativesGeneral block (NOT structuredProductsGeneral/funding)
+    - Has interestLeg (the floating/fixed leg paid by counterparty)
+    - Has structuredSwap.structuredLegReceiver (identifies which party receives structured leg)
+    - Identifiers may include bmoOtcIdentifier and/or commonCode
+    - NO funding block (OTC swap has no denomination/aggregateDenomination concept)
+
+  required_blocks:
+    - identifiers (with bmoOtcIdentifier and/or commonCode)
+    - otcDerivativesGeneral (tradeDate, tradedUnits)
+    - downsideRisk
+    - barrier
+    - coupon
+    - interestLeg (the counterparty leg — floating rate usually SOFR/EURIBOR)
+    - structuredSwap (structuredLegReceiver)
+    - underlyingTerms
+
+  otcDerivativesGeneral_fields:
+    tradeDate: "ISO date — when the OTC agreement was executed (= Pricing/Trade Date in BMO filings)"
+    tradedUnits: "String — number of units of the structured leg (e.g. '1000')"
+
+  structuredSwap_fields:
+    structuredLegReceiver:
+      description: Which swap party receives the structured leg cashflows.
+      type: SwapParty discriminated union
+      values:
+        - buyer: The protection buyer receives the structured leg.
+        - seller: The protection seller receives the structured leg.
+
+  filing_vocabulary:
+    - OTC Autocall Barrier Coupon Swap
+    - Autocallable Barrier Note Swap
+    - BMO OTC Reference
+    - Structured Swap
+    - Swap Confirmation
+
+
+# ===========================================================================
+# 14. REFERENCE RATE AND FX RATE INSTRUMENTS (v2 reference models)
+# ===========================================================================
+
+reference_rate_instruments:
+  description: >
+    PRISM v2 adds two reference instrument models used as underlyings for
+    OTC and floating-rate products. These are NOT product models for 424B2 notes
+    but are used as referenced instruments in the underlyings map.
+
+  interestRate:
+    description: Benchmark interest rate (SOFR, EURIBOR, SARON, etc.).
+    required: [model, identifiers]
+    optional: [name, instrumentCurrency, rateTenor, parties]
+    common_examples:
+      SOFR: "Secured Overnight Financing Rate (USD)"
+      EURIBOR: "Euro Interbank Offered Rate"
+      SARON: "Swiss Average Rate Overnight (CHF)"
+    use_in_referenceRates: >
+      When a yieldEnhancementCallable* or otcAutocallBarrierCouponSwap filing
+      references a floating rate (e.g. 'SOFR + 200bps coupon'), add the rate
+      instrument to the referenceRates map using R1, R2, … keys:
+        "referenceRates": {"R1": {"$ref": "<SOFR identifier>"}}
+
+  fxRate:
+    description: Exchange rate between two currencies for FX derivatives.
+    required: [model, identifiers]
+    optional: [name, instrumentCurrency, baseCurrency, parties]
+    use_case: >
+      Used when a product's payoff or conversion depends on an FX rate.
+      Less common in 424B2 notes corpus (which are USD-denominated).

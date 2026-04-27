@@ -58,7 +58,15 @@ def _wait_rate_limit() -> None:
 # ---------------------------------------------------------------------------
 
 def _get(url: str, params: dict[str, Any] | None = None) -> httpx.Response:
-    """Synchronous GET with rate limiting and retry."""
+    """Synchronous GET with rate limiting and retry.
+
+    Retries on:
+    * HTTP 429 (rate-limited) — backs off and retries.
+    * HTTP 5xx (server errors) — transient EDGAR outages; retried up to
+      ``config.EDGAR_RETRY_MAX`` attempts.  404 and other 4xx are returned
+      immediately (they are definitive answers).
+    * ``httpx.RequestError`` (connection / timeout errors).
+    """
     delay = config.EDGAR_RETRY_BASE_DELAY
     for attempt in range(config.EDGAR_RETRY_MAX):
         _wait_rate_limit()
@@ -66,6 +74,14 @@ def _get(url: str, params: dict[str, Any] | None = None) -> httpx.Response:
             resp = httpx.get(url, params=params, headers=HEADERS, follow_redirects=True, timeout=30)
             if resp.status_code == 429:
                 log.warning("EDGAR rate-limited (429), backing off %.1fs", delay)
+                time.sleep(min(delay, 30))
+                delay *= 2
+                continue
+            if resp.status_code >= 500 and attempt < config.EDGAR_RETRY_MAX - 1:
+                log.warning(
+                    "EDGAR server error %d on attempt %d/%d, backing off %.1fs",
+                    resp.status_code, attempt + 1, config.EDGAR_RETRY_MAX, delay,
+                )
                 time.sleep(min(delay, 30))
                 delay *= 2
                 continue
@@ -207,12 +223,29 @@ def decode_html(content: bytes) -> str:
 
 
 def strip_html(html: str) -> str:
-    """
-    Strip HTML tags and return plain text, removing scripts/styles.
-    Used to prepare text for Claude API calls.
+    """Strip HTML tags and return plain text, removing scripts/styles.
+
+    Also removes Inline XBRL (iXBRL) namespace header blocks that modern SEC
+    filings embed in the document before the human-readable cover page.  These
+    blocks can be 60–100 KB of FASB taxonomy URIs and XBRL context definitions
+    that would otherwise appear at the start of the extracted text and push the
+    actual filing content beyond the LLM extraction window.
+
+    Tags removed entirely (no text kept):
+    - ``ix:header`` — the main iXBRL metadata block (most of the noise)
+    - ``xbrli:context``, ``xbrli:unit`` — XBRL period/entity context defs
+    - Standard: ``script``, ``style``, ``head``, ``meta``, ``link``
+
+    Inline iXBRL value tags (``ix:nonfraction``, ``ix:nonnumeric``, etc.) are
+    NOT removed — their text content (the actual filed values) is preserved.
     """
     soup = BeautifulSoup(html, "lxml")
+    # Remove standard noise tags
     for tag in soup(["script", "style", "head", "meta", "link"]):
+        tag.decompose()
+    # Remove iXBRL header/context blocks that precede the readable content in
+    # Inline XBRL filings.  These contain only taxonomy URIs and XBRL metadata.
+    for tag in soup(["ix:header", "xbrli:context", "xbrli:unit"]):
         tag.decompose()
     text = soup.get_text(separator="\n", strip=True)
     # Collapse runs of blank lines

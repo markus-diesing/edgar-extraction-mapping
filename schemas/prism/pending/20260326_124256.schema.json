@@ -1,0 +1,1774 @@
+{
+    "$id": "https://www.l-p-a.com/prism.v1.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "PRISM Data Model",
+    "oneOf": [
+        {
+            "type": "object",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "funding",
+                "coupon",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Company shares of various types.",
+            "properties": {
+                "model": {
+                    "const": "equityShare"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "ipoDate": {
+                    "description": "The first date on which the shares are tradeable on the secondary market.",
+                    "$ref": "#/$defs/Date"
+                },
+                "parties": {
+                    "type": "object",
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "model",
+                "identifiers"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Classic barrier reverse convertible with a variety of standard coupon types. The downside risk is only activated if the barrier is breached.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementBarrierCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "funding",
+                "coupon",
+                "barrier",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike. Supports multiple coupon types and includes an autocall feature.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementAutocallCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "autocall",
+                "coupon",
+                "funding",
+                "downsideRisk",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible where the downside risk is activated if the barrier is breached. Supports multiple coupon types and includes an autocall feature.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementAutocallBarrierCoupon"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "barrier": {
+                    "$ref": "#/$defs/barrier"
+                },
+                "coupon": {
+                    "$ref": "#/$defs/coupon"
+                },
+                "funding": {
+                    "$ref": "#/$defs/funding"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "autocall",
+                "barrier",
+                "coupon",
+                "funding",
+                "downsideRisk",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Model for various index types across common asset classes.",
+            "properties": {
+                "model": {
+                    "const": "index"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "indexReturnType": {
+                    "description": "Defines how the index return is calculated.",
+                    "enum": [
+                        "Price Return",
+                        "Gross Total Return",
+                        "Total Return"
+                    ]
+                },
+                "indexComponents": {
+                    "$ref": "#/$defs/indexComponents"
+                },
+                "parties": {
+                    "type": "object",
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "model",
+                "identifiers"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Knock-out forwards with a scheduled series of exchanges between buyer and seller; also known as accumulators and decumulators.",
+            "properties": {
+                "model": {
+                    "const": "forwardKoStripEquity"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "otcDerivativesGeneral": {
+                    "$ref": "#/$defs/otcDerivativesGeneral"
+                },
+                "equityForward": {
+                    "$ref": "#/$defs/equityForward"
+                },
+                "knockOut": {
+                    "$ref": "#/$defs/knockOut"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "counterParty": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "otcDerivativesGeneral",
+                "equityForward",
+                "knockOut",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "A depositary receipt (DR) is a negotiable financial instrument issued by a bank to represent a foreign company's publicly traded securities.",
+            "properties": {
+                "model": {
+                    "const": "depositaryReceipt"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "depositaryReceiptType": {
+                    "enum": [
+                        "EDR",
+                        "GDR",
+                        "IDR",
+                        "ADR"
+                    ]
+                },
+                "parties": {
+                    "type": "object",
+                    "additionalProperties": false
+                }
+            },
+            "required": [
+                "model",
+                "identifiers"
+            ],
+            "additionalProperties": false
+        },
+        {
+            "type": "object",
+            "description": "Reverse convertible with downside risk if the final fixing is below the strike and additional autocall feature.",
+            "properties": {
+                "model": {
+                    "const": "yieldEnhancementAutocall"
+                },
+                "identifiers": {
+                    "$ref": "#/$defs/Identifiers"
+                },
+                "structuredProductsGeneral": {
+                    "$ref": "#/$defs/structuredProductsGeneral"
+                },
+                "downsideRisk": {
+                    "$ref": "#/$defs/downsideRisk"
+                },
+                "autocall": {
+                    "$ref": "#/$defs/autocall"
+                },
+                "underlyingTerms": {
+                    "$ref": "#/$defs/underlyingTerms"
+                },
+                "underlyings": {
+                    "$ref": "#/$defs/underlyings"
+                },
+                "parties": {
+                    "type": "object",
+                    "properties": {
+                        "calculationAgent": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "guarantor": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "issuer": {
+                            "$ref": "#/$defs/Party"
+                        },
+                        "marketMaker": {
+                            "$ref": "#/$defs/Party"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "portfolios": {
+                    "$ref": "#/$defs/Portfolios"
+                }
+            },
+            "required": [
+                "model",
+                "identifiers",
+                "structuredProductsGeneral",
+                "downsideRisk",
+                "autocall",
+                "underlyingTerms"
+            ],
+            "additionalProperties": false
+        }
+    ],
+    "$defs": {
+        "autocall": {
+            "type": "object",
+            "description": "Contains fields related to the standard autocall feature.",
+            "properties": {
+                "observationFrequency": {
+                    "description": "Interval at which events are observed.",
+                    "$ref": "#/$defs/Frequency"
+                },
+                "offsetBusinessDays": {
+                    "type": "integer",
+                    "description": "Defines the period given in business days between an observation date and the respective payment.",
+                    "minimum": 0
+                },
+                "autocallMemoryFlag": {
+                    "description": "If this is set to true, underlyings can breach the autocall level on different observation dates for the early redemption to be triggered (breaches are memorized for each underlying separately). ",
+                    "type": "boolean"
+                },
+                "autocallPayments": {
+                    "type": "object",
+                    "description": "Contains a list of all Autocall events.",
+                    "patternProperties": {
+                        "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$": {
+                            "$ref": "#/$defs/AutocallSchedule"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "barrier": {
+            "type": "object",
+            "description": "All information related to a barrier. The barrier’s impact on payoffs varies between models.",
+            "properties": {
+                "triggerDetails": {
+                    "description": "Contains all fields relevant to a trigger event.",
+                    "$ref": "#/$defs/TriggerDetailsType"
+                }
+            },
+            "additionalProperties": false
+        },
+        "coupon": {
+            "type": "object",
+            "description": "Cash flow payments that are independent of the principal repayment.",
+            "properties": {
+                "couponPayments": {
+                    "type": "object",
+                    "description": "Contains all information regarding coupon payments.",
+                    "patternProperties": {
+                        "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$": {
+                            "$ref": "#/$defs/CouponSchedule"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "couponFrequency": {
+                    "description": "Tracks how often coupons are paid (e.g., monthly, quarterly, or annually).",
+                    "$ref": "#/$defs/Frequency"
+                },
+                "dayCountConvention": {
+                    "description": "Specifies the rule used to calculate the fraction of a year between two dates for interest and coupon accrual calculations.",
+                    "enum": [
+                        "ACT/ACT-AFB",
+                        "ACT/365F",
+                        "ACT/365L",
+                        "30/360-US",
+                        "ACT/ACT-ICMA",
+                        "ACT/364",
+                        "30E/360",
+                        "30/360-ISDA",
+                        "ACT/360",
+                        "ACT/ACT-ISDA"
+                    ]
+                },
+                "couponEarningDateSpecification": {
+                    "description": "Defines whether coupon accrual includes or excludes the first and/or last date of the accrual period.",
+                    "$ref": "#/$defs/PeriodDateSpecificationType"
+                }
+            },
+            "additionalProperties": false
+        },
+        "downsideRisk": {
+            "type": "object",
+            "description": "This feature is mainly used for yield enhancement models (often called reverse convertibles in Europe). These typically have limited or no upside participation but may offer coupon payments or similar features that provide a limited yield.",
+            "properties": {
+                "strikeDetails": {
+                    "description": "Contains the main fields for options and other features that use strikes.",
+                    "$ref": "#/$defs/StrikeDetailsType"
+                },
+                "ratio": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "The meaning of this field depends on the asset type. For equities, it shows the amount unrounded of underlyings that would be received in a physical settlement. For FX, it contains the amount in the alternative currency that would be received when using the strike rate. ",
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "participationPercent": {
+                    "type": "number",
+                    "minimum": 0.0
+                }
+            },
+            "additionalProperties": false
+        },
+        "equityForward": {
+            "type": "object",
+            "description": "Feature used for equity forwards with more than one exchange period.",
+            "properties": {
+                "settlementFrequency": {
+                    "description": "Settlement frequency between strips in OTC trades.",
+                    "$ref": "#/$defs/Frequency"
+                },
+                "counterPartyPosition": {
+                    "description": "Defines if the counterparty is buying or selling the underlying.",
+                    "$ref": "#/$defs/TradeSide"
+                },
+                "tradingDaysMax": {
+                    "type": "integer",
+                    "description": "The maximum number of trading days during the lifetime of the instrument.",
+                    "minimum": 1
+                },
+                "tradingSharesMax": {
+                    "type": "integer",
+                    "description": "The total maximum possible number of shares that can be traded during the lifetime of the instrument including gearing if applicable.",
+                    "minimum": 1
+                },
+                "tradedSharesDaily": {
+                    "type": "integer",
+                    "description": "The number of shares traded per day.",
+                    "minimum": 1
+                },
+                "strikeAbsolute": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "Strike level in respective unit that might be known only after the initial fixing date in some cases."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "guaranteedSchedulesNumber": {
+                    "type": "integer",
+                    "description": "Defines how many of the schedules are traded at a minimum even if the product is knocked out.",
+                    "minimum": 0
+                },
+                "upsideFactor": {
+                    "type": "number",
+                    "description": "Multiplier used for amounts or shares if the value is above / at or above the threshold.",
+                    "minimum": 0.01
+                },
+                "strikeRelative": {
+                    "type": "number",
+                    "description": "Fixed relative Strike value that might be known only after the initial fixing date in some cases."
+                },
+                "downsideFactor": {
+                    "type": "number",
+                    "description": "Multiplier used for amounts or shares if the value is below/ at or below the threshold.",
+                    "minimum": 0.01
+                },
+                "equityForwardStrips": {
+                    "type": "object",
+                    "description": "Contains the list of strips for equity forwards.",
+                    "patternProperties": {
+                        "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$": {
+                            "$ref": "#/$defs/EquityForwardSchedule"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "funding": {
+            "type": "object",
+            "description": "Contains information related to the notional.",
+            "properties": {
+                "aggregateDenomination": {
+                    "type": "number",
+                    "description": "The total currency amount issued for the instrument.",
+                    "minimum": 0
+                },
+                "denomination": {
+                    "type": "number",
+                    "description": "Defines the amount in notional or instrument currency (in case notional currency is not explicitly given). This amount typically serves as the basis for payoff calculations.",
+                    "minimum": 0
+                },
+                "issuePricePercent": {
+                    "type": "number",
+                    "description": "The buy price at issuance relative to the denomination of the instrument.",
+                    "minimum": 0.0
+                }
+            },
+            "additionalProperties": false
+        },
+        "indexComponents": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z]\\w*$": {
+                    "$ref": "#/$defs/Reference"
+                }
+            },
+            "additionalProperties": false
+        },
+        "knockOut": {
+            "type": "object",
+            "description": "A knock-out condition can lead to early redemption of the instrument; some or all future payments may be discontinued.",
+            "properties": {
+                "triggerDetails": {
+                    "description": "Contains all fields relevant to a trigger event.",
+                    "$ref": "#/$defs/TriggerDetailsType"
+                }
+            },
+            "additionalProperties": false
+        },
+        "otcDerivativesGeneral": {
+            "type": "object",
+            "description": "Fields that are used across all OTC derivatives.",
+            "properties": {
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "settlementDate": {
+                    "description": "Date on which all payment obligations for a trade are fulfilled.",
+                    "$ref": "#/$defs/Date"
+                },
+                "expiryDate": {
+                    "description": "Date on which a trade between parties ends.",
+                    "$ref": "#/$defs/Date"
+                }
+            },
+            "additionalProperties": false
+        },
+        "structuredProductsGeneral": {
+            "type": "object",
+            "description": "Contains fields that all structured products share.",
+            "properties": {
+                "subscriptionEndDate": {
+                    "description": "Last date on which investors can subscribe.",
+                    "$ref": "#/$defs/Date"
+                },
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
+                },
+                "quotation": {
+                    "description": "Defines if the instrument is quoted in percentage relative to the denomination or in absolute currency.",
+                    "enum": [
+                        "absolute",
+                        "relative"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "quantoFlag": {
+                    "description": "If true, the product is not subject to FX risk.",
+                    "type": "boolean"
+                },
+                "settlement": {
+                    "description": "Defines how the repayment of the instrument for the holder can happen.",
+                    "enum": [
+                        "cashOrPhysical",
+                        "physical",
+                        "cash"
+                    ]
+                },
+                "initialFixingDate": {
+                    "description": "Date on which the parameters and underlying strike values are determined.",
+                    "$ref": "#/$defs/Date"
+                },
+                "initialPaymentDate": {
+                    "description": "The date on which the price for the instrument is deducted from the account of the buyer.",
+                    "$ref": "#/$defs/Date"
+                },
+                "finalFixingDate": {
+                    "description": "Date on which all parameters to determine the final payoff amount to the holder of the instrument are fixed.",
+                    "$ref": "#/$defs/Date"
+                },
+                "issuePrice": {
+                    "type": "number",
+                    "description": "Absolute price of the instrument at issuance."
+                },
+                "issuedUnits": {
+                    "type": "integer",
+                    "description": "The number of instruments that are supplied by the issuer.",
+                    "minimum": 1
+                },
+                "maturityDate": {
+                    "description": "Date on which the payoff amount—or shares in the case of physical delivery—are booked to the holder’s account.",
+                    "$ref": "#/$defs/Date"
+                },
+                "subscriptionBeginDate": {
+                    "description": "First date on which investors can subscribe to buy the instrument.",
+                    "$ref": "#/$defs/Date"
+                },
+                "instrumentDataStatus": {
+                    "description": "Provides information on the lifecycle of the instrument data.",
+                    "enum": [
+                        "final",
+                        "indicative"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "underlyings": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z]\\w*$": {
+                    "$ref": "#/$defs/Reference"
+                }
+            },
+            "additionalProperties": false
+        },
+        "underlyingTerms": {
+            "type": "object",
+            "description": "Contains all generic information about the underlying that is not directly related to specific features.",
+            "properties": {
+                "initialFixingLevel": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number",
+                            "description": "The value observed at the initial fixing date. This value is used as the base to determine strikes, barriers and other parameters of derivatives, OTC deals and structured products."
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "fixingCurrency": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "description": "Currency in which the underlying values are fixed. In most common cases this will be equal to the quoted currency of the underlying at the respective exchange. There are exotic cases where the observed currency for the underlying differs from the quoted currency which then also applies to all derived values like strikes, barriers, etc..",
+                            "$ref": "#/$defs/IsoCurrencyCode"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "underlyingObservation": {
+                    "description": "Defines how one or more underlying observations are mapped to a single effective underlying value used for payoff calculations. For a single underlying, the value is the underlying’s own observation (single). For multiple underlyings, an aggregation rule is applied (e.g., worstOf or bestOf).",
+                    "enum": [
+                        "single",
+                        "sumOf",
+                        "worstOf",
+                        "bestOf"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "Annually": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "AutocallSchedule": {
+            "type": "object",
+            "properties": {
+                "repaymentAmount": {
+                    "type": "number",
+                    "description": "Amount in instrument currency that is paid out to the investor in case the event was triggered."
+                },
+                "triggerDetails": {
+                    "description": "Contains information on the trigger mechanism of the Autocall feature.",
+                    "$ref": "#/$defs/TriggerDetailsType"
+                },
+                "repaymentPercent": {
+                    "type": "number",
+                    "description": "Repayment amount expressed as a percentage. For relative quotation, it is a percentage of the notional (denomination). For absolute quotation, it is a percentage of the issue price."
+                },
+                "paymentDate": {
+                    "description": "Date on which the holder receives the payment if an autocall event occurs (cashflow date).",
+                    "$ref": "#/$defs/Date"
+                }
+            },
+            "additionalProperties": true
+        },
+        "BiMonthly": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "BiWeekly": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "ConditionalFixCouponSchedule": {
+            "type": "object",
+            "properties": {
+                "periodStartDate": {
+                    "description": "First date of the earning period.",
+                    "$ref": "#/$defs/Date"
+                },
+                "paymentValueDetails": {
+                    "description": "Contains information on the payment values of the coupon.",
+                    "$ref": "#/$defs/PaymentValues"
+                },
+                "exDate": {
+                    "description": "On this date the coupon value is deducted from the bid / ask prices in case of dirty pricing.",
+                    "$ref": "#/$defs/Date"
+                },
+                "triggerDetails": {
+                    "description": "Contains information on the trigger mechanism of the coupon.",
+                    "$ref": "#/$defs/TriggerDetailsType"
+                },
+                "paymentDate": {
+                    "description": "Date on which the holder receives the payment (cashflow date).",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodEndDate": {
+                    "description": "Last date of the earning period.",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodDateSpecification": {
+                    "description": "Defines if the period earning Dates are included or excluded for the calculation period.",
+                    "$ref": "#/$defs/PeriodDateSpecificationType"
+                }
+            },
+            "additionalProperties": true
+        },
+        "CouponSchedule": {
+            "oneOf": [
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/FloatingCouponSchedule"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "floatingCouponSchedule"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/FixCouponSchedule"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "fixCouponSchedule"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/ConditionalFixCouponSchedule"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "conditionalFixCouponSchedule"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                }
+            ],
+            "unevaluatedProperties": false
+        },
+        "Daily": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "Date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "DateListTrigger": {
+            "type": "object",
+            "properties": {
+                "triggerLevelAbsolute": {
+                    "type": "object",
+                    "description": "Absolute level in underlying units relevant for the trigger observation.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "triggerObservationTime": {
+                    "description": "Defines what price time is relevant for the trigger observation.",
+                    "$ref": "#/$defs/DayObservationType"
+                },
+                "triggerComparator": {
+                    "description": "Comparator that specifies when a trigger event occurs.",
+                    "$ref": "#/$defs/ThresholdComparatorType"
+                },
+                "triggerEffect": {
+                    "description": "Defines what happens if the trigger event occurs.",
+                    "$ref": "#/$defs/TriggerEffectType"
+                },
+                "triggerLevelIndicative": {
+                    "description": "Contains all information relevant for indicative trigger levels.",
+                    "$ref": "#/$defs/IndicativeRelativeLevel"
+                },
+                "triggerLevelRelative": {
+                    "type": "number",
+                    "description": "Relative level to the initial fixing level value that is relevant for the trigger event to occur."
+                }
+            },
+            "additionalProperties": true
+        },
+        "DayObservationType": {
+            "enum": [
+                "continuous",
+                "fixedTime",
+                "close"
+            ]
+        },
+        "EquityForwardSchedule": {
+            "type": "object",
+            "properties": {
+                "periodStartDate": {
+                    "description": "Date on which accumulation or decumulation begins for the period.",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodTradingDays": {
+                    "type": "integer",
+                    "description": "Amount of trading days in the period."
+                },
+                "settlementDate": {
+                    "description": "Date on which the accumulated amount is paid.",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodEndDate": {
+                    "description": "Date on which accumulation or decumulation ends for the period.",
+                    "$ref": "#/$defs/Date"
+                }
+            },
+            "additionalProperties": true
+        },
+        "FixCouponSchedule": {
+            "type": "object",
+            "properties": {
+                "periodStartDate": {
+                    "description": "First date of the earning period.",
+                    "$ref": "#/$defs/Date"
+                },
+                "paymentValueDetails": {
+                    "description": "Contains information on the payment values of the coupon.",
+                    "$ref": "#/$defs/PaymentValues"
+                },
+                "exDate": {
+                    "description": "On this date the coupon value is deducted from the bid / ask prices in case of dirty pricing.",
+                    "$ref": "#/$defs/Date"
+                },
+                "paymentDate": {
+                    "description": "Date on which the holder receives the payment (cashflow date).",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodEndDate": {
+                    "description": "Last date of the earning period.",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodDateSpecification": {
+                    "description": "Defines if the period earning dates are included or excluded for the calculation period.",
+                    "$ref": "#/$defs/PeriodDateSpecificationType"
+                }
+            },
+            "additionalProperties": true
+        },
+        "FloatingCouponSchedule": {
+            "type": "object",
+            "properties": {
+                "capPa": {
+                    "type": "object",
+                    "description": "Maximum annualized rate that is paid out to the holder. Applied after offset and factor.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "periodEndDate": {
+                    "description": "Last date of the earning period. This date can be inclusive or exclusive depending on the earningDateSpecification.",
+                    "$ref": "#/$defs/Date"
+                },
+                "offsetPa": {
+                    "type": "object",
+                    "description": "Annualized percentage that is added to the fixing of the relevant interest rate.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "exDate": {
+                    "description": "On this date the coupon value is deducted from the bid / ask prices in case of dirty pricing.",
+                    "$ref": "#/$defs/Date"
+                },
+                "determinationDate": {
+                    "description": "Contains the date on which the rate for the floating coupon payment is set for the respective period.",
+                    "$ref": "#/$defs/Date"
+                },
+                "periodStartDate": {
+                    "description": "First date of the earning period. This date can be inclusive or exclusive depending on the earningDateSpecification.",
+                    "$ref": "#/$defs/Date"
+                },
+                "floorPa": {
+                    "type": "object",
+                    "description": "Minimum annualized rate that is paid out to the holder. Applied after offset and factor.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "paymentDate": {
+                    "description": "Date on which the holder receives the payment (cashflow date).",
+                    "$ref": "#/$defs/Date"
+                },
+                "floatingFactor": {
+                    "type": "object",
+                    "description": "Multiplier that is added to the relevant interest rate. The factor is applied before the offset.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "periodDateSpecification": {
+                    "description": "Defines if the period earning Dates are included or excluded for the calculation period.",
+                    "$ref": "#/$defs/PeriodDateSpecificationType"
+                }
+            },
+            "additionalProperties": true
+        },
+        "Frequency": {
+            "oneOf": [
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/SemiAnnually"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "semiAnnually"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Other"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "other"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Once"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "once"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Daily"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "daily"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Monthly"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "monthly"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/BiMonthly"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "biMonthly"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Quarterly"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "quarterly"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/BiWeekly"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "biWeekly"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Weekly"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "weekly"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/Annually"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "annually"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                }
+            ],
+            "unevaluatedProperties": false
+        },
+        "Identifiers": {
+            "type": "object",
+            "properties": {
+                "pin": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                },
+                "wkn": {
+                    "type": "string",
+                    "description": "The Wertpapierkennnummer (WKN, WPKN, WPK or Wert) is a German securities identification code. It is composed of six digits or capital letters (excluding I and O), and no check digit.",
+                    "pattern": "^[A-HJ-NP-Z0-9]{6}$"
+                },
+                "isin": {
+                    "type": "string",
+                    "description": "An International Securities Identification Number (ISIN) is a code that uniquely identifies a security globally for the purposes of facilitating clearing, reporting, and settlement of trades. Its structure is defined in ISO 6166.",
+                    "pattern": "^[A-Z][A-Z][A-Z0-9]{9}[0-9]$"
+                },
+                "valor": {
+                    "type": "string",
+                    "description": "The Valor number is a code that identifies listed securities and financial instruments in Switzerland and serves a similar purpose to CUSIP or WKN in the North American and German markets, respectively. The Valor number is incorporated into the Swiss ISIN.",
+                    "pattern": "^[1-9][0-9]*$"
+                },
+                "figi": {
+                    "type": "object",
+                    "description": "The Financial Instrument Global Identifier (FIGI) (formerly Bloomberg Global Identifier (BBGID)) is an open standard and unique identifier of financial instruments.",
+                    "patternProperties": {
+                        "^[0-9]+$": {
+                            "type": "string",
+                            "pattern": "^[A-Z][A-Z]G[BCDFGHJKLMNPQRSTVWXYZ0-9]{8}[0-9]$"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "IndicativeRelativeLevel": {
+            "type": "object",
+            "properties": {
+                "upperValue": {
+                    "type": "number",
+                    "description": "In case the value is fixed on a later date, this field contains the upper relative value that could be applicable after the initial fixing date."
+                },
+                "lowerValue": {
+                    "type": "number",
+                    "description": "In case the value is fixed on a later date, this field contains the lower relative value that could be applicable after the initial fixing date."
+                },
+                "currentValue": {
+                    "type": "number",
+                    "description": "In case the value is fixed on a later date, this field contains the currently valid value that could be applicable after the initial fixing date.\n"
+                }
+            },
+            "additionalProperties": true
+        },
+        "IsoCurrencyCode": {
+            "enum": [
+                "CHF",
+                "ALL",
+                "ARS",
+                "MXN",
+                "AFN",
+                "INR",
+                "XAU",
+                "CNY",
+                "AUD",
+                "ILS",
+                "KRW",
+                "JPY",
+                "AOA",
+                "GBP",
+                "IDR",
+                "AMD",
+                "HUF",
+                "TRY",
+                "RUB",
+                "AED",
+                "HKD",
+                "TWD",
+                "EUR",
+                "COP",
+                "DKK",
+                "CAD",
+                "USD",
+                "NOK",
+                "EGP",
+                "SGD",
+                "CZK",
+                "SEK",
+                "NZD",
+                "BRL",
+                "XAG"
+            ]
+        },
+        "Monthly": {
+            "type": "object",
+            "properties": {
+                "startDate": {
+                    "description": "The initial date on which the schedule becomes active and from which all future occurrences are calculated.",
+                    "$ref": "#/$defs/Date"
+                }
+            },
+            "additionalProperties": true
+        },
+        "Once": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "Other": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "Party": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                },
+                "lei": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{4}[A-Z0-9]{14}[0-9]{2}$"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PaymentValues": {
+            "type": "object",
+            "properties": {
+                "paymentPercent": {
+                    "type": "number",
+                    "description": "Percentage payment value usually multiplied with the denomination or issue price."
+                },
+                "paymentPa": {
+                    "type": "number",
+                    "description": "Annualized percentage value that is multiplied with denomination or issue price."
+                },
+                "paymentAmount": {
+                    "type": "number",
+                    "description": "Absolute value for one payment date in the applicable currency."
+                }
+            },
+            "additionalProperties": true
+        },
+        "PeriodDateSpecificationType": {
+            "enum": [
+                "beginDateIncludedEndDateExcluded",
+                "beginDateExcludedEndDateExcluded",
+                "beginDateIncludedEndDateIncluded",
+                "beginDateExcludedEndDateIncluded"
+            ]
+        },
+        "PeriodTrigger": {
+            "type": "object",
+            "properties": {
+                "triggerLevelAbsolute": {
+                    "type": "object",
+                    "description": "Absolute level in underlying units relevant for the trigger observation.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "observationStartDate": {
+                    "description": "First Date of a period on which the condition for the payment is validated.",
+                    "$ref": "#/$defs/Date"
+                },
+                "triggerObservationTime": {
+                    "description": "Defines what price time is relevant for the trigger observation.",
+                    "$ref": "#/$defs/DayObservationType"
+                },
+                "observationEndDate": {
+                    "description": "Last Date of a period on which the condition for the payment is validated.",
+                    "$ref": "#/$defs/Date"
+                },
+                "triggerComparator": {
+                    "description": "Comparator that specifies when a trigger event is occurred.",
+                    "$ref": "#/$defs/ThresholdComparatorType"
+                },
+                "triggerEffect": {
+                    "description": "Defines what happens if the trigger event occurs.",
+                    "$ref": "#/$defs/TriggerEffectType"
+                },
+                "triggerLevelIndicative": {
+                    "description": "Contains all information relevant for indicative trigger levels.",
+                    "$ref": "#/$defs/IndicativeRelativeLevel"
+                },
+                "triggerLevelRelative": {
+                    "type": "number",
+                    "description": "Relative level to the initial fixing level value that is relevant for the trigger event to occur."
+                }
+            },
+            "additionalProperties": true
+        },
+        "Portfolios": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z]\\w*$": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "enum": [
+                                "basket"
+                            ]
+                        },
+                        "weights": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^[A-Za-z]\\w*$": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "type",
+                        "weights"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "Quarterly": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "Reference": {
+            "type": "object",
+            "properties": {
+                "pin": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                },
+                "market": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                },
+                "wkn": {
+                    "type": "string",
+                    "description": "The Wertpapierkennnummer (WKN, WPKN, WPK or Wert) is a German securities identification code. It is composed of six digits or capital letters (excluding I and O), and no check digit.",
+                    "pattern": "^[A-HJ-NP-Z0-9]{6}$"
+                },
+                "isin": {
+                    "type": "string",
+                    "description": "An International Securities Identification Number (ISIN) is a code that uniquely identifies a security globally for the purposes of facilitating clearing, reporting, and settlement of trades. Its structure is defined in ISO 6166.",
+                    "pattern": "^[A-Z][A-Z][A-Z0-9]{9}[0-9]$"
+                },
+                "valor": {
+                    "type": "string",
+                    "description": "The Valor number is a code that identifies listed securities and financial instruments in Switzerland and serves a similar purpose to CUSIP or WKN in the North American and German markets, respectively. The Valor number is incorporated into the Swiss ISIN.",
+                    "pattern": "^[1-9][0-9]*$"
+                },
+                "figi": {
+                    "type": "string",
+                    "description": "The Financial Instrument Global Identifier (FIGI) (formerly Bloomberg Global Identifier (BBGID)) is an open standard and unique identifier of financial instruments.",
+                    "pattern": "^[A-Z][A-Z]G[BCDFGHJKLMNPQRSTVWXYZ0-9]{8}[0-9]$"
+                }
+            },
+            "additionalProperties": false
+        },
+        "SemiAnnually": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "SingleDateTrigger": {
+            "type": "object",
+            "properties": {
+                "observationDate": {
+                    "description": "Date on which the condition for the payment is validated.",
+                    "$ref": "#/$defs/Date"
+                },
+                "triggerLevelAbsolute": {
+                    "type": "object",
+                    "description": "Absolute level in underlying units relevant for the trigger observation.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "triggerObservationTime": {
+                    "description": "Defines what price time is relevant for the trigger observation.",
+                    "$ref": "#/$defs/DayObservationType"
+                },
+                "triggerComparator": {
+                    "description": "Comparator that specifies when a trigger event occurs.",
+                    "$ref": "#/$defs/ThresholdComparatorType"
+                },
+                "triggerEffect": {
+                    "description": "Defines what happens if the trigger event occurs.",
+                    "$ref": "#/$defs/TriggerEffectType"
+                },
+                "triggerLevelIndicative": {
+                    "description": "Contains all information relevant for indicative trigger levels.",
+                    "$ref": "#/$defs/IndicativeRelativeLevel"
+                },
+                "triggerLevelRelative": {
+                    "type": "number",
+                    "description": "Relative level to the initial fixing level value that is relevant for the trigger event to occur."
+                }
+            },
+            "additionalProperties": true
+        },
+        "StrikeDetailsType": {
+            "type": "object",
+            "properties": {
+                "strikeComparator": {
+                    "description": "Defines when the strike is seen as active. The direction to be used should be linked to the feature that this field is added to. e.g. in downside Risk the comparator should be \"below\" or \"at or below\".",
+                    "$ref": "#/$defs/ThresholdComparatorType"
+                },
+                "strikeRelative": {
+                    "type": "number",
+                    "description": "Fixed relative Strike value that might be known only after the initial fixing date in some cases."
+                },
+                "strikeRelativeIndicative": {
+                    "description": "Contains all information for indicative relative strike values.",
+                    "$ref": "#/$defs/IndicativeRelativeLevel"
+                },
+                "strikeAbsolute": {
+                    "type": "object",
+                    "description": "Strike level in respective unit that might be known only after the initial fixing date in some cases.",
+                    "patternProperties": {
+                        "^[A-Za-z]\\w*$": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": true
+        },
+        "ThresholdComparatorType": {
+            "enum": [
+                "at or below",
+                "below",
+                "above",
+                "at or above"
+            ]
+        },
+        "TradeSide": {
+            "enum": [
+                "buy",
+                "sell"
+            ]
+        },
+        "TriggerDetailsType": {
+            "oneOf": [
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/SingleDateTrigger"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "singleDateTrigger"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/PeriodTrigger"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "periodTrigger"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/DateListTrigger"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "$type": {
+                                    "const": "dateListTrigger"
+                                }
+                            },
+                            "required": [
+                                "$type"
+                            ],
+                            "additionalProperties": true
+                        }
+                    ]
+                }
+            ],
+            "unevaluatedProperties": false
+        },
+        "TriggerEffectType": {
+            "enum": [
+                "default",
+                "payment"
+            ]
+        },
+        "Weekly": {
+            "type": "object",
+            "additionalProperties": true
+        }
+    }
+}

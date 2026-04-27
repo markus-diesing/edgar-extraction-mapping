@@ -29,6 +29,13 @@ PRISM_SCHEMA_ARCHIVE_DIR = SCHEMAS_DIR / "archive"
 ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # ---------------------------------------------------------------------------
+# Microsoft Entra ID (Azure AD) — SSO
+# ---------------------------------------------------------------------------
+AZURE_TENANT_ID: str = os.environ.get("AZURE_TENANT_ID", "")
+AZURE_CLIENT_ID: str = os.environ.get("AZURE_CLIENT_ID", "")
+
+
+# ---------------------------------------------------------------------------
 # Claude model registry
 #
 # Pricing in USD per million tokens.
@@ -38,6 +45,7 @@ ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 # Add newer models here — the Admin UI and cost calculations derive from this dict.
 # ---------------------------------------------------------------------------
 CLAUDE_MODEL_REGISTRY: dict[str, dict] = {
+    # ── Sonnet (standard / recommended) ──────────────────────────────────────
     "claude-sonnet-4-6": {
         "display_name":       "Claude Sonnet 4.6 (latest)",
         "input_price_per_m":  3.00,
@@ -57,13 +65,23 @@ CLAUDE_MODEL_REGISTRY: dict[str, dict] = {
         "note": "200k context. Extended to 1M via beta header (tokens >200k priced at $6/M).",
     },
     "claude-sonnet-4-20250514": {
-        "display_name":       "Claude Sonnet 4",
+        "display_name":       "Claude Sonnet 4 (deprecated)",
         "input_price_per_m":  3.00,
         "output_price_per_m": 15.00,
         "cache_write_per_m":  3.75,
         "cache_read_per_m":   0.30,
         "context_tokens":     200_000,
-        "note": "Original project default. Training cutoff March 2025.",
+        "note": "⚠ Deprecated — retiring 2026-06-15. Migrate to Sonnet 4.6.",
+    },
+    # ── Haiku (cheaper / faster) ──────────────────────────────────────────────
+    "claude-haiku-4-5-20251001": {
+        "display_name":       "Claude Haiku 4.5",
+        "input_price_per_m":  1.00,
+        "output_price_per_m": 5.00,
+        "cache_write_per_m":  1.25,
+        "cache_read_per_m":   0.10,
+        "context_tokens":     200_000,
+        "note": "Fastest 4.x model. ~3× cheaper than Sonnet on input. Training cutoff Jul 2025.",
     },
 }
 
@@ -117,6 +135,66 @@ EDGAR_RETRY_MAX        = 4
 EDGAR_RETRY_BASE_DELAY = 2.0    # seconds, doubles on each retry (max ~30 s)
 
 # ---------------------------------------------------------------------------
+# Underlying Data Module
+# ---------------------------------------------------------------------------
+UNDERLYING_FIELD_CONFIG_FILE    = PROJECT_ROOT / "files" / "underlying_field_config.yaml"
+COMPANY_TICKERS_CACHE_FILE      = PROJECT_ROOT / "files" / "company_tickers_cache.json"
+COMPANY_TICKERS_CACHE_TTL       = 7 * 24 * 3600          # 7 days in seconds
+COMPANY_TICKERS_URL             = "https://www.sec.gov/files/company_tickers.json"
+
+OPENFIGI_API_URL                = "https://api.openfigi.com/v3/mapping"
+OPENFIGI_RATE_LIMIT_DELAY       = 2.5                     # seconds (~25 req/min free tier)
+
+MARKET_DATA_PRICE_SERIES_YEARS  = 5                       # years of daily history to store
+UNDERLYING_INGEST_MAX_CSV_ROWS  = 500
+UNDERLYING_JOB_POLL_INTERVAL    = 3                       # seconds (used by frontend)
+
+# Characters of stripped annual-report text passed to the Tier 2 LLM extraction
+# prompt.  Used as the fallback window when Item 1 Business cannot be located in
+# the full filing text (e.g. 20-F filers with a different section structure).
+UNDERLYING_EXTRACTION_CHARS     = 8_000
+
+# Smart Item 1 / Business section window extraction (10-K / 20-F).
+# find_item1_window() searches the full downloaded filing text, locates the
+# "ITEM 1  BUSINESS" heading and returns a focused window instead of the first
+# UNDERLYING_EXTRACTION_CHARS chars (which often cover only the table of
+# contents and forward-looking-statement disclaimers for large-cap filers).
+UNDERLYING_ITEM1_CONTEXT_BEFORE = 300    # chars of context kept before the header
+UNDERLYING_ITEM1_WINDOW_CHARS   = 6_000  # chars extracted after the Item 1 header
+
+# Cover page prefix prepended to the Item 1 window when calling the LLM.
+# The registrant's legal name, share class description, and ADR flag all live
+# on the 10-K cover page (the first ~1 000 chars).  When the Item 1 window is
+# extracted far into a long filing this prefix ensures those fields remain
+# extractable without increasing the overall extraction window beyond
+# UNDERLYING_EXTRACTION_CHARS.  Stored last_10k_text is the Item 1 window only
+# (the cover prefix is not persisted — it would clutter the reviewer view).
+UNDERLYING_COVER_PAGE_CHARS     = 2_000  # chars taken from the very top of the filing
+
+# Characters of 424B2 filing text searched when applying the level-3 fallback
+# for brief_description (last resort when yfinance and 10-K LLM both fail).
+UNDERLYING_424B2_SEARCH_CHARS   = 20_000
+
+# Filing-deadline days by SEC filer category for currentness checks.
+# Keys must match the `category` field in EDGAR submissions JSON (case-insensitive compare).
+FILING_DEADLINE_DAYS: dict[str, dict[str, int | None]] = {
+    "large accelerated filer":  {"10-K": 60,  "10-Q": 40, "20-F": 120, "NT_EXTENSION": 15},
+    "accelerated filer":        {"10-K": 75,  "10-Q": 40, "20-F": 120, "NT_EXTENSION": 15},
+    "non-accelerated filer":    {"10-K": 90,  "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15},
+    "smaller reporting company":{"10-K": 90,  "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15},
+    # Foreign private issuers file 20-F only — no 10-Q requirement.
+    # None signals the currentness engine to skip the 10-Q check entirely.
+    "foreign private issuer":   {"10-K": 120, "10-Q": None, "20-F": 120, "NT_EXTENSION": 15},
+}
+# Fallback when category is not recognised
+FILING_DEADLINE_DAYS_DEFAULT: dict[str, int] = {
+    "10-K": 90, "10-Q": 45, "20-F": 120, "NT_EXTENSION": 15,
+}
+
+# Tolerance (days) when matching period-end dates to account for 52/53-week fiscal years
+CURRENTNESS_PERIOD_TOLERANCE_DAYS = 7
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -135,3 +213,11 @@ def ensure_dirs() -> None:
     """Create all required data directories if they don't exist."""
     for d in (DATA_DIR / "db", FILINGS_DIR, EXPORTS_DIR, LOGS_DIR):
         d.mkdir(parents=True, exist_ok=True)
+
+
+def filing_deadlines(category: str) -> dict[str, int]:
+    """Return the filing deadline config for a given filer category (case-insensitive).
+
+    Falls back to *FILING_DEADLINE_DAYS_DEFAULT* when the category is unrecognised.
+    """
+    return FILING_DEADLINE_DAYS.get(category.lower(), FILING_DEADLINE_DAYS_DEFAULT)

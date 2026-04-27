@@ -15,8 +15,9 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import text
 
 import config
@@ -424,6 +425,136 @@ def get_usage_summary():
             for mid, info in config.CLAUDE_MODEL_REGISTRY.items()
         ],
         "active_model": active_model,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Underlying LLM settings & utilities
+# ---------------------------------------------------------------------------
+
+_VALID_PROVIDERS = {"anthropic", "openai-compatible", "ollama"}
+
+
+class UnderlyingLlmSettingsBody(BaseModel):
+    provider: str
+    endpoint: str = ""
+    model:    str = ""
+    api_key:  str | None = None   # None = leave unchanged; "" = clear
+
+
+def _build_underlying_cfg():
+    """Build an LlmConfig from current settings (lazy import avoids circular deps).
+
+    For the Anthropic provider the underlying LLM mirrors the Filings model
+    (``claude_model`` in settings), exactly as ``load_config()`` in llm_client
+    does.  Using ``CLAUDE_MODEL_DEFAULT`` directly here would cause Test
+    Connection to always report the default model even after the user has
+    changed it via Apply.
+    """
+    from underlying.llm_client import LlmConfig, PROVIDER_DEFAULTS
+    s = settings_store.get_settings()
+    provider  = s.get("underlying_llm_provider", "anthropic")
+    endpoint  = s.get("underlying_llm_endpoint", "") or PROVIDER_DEFAULTS.get(provider, "")
+    model_raw = s.get("underlying_llm_model",    "")
+    api_key   = s.get("underlying_llm_api_key",  "")
+    if not model_raw:
+        if provider == "anthropic":
+            # Mirror the active Filings model — keep in sync with load_config()
+            model_raw = s.get("claude_model") or config.CLAUDE_MODEL_DEFAULT
+        elif provider == "openai-compatible":
+            model_raw = "qwen3-14b-mlx"
+        else:
+            model_raw = "llama3"
+    return LlmConfig(provider=provider, endpoint=endpoint,
+                     model=model_raw, api_key=api_key)
+
+
+@router.get("/underlying-llm/settings")
+def get_underlying_llm_settings():
+    """Return current underlying LLM configuration (API key is masked)."""
+    s = settings_store.get_settings()
+    has_key = bool(s.get("underlying_llm_api_key", ""))
+    return {
+        "provider": s.get("underlying_llm_provider", "anthropic"),
+        "endpoint": s.get("underlying_llm_endpoint", ""),
+        "model":    s.get("underlying_llm_model",    ""),
+        "api_key":  "***" if has_key else "",
+    }
+
+
+@router.put("/underlying-llm/settings")
+def update_underlying_llm_settings(body: UnderlyingLlmSettingsBody):
+    """Persist underlying LLM configuration.  Takes effect on next extraction call."""
+    if body.provider not in _VALID_PROVIDERS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid provider '{body.provider}'. "
+                   f"Must be one of: {sorted(_VALID_PROVIDERS)}",
+        )
+    updates: dict[str, str] = {
+        "underlying_llm_provider": body.provider,
+        "underlying_llm_endpoint": body.endpoint,
+        "underlying_llm_model":    body.model,
+    }
+    if body.api_key is not None:           # explicit value → overwrite
+        updates["underlying_llm_api_key"] = body.api_key
+    settings_store.update_settings(updates)
+    return {"ok": True}
+
+
+@router.get("/underlying-llm/models")
+def get_underlying_llm_models():
+    """Fetch available model IDs from the configured LLM endpoint."""
+    from underlying.llm_client import fetch_models
+    cfg    = _build_underlying_cfg()
+    models = fetch_models(cfg)
+    return {"provider": cfg.provider, "models": models}
+
+
+@router.post("/underlying-llm/test")
+def test_underlying_llm_connection():
+    """Fire a quick connectivity probe against the configured LLM endpoint."""
+    from underlying.llm_client import test_connection
+    cfg = _build_underlying_cfg()
+    ok, message = test_connection(cfg)
+    return {"ok": ok, "message": message, "provider": cfg.provider, "model": cfg.model}
+
+
+@router.get("/underlying-llm/usage")
+def get_underlying_llm_usage():
+    """Return aggregate token / cost stats from the underlying_securities table."""
+    with database.get_session() as session:
+        rows = (
+            session.query(
+                database.UnderlyingSecurity.llm_input_tokens,
+                database.UnderlyingSecurity.llm_output_tokens,
+                database.UnderlyingSecurity.llm_cost_usd,
+            )
+            .filter(database.UnderlyingSecurity.llm_input_tokens.isnot(None))
+            .all()
+        )
+
+    if not rows:
+        return {
+            "total_calls":         0,
+            "total_input_tokens":  0,
+            "total_output_tokens": 0,
+            "total_cost_usd":      0.0,
+            "avg_input_tokens":    None,
+            "avg_output_tokens":   None,
+        }
+
+    n         = len(rows)
+    total_in  = sum(r.llm_input_tokens  or 0 for r in rows)
+    total_out = sum(r.llm_output_tokens or 0 for r in rows)
+    total_cost = sum(r.llm_cost_usd    or 0.0 for r in rows)
+    return {
+        "total_calls":         n,
+        "total_input_tokens":  total_in,
+        "total_output_tokens": total_out,
+        "total_cost_usd":      round(total_cost, 6),
+        "avg_input_tokens":    round(total_in  / n) if n else None,
+        "avg_output_tokens":   round(total_out / n) if n else None,
     }
 
 
