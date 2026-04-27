@@ -450,7 +450,7 @@ const PROVIDER_LABELS = {
   'ollama':            'Ollama (local)',
 }
 const PROVIDER_NOTES = {
-  'anthropic':         'Claude models via Anthropic API — uses the ANTHROPIC_API_KEY env var',
+  'anthropic':         'Shares the active model and API key from the Filings configuration — no separate setup required',
   'openai-compatible': 'Any server exposing /v1/chat/completions — e.g. LM Studio at 192.168.210.239:1234',
   'ollama':            'Native Ollama /api/chat endpoint — e.g. http://localhost:11434',
 }
@@ -543,7 +543,7 @@ function UnderlyingLlmConfig() {
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-4 max-w-xl">
       <p className="text-xs text-slate-400 mb-4">
-        Independent from the Filings LLM. Takes effect on the next Re-Fetch or ingest run — no restart required.
+        Takes effect on the next Re-Fetch or ingest run — no restart required.
       </p>
 
       {/* Provider */}
@@ -567,6 +567,19 @@ function UnderlyingLlmConfig() {
         </div>
       </div>
 
+      {/* Anthropic info box — replaces all config fields */}
+      {!isLocal && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 space-y-1">
+          <p className="font-semibold">Uses Filings configuration</p>
+          <p>
+            The active Claude model and API key are shared with the Filings pipeline.
+            To change the model, use the{' '}
+            <span className="font-medium">Model configuration — Filings</span>{' '}
+            section above.
+          </p>
+        </div>
+      )}
+
       {/* Endpoint URL — local providers only */}
       {isLocal && (
         <div className="mb-3">
@@ -581,30 +594,30 @@ function UnderlyingLlmConfig() {
         </div>
       )}
 
-      {/* Model */}
-      <div className="mb-3">
-        <label className="block text-xs font-semibold text-slate-600 mb-1">Model</label>
-        <div className="flex gap-2">
-          {availModels.length > 0 ? (
-            <select
-              value={model}
-              onChange={e => setModel(e.target.value)}
-              className="flex-1 text-sm border border-slate-200 rounded px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-            >
-              {model && !availModels.includes(model) && (
-                <option value={model}>{model} (current)</option>
-              )}
-              {availModels.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          ) : (
-            <input
-              type="text" value={model}
-              onChange={e => setModel(e.target.value)}
-              placeholder={MODEL_PLACEHOLDERS[provider] || ''}
-              className="flex-1 text-sm border border-slate-200 rounded px-2.5 py-1.5 font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-            />
-          )}
-          {isLocal && (
+      {/* Model — local providers only */}
+      {isLocal && (
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-slate-600 mb-1">Model</label>
+          <div className="flex gap-2">
+            {availModels.length > 0 ? (
+              <select
+                value={model}
+                onChange={e => setModel(e.target.value)}
+                className="flex-1 text-sm border border-slate-200 rounded px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                {model && !availModels.includes(model) && (
+                  <option value={model}>{model} (current)</option>
+                )}
+                {availModels.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            ) : (
+              <input
+                type="text" value={model}
+                onChange={e => setModel(e.target.value)}
+                placeholder={MODEL_PLACEHOLDERS[provider] || ''}
+                className="flex-1 text-sm border border-slate-200 rounded px-2.5 py-1.5 font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            )}
             <button
               onClick={fetchModels} disabled={loadingModels}
               title="Fetch available models from endpoint"
@@ -612,16 +625,16 @@ function UnderlyingLlmConfig() {
             >
               {loadingModels ? '…' : '⟳'}
             </button>
+          </div>
+          {availModels.length === 0 && (
+            <p className="text-xs text-slate-400 mt-0.5">
+              Click ⟳ to fetch the model list from the endpoint, or type a model name manually.
+            </p>
           )}
         </div>
-        {availModels.length === 0 && isLocal && (
-          <p className="text-xs text-slate-400 mt-0.5">
-            Click ⟳ to fetch the model list from the endpoint, or type a model name manually.
-          </p>
-        )}
-      </div>
+      )}
 
-      {/* API key — optional, only shown for local providers */}
+      {/* API key — local providers only */}
       {isLocal && (
         <div className="mb-4">
           <button

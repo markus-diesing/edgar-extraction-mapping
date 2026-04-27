@@ -83,14 +83,15 @@ def load_config() -> LlmConfig:
     model_raw = s.get("underlying_llm_model",    "")
     api_key   = s.get("underlying_llm_api_key",  "")
 
-    # Fall back to sensible model defaults when nothing is configured
-    if not model_raw:
-        if provider == "anthropic":
-            model_raw = config.CLAUDE_MODEL_DEFAULT
-        elif provider == "openai-compatible":
-            model_raw = "qwen3-14b-mlx"
-        else:
-            model_raw = "llama3"
+    if provider == "anthropic":
+        # For Anthropic, always mirror the active Filings model so both pipelines
+        # stay in sync.  The underlying_llm_model key is intentionally ignored
+        # when the provider is Anthropic — the UI reflects this by hiding the
+        # model field and pointing the user to the Filings configuration section.
+        model_raw = s.get("claude_model") or config.CLAUDE_MODEL_DEFAULT
+    elif not model_raw:
+        # Local providers: fall back to sensible defaults when nothing is set
+        model_raw = "qwen3-14b-mlx" if provider == "openai-compatible" else "llama3"
 
     return LlmConfig(provider=provider, endpoint=endpoint,
                      model=model_raw, api_key=api_key)
