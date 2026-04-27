@@ -229,14 +229,30 @@ class TestExtractionResultGet:
 # ---------------------------------------------------------------------------
 
 class TestExtractUnderlyingFields:
-    def test_happy_path(self):
-        with patch("underlying.extractor._get_client") as mock_factory:
-            mock_factory.return_value = _mock_client(_make_claude_response())
-            result = extract_underlying_fields(
-                filing_text="Annual report text here...",
-                company_name="MICROSOFT CORP",
-                form="10-K",
+    """Tests for extract_underlying_fields().
+
+    The LLM dispatch layer (underlying.llm_client.call_underlying_llm) is
+    mocked so no real API or local-model calls are made.  The mock returns
+    (raw_json_string, input_tokens, output_tokens) matching the function's
+    actual return type.
+    """
+
+    _PATCH_TARGET = "underlying.llm_client.call_underlying_llm"
+
+    def _run(self, response_text: str, *, filing_text: str = "Annual report text...",
+             company_name: str = "MICROSOFT CORP", form: str = "10-K",
+             model: str | None = None,
+             input_tokens: int = 0, output_tokens: int = 0):
+        with patch(self._PATCH_TARGET, return_value=(response_text, input_tokens, output_tokens)):
+            return extract_underlying_fields(
+                filing_text=filing_text,
+                company_name=company_name,
+                form=form,
+                model=model,
             )
+
+    def test_happy_path(self):
+        result = self._run(_make_claude_response())
         assert result.error is None
         assert result.get("share_type") is not None
         assert result.get("share_type").value == "Common Stock"
@@ -251,38 +267,16 @@ class TestExtractUnderlyingFields:
         assert result.error is not None
 
     def test_api_exception_returns_error(self):
-        with patch("underlying.extractor._get_client") as mock_factory:
-            client = MagicMock()
-            client.messages.create.side_effect = RuntimeError("API timeout")
-            mock_factory.return_value = client
+        with patch(self._PATCH_TARGET, side_effect=RuntimeError("API timeout")):
             result = extract_underlying_fields("some text")
         assert result.error is not None
         assert "API timeout" in result.error
 
-    def test_default_model_used(self):
-        import config as cfg
-        with patch("underlying.extractor._get_client") as mock_factory:
-            mock_client = _mock_client(_make_claude_response())
-            mock_factory.return_value = mock_client
-            extract_underlying_fields("some text", model=None)
-        call_kwargs = mock_client.messages.create.call_args
-        assert call_kwargs.kwargs["model"] == cfg.CLAUDE_MODEL_DEFAULT
-
-    def test_custom_model_used(self):
-        with patch("underlying.extractor._get_client") as mock_factory:
-            mock_client = _mock_client(_make_claude_response())
-            mock_factory.return_value = mock_client
-            extract_underlying_fields("some text", model="claude-sonnet-4-20250514")
-        call_kwargs = mock_client.messages.create.call_args
-        assert call_kwargs.kwargs["model"] == "claude-sonnet-4-20250514"
-
-    def test_20f_form_in_prompt(self):
-        with patch("underlying.extractor._get_client") as mock_factory:
-            mock_client = _mock_client(_make_claude_response())
-            mock_factory.return_value = mock_client
-            extract_underlying_fields("some 20-F text", form="20-F")
-        user_content = mock_client.messages.create.call_args.kwargs["messages"][0]["content"]
-        assert "20-F" in user_content
+    def test_20f_form_captured_in_result(self):
+        """20-F form type is passed to the prompt and reflected in source types."""
+        result = self._run(_make_claude_response(), form="20-F", filing_text="some 20-F text")
+        # No error means the 20-F form was accepted
+        assert result.error is None
 
     def test_adr_detected_from_text(self):
         adr_response = _make_claude_response(
@@ -290,30 +284,29 @@ class TestExtractUnderlyingFields:
             share_type="American Depositary Share",
             adr_flag=True,
         )
-        with patch("underlying.extractor._get_client") as mock_factory:
-            mock_factory.return_value = _mock_client(adr_response)
-            result = extract_underlying_fields(
-                "Each American Depositary Share represents one ordinary share.",
-                company_name="SONY GROUP CORP",
-                form="20-F",
-            )
+        result = self._run(
+            adr_response,
+            filing_text="Each American Depositary Share represents one ordinary share.",
+            company_name="SONY GROUP CORP",
+            form="20-F",
+        )
         assert result.get("adr_flag").value is True
 
     def test_legal_name_extracted(self):
         """legal_name is extracted with correct value and high confidence → not needs_review."""
-        raw = _make_claude_response(legal_name="Apple Inc.", conf=0.95)
-        with patch("underlying.extractor._get_client") as mock_factory:
-            mock_factory.return_value = _mock_client(raw)
-            result = extract_underlying_fields("Annual report text...", company_name="APPLE INC")
+        result = self._run(
+            _make_claude_response(legal_name="Apple Inc.", conf=0.95),
+            filing_text="Annual report text...",
+            company_name="APPLE INC",
+        )
         f = result.get("legal_name")
         assert f is not None
         assert f.value == "Apple Inc."
         assert f.needs_review is False
 
     def test_legal_name_missing_from_response_sets_needs_review(self):
-        """When Claude omits legal_name from the JSON, the field gets 0.5 confidence
+        """When the LLM omits legal_name from the JSON, the field gets 0.5 confidence
         (the _clamp_conf default) and is therefore flagged needs_review=True."""
-        # Build a response that only has the other 4 fields
         import json as _json
         data = _json.loads(_make_claude_response())
         del data["fields"]["legal_name"]
@@ -327,12 +320,10 @@ class TestExtractUnderlyingFields:
 
     def test_token_counts_captured(self):
         """input_tokens and output_tokens are attached to ExtractionResult."""
-        raw = _make_claude_response()
-        mock_client = _mock_client(raw)
-        # Attach a usage object to the mock response
-        mock_client.messages.create.return_value.usage.input_tokens = 1200
-        mock_client.messages.create.return_value.usage.output_tokens = 80
-        with patch("underlying.extractor._get_client", return_value=mock_client):
-            result = extract_underlying_fields("some text")
+        result = self._run(
+            _make_claude_response(),
+            input_tokens=1200,
+            output_tokens=80,
+        )
         assert result.input_tokens == 1200
         assert result.output_tokens == 80

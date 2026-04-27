@@ -28,7 +28,7 @@ from underlying.edgar_underlying_client import (
     AnnualFilingRef,
 )
 from underlying.extractor import ExtractionResult, FieldResult
-from underlying.market_data_client import MarketDataResult
+from underlying.market_data_client import BusinessInfoResult, MarketDataResult
 from underlying.currentness import CurrentnessReport
 
 
@@ -139,6 +139,17 @@ def _make_market() -> MarketDataResult:
     return r
 
 
+def _make_biz_info(summary: str | None = None) -> BusinessInfoResult:
+    """Return a BusinessInfoResult for use in mocks (no real network call)."""
+    r = BusinessInfoResult()
+    r.ticker = "MSFT"
+    if summary:
+        r.long_business_summary = summary
+    else:
+        r.error = "mocked empty"
+    return r
+
+
 def _mock_resolution(ticker: str = "MSFT", cik: str = "0000789019"):
     from underlying.identifier_resolver import ResolutionResult, ResolvedSecurity
     sec = ResolvedSecurity(
@@ -238,6 +249,8 @@ class TestRunIngestJob:
                   return_value=_make_extraction(confidence)),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market() if with_market else MarketDataResult()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),  # no summary — don't override LLM result
         ):
             run_ingest_job(job_id, identifiers, fetch_market=with_market)
         return job_id
@@ -324,9 +337,11 @@ class TestRunIngestJob:
             patch("underlying.background.extract_underlying_fields",
                   return_value=_make_extraction()),
             patch("underlying.background.fetch_market_data") as mock_mkt,
+            patch("underlying.background.fetch_business_info") as mock_biz,
         ):
             run_ingest_job(job_id, ["MSFT"], fetch_market=False)
         mock_mkt.assert_not_called()
+        mock_biz.assert_not_called()   # business info also gated by fetch_market
 
     def test_llm_skipped_when_flag_false(self, in_memory_db):
         job_id = create_job(["MSFT"])
@@ -336,6 +351,8 @@ class TestRunIngestJob:
             patch("underlying.background.extract_underlying_fields") as mock_llm,
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id, ["MSFT"], run_llm=False)
         mock_llm.assert_not_called()
@@ -354,6 +371,8 @@ class TestRunIngestJob:
                   return_value=_make_extraction()),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id, ["MSFT", "AAPL"])
         with _get_session(in_memory_db) as s:
@@ -372,17 +391,30 @@ class TestRunIngestJob:
         assert row.last_10k_primary_doc == "msft-20250630.htm"
 
     def test_llm_token_cost_stored(self, in_memory_db):
-        """Token counts and computed cost are persisted when extraction returns them."""
+        """Token counts and computed cost are persisted when extraction returns them.
+
+        Settings are mocked to force the Anthropic provider so the cost formula
+        is exercised regardless of what runtime_settings.yaml says on the
+        developer's machine.
+        """
         extraction = _make_extraction()
         extraction.input_tokens  = 2_500
         extraction.output_tokens = 150
         job_id = create_job(["MSFT"])
+        anthropic_settings = {
+            "underlying_llm_provider": "anthropic",
+            "underlying_llm_model": "",
+        }
         with (
             patch("underlying.background.resolve", return_value=_mock_resolution()),
             patch("underlying.background.fetch_metadata", return_value=_make_metadata()),
             patch("underlying.background.extract_underlying_fields",
                   return_value=extraction),
             patch("underlying.background.fetch_market_data", return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
+            patch("underlying.background.settings_store.get_settings",
+                  return_value=anthropic_settings),
         ):
             run_ingest_job(job_id, ["MSFT"])
         with _get_session(in_memory_db) as s:
@@ -464,6 +496,8 @@ class TestRunIngestJobErrors:
                   side_effect=RuntimeError("Claude quota exceeded")),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id, ["MSFT"])
         with _get_session(in_memory_db) as s:
@@ -494,6 +528,8 @@ class TestExtractionErrorPropagation:
                   return_value=ExtractionResult(error="JSON parse error: line 1")),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id, ["MSFT"])
 
@@ -527,6 +563,8 @@ class TestExtractionErrorPropagation:
                   side_effect=RuntimeError("API quota exceeded")),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id, ["MSFT"])
 
@@ -551,6 +589,8 @@ class TestExtractionErrorPropagation:
             ),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id, ["MSFT"])
 
@@ -572,6 +612,8 @@ class TestUpsertRobustness:
             patch("underlying.background.fetch_metadata", return_value=_make_metadata()),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id1, ["MSFT"])
 
@@ -583,6 +625,8 @@ class TestUpsertRobustness:
             patch("underlying.background.fetch_metadata", return_value=updated_meta),
             patch("underlying.background.fetch_market_data",
                   return_value=_make_market()),
+            patch("underlying.background.fetch_business_info",
+                  return_value=_make_biz_info()),
         ):
             run_ingest_job(job_id2, ["MSFT"])
 

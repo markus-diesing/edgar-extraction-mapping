@@ -45,13 +45,21 @@ from underlying.edgar_underlying_client import (
     UnderlyingMetadata,
     fetch_metadata,
     detect_adr,
+    find_item1_window,
 )
 from underlying.extractor import (
     ExtractionResult,
+    FieldResult,
     extract_underlying_fields,
+    extract_brief_description_from_424b2,
 )
 from underlying.identifier_resolver import resolve, ResolutionResult
-from underlying.market_data_client import MarketDataResult, fetch_market_data
+from underlying.market_data_client import (
+    BusinessInfoResult,
+    MarketDataResult,
+    fetch_business_info,
+    fetch_market_data,
+)
 
 log = logging.getLogger(__name__)
 
@@ -161,12 +169,27 @@ def _process_one(
     # Step 2 — Fetch EDGAR metadata
     meta = fetch_metadata(cik)
 
-    # Step 3 — LLM extraction from 10-K text
+    # Step 3 — LLM extraction from targeted 10-K / 20-F window
+    #
+    # find_item1_window() searches the *full* downloaded text (up to MAX_FILING_CHARS)
+    # to locate the Item 1 Business section.  This correctly handles large-cap filers
+    # (e.g. INTC, INTU) whose 10-K preambles (forward-looking statements, ToC) extend
+    # well past the legacy 8 000-char extraction window.
     extraction: ExtractionResult | None = None
+    extraction_text: str | None = None   # the window actually sent to the LLM
     if run_llm and meta.annual_filing_text:
+        item1_window, item1_found = find_item1_window(
+            meta.annual_filing_text,
+            form=meta.reporting_form,
+        )
+        extraction_text = item1_window
+        log.info(
+            "Item 1 window for CIK %s: found=%s chars=%d",
+            cik, item1_found, len(item1_window),
+        )
         try:
             extraction = extract_underlying_fields(
-                filing_text=meta.annual_filing_text,
+                filing_text=item1_window,
                 company_name=meta.company_name,
                 form=meta.reporting_form,
             )
@@ -185,27 +208,50 @@ def _process_one(
     # ADR flag — combine LLM + regex
     adr_flag = _resolve_adr_flag(meta, extraction)
 
-    # Step 4 — Market data
+    # Step 4 — Market data (price history) + business info (yfinance summary)
     market: MarketDataResult | None = None
+    biz_info: BusinessInfoResult | None = None
     if fetch_market:
         try:
             market = fetch_market_data(ticker)
         except Exception as exc:
             log.warning("Market data fetch failed for %s: %s", ticker, exc)
+        try:
+            biz_info = fetch_business_info(ticker)
+        except Exception as exc:
+            log.warning("Business info fetch failed for %s: %s", ticker, exc)
+
+    # Step 4.5 — brief_description waterfall
+    #
+    # Priority:
+    #   1. yfinance longBusinessSummary  (structured, zero cost, high quality)
+    #   2. LLM from 10-K / 20-F text    (targeted Item 1 window extracted above)
+    #   3. LLM from linked 424B2 filing  (last resort — less reliable placement)
+    #
+    # Level 1 and level 3 are applied here; level 2 is the LLM extraction result
+    # already in `extraction.fields` (source_type "10k_item1").
+    extraction = _apply_yfinance_brief_desc(extraction, biz_info)
 
     # Load field config version once — shared by both DB write helpers so that
     # underlying_securities and field_results always record the same version string.
     cfg_version = _load_field_config_version()
 
     # Step 5 — Upsert DB record
+    # Pass extraction_text so the DB stores the targeted window (Item 1 content)
+    # rather than the legacy first-N-chars preamble — reviewers see useful text.
     underlying_id = _upsert_security(
         raw_id, sec.source_identifier_type, meta, extraction,
         adr_flag, market, ticker, sec, cfg_version,
+        extraction_text=extraction_text,
     )
 
     # Step 6 — Upsert Tier 2 field results
     if extraction is not None:
         _upsert_field_results(underlying_id, extraction, meta, cfg_version)
+
+    # Step 7 — 424B2 fallback: try if brief_description is still missing
+    if _needs_brief_desc_fallback(extraction):
+        _try_424b2_brief_description(underlying_id, meta.company_name, cfg_version)
 
     return underlying_id
 
@@ -228,6 +274,8 @@ def _upsert_security(
     ticker: str,
     resolved_sec: Any,
     cfg_version: str,
+    *,
+    extraction_text: str | None = None,
 ) -> str:
     """Upsert the ``UnderlyingSecurity`` row.  Returns the row UUID."""
 
@@ -367,9 +415,14 @@ def _upsert_security(
 
         # ── 10-K source text (human validation) ──────────────────────
         # Store the exact text slice the LLM received so reviewers can
-        # verify extracted values against the original filing.
-        if meta.annual_filing_text:
-            row.last_10k_text = meta.annual_filing_text[:config.UNDERLYING_EXTRACTION_CHARS]
+        # verify extracted values against the original filing.  Prefer the
+        # targeted Item 1 window (extraction_text) over the raw preamble.
+        stored_text = extraction_text or (
+            meta.annual_filing_text[:config.UNDERLYING_EXTRACTION_CHARS]
+            if meta.annual_filing_text else None
+        )
+        if stored_text:
+            row.last_10k_text = stored_text
         if meta.last_annual:
             row.last_10k_primary_doc = meta.last_annual.primary_document
 
@@ -448,6 +501,184 @@ def _update_job(job_id: str, **kwargs: Any) -> None:
 
 # ---------------------------------------------------------------------------
 # Helpers
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# brief_description waterfall helpers
+# ---------------------------------------------------------------------------
+
+def _apply_yfinance_brief_desc(
+    extraction: ExtractionResult | None,
+    biz_info: BusinessInfoResult | None,
+) -> ExtractionResult | None:
+    """Level-1 waterfall: override brief_description with yfinance summary.
+
+    If *biz_info* contains a non-empty ``long_business_summary``, replace (or
+    inject) the ``brief_description`` field in *extraction* with a high-confidence
+    yfinance-sourced result.  All other fields in *extraction* are preserved.
+    """
+    if biz_info is None or not biz_info.is_ok():
+        return extraction
+
+    summary = biz_info.long_business_summary or ""
+    yf_fr = FieldResult(
+        field_name="brief_description",
+        value=summary,
+        confidence=0.95,
+        source_excerpt=summary[:200],
+        source_type="yahoo_finance",
+        needs_review=False,
+    )
+
+    if extraction is None:
+        return ExtractionResult(fields=[yf_fr])
+
+    # Replace any existing brief_description field in the extraction
+    extraction.fields = [
+        f for f in extraction.fields if f.field_name != "brief_description"
+    ]
+    extraction.fields.append(yf_fr)
+    log.info(
+        "brief_description: using yfinance summary (%d chars)", len(summary)
+    )
+    return extraction
+
+
+def _needs_brief_desc_fallback(extraction: ExtractionResult | None) -> bool:
+    """Return True if brief_description is still absent or null after LLM + yfinance."""
+    if extraction is None:
+        return True
+    fr = extraction.get("brief_description")
+    return fr is None or fr.value is None or fr.value == ""
+
+
+def _try_424b2_brief_description(
+    underlying_id: str,
+    company_name: str,
+    cfg_version: str,
+) -> None:
+    """Level-3 waterfall: attempt brief_description from a linked 424B2 filing.
+
+    Queries linked filings for *underlying_id*, reads each filing's raw HTML
+    from disk, searches for a mention of *company_name*, and calls the LLM
+    with a targeted excerpt.  Writes a new UnderlyingFieldResult row on success.
+
+    This step is entirely non-fatal — any error is logged and silently ignored.
+    """
+    try:
+        _run_424b2_fallback(underlying_id, company_name, cfg_version)
+    except Exception as exc:
+        log.warning(
+            "424B2 brief_description fallback failed for underlying %s: %s",
+            underlying_id, exc,
+        )
+
+
+def _run_424b2_fallback(
+    underlying_id: str,
+    company_name: str,
+    cfg_version: str,
+) -> None:
+    """Internal implementation of the 424B2 fallback (may raise)."""
+    from ingest.edgar_client import strip_html, decode_html
+
+    # Fetch linked filings for this underlying
+    with db.get_session() as session:
+        links = (
+            session.query(db.UnderlyingLink)
+            .filter_by(underlying_id=underlying_id)
+            .all()
+        )
+        filing_paths: list[str] = []
+        for link in links:
+            filing = session.get(db.Filing, link.filing_id)
+            if filing and filing.raw_html_path:
+                filing_paths.append(filing.raw_html_path)
+
+    if not filing_paths:
+        log.debug(
+            "No linked filings found for underlying %s — skipping 424B2 fallback",
+            underlying_id,
+        )
+        return
+
+    # Try each linked filing until we get a description
+    company_lower = company_name.lower()
+    for rel_path in filing_paths[:3]:   # cap at 3 filings to limit I/O
+        abs_path = config.PROJECT_ROOT / rel_path
+        if not abs_path.exists():
+            log.debug("424B2 HTML not found on disk: %s", abs_path)
+            continue
+
+        try:
+            raw_html = abs_path.read_text(encoding="utf-8", errors="replace")
+        except Exception as exc:
+            log.debug("Cannot read 424B2 HTML %s: %s", abs_path, exc)
+            continue
+
+        full_text = strip_html(raw_html)[:config.UNDERLYING_424B2_SEARCH_CHARS]
+
+        # Find a ~2 000-char context window around the company name mention
+        idx = full_text.lower().find(company_lower[:20])
+        if idx < 0:
+            log.debug("Company name %r not found in 424B2 text", company_name)
+            continue
+
+        start   = max(0, idx - 300)
+        excerpt = full_text[start: start + 2_000]
+
+        fr = extract_brief_description_from_424b2(excerpt, company_name)
+        if fr is None:
+            continue
+
+        # Write the result to the DB
+        with db.get_session() as session:
+            existing = (
+                session.query(db.UnderlyingFieldResult)
+                .filter_by(underlying_id=underlying_id, field_name="brief_description")
+                .first()
+            )
+            if existing is not None and existing.extracted_value not in (None, "null"):
+                # Another source already filled it — don't overwrite
+                return
+
+            value_json = json.dumps(fr.value)
+            if existing is None:
+                row = db.UnderlyingFieldResult(
+                    underlying_id=underlying_id,
+                    field_name="brief_description",
+                    extracted_value=value_json,
+                    confidence_score=fr.confidence,
+                    source_excerpt=fr.source_excerpt,
+                    source_type=fr.source_type,
+                    is_approximate=False,
+                    review_status="needs_review",
+                    field_config_version=cfg_version,
+                )
+                session.add(row)
+            else:
+                existing.extracted_value  = value_json
+                existing.confidence_score = fr.confidence
+                existing.source_excerpt   = fr.source_excerpt
+                existing.source_type      = fr.source_type
+                existing.review_status    = "needs_review"
+                existing.field_config_version = cfg_version
+            session.commit()
+
+        log.info(
+            "brief_description filled from 424B2 for underlying %s (conf=%.2f)",
+            underlying_id, fr.confidence,
+        )
+        return   # success — done
+
+    log.debug(
+        "424B2 fallback exhausted all linked filings for underlying %s",
+        underlying_id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Extraction value accessor
 # ---------------------------------------------------------------------------
 
 def _get_extraction_value(extraction: ExtractionResult | None, field_name: str) -> Any:

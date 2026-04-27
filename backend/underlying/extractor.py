@@ -153,8 +153,16 @@ share_type : Simplified security type.  Choose ONE of:
     "American Depositary Receipt", "Ordinary Share", "Unit", or
     another concise label matching the filing.
 
-brief_description : 1–2 complete sentences describing the company's primary
-    business (from Item 1 or the cover page description).  Maximum 300 chars.
+brief_description : The company's primary business description taken directly
+    from the Business Overview or the opening paragraph of Item 1.
+    PREFERENCE ORDER (strictly in this order):
+      1. Quote the Overview / opening paragraph verbatim if it is ≤ 500 chars
+         and reads as a complete, standalone description.
+      2. If the verbatim text is > 500 chars, quote just the first 1–2 complete
+         sentences (up to 500 chars) without paraphrasing.
+      3. Only write a condensed summary if no suitable verbatim passage exists
+         (e.g. the section is truncated or contains only bullet lists).
+    Do NOT invent content or add information not present in the text.
 
 adr_flag : true if the registered security is an American Depositary Share
     (ADS) or American Depositary Receipt (ADR).  Otherwise false.
@@ -325,3 +333,101 @@ def _clamp_conf(raw: Any) -> float:
         return max(0.0, min(1.0, float(raw)))
     except (TypeError, ValueError):
         return 0.5
+
+
+# ---------------------------------------------------------------------------
+# 424B2 brief_description fallback extractor
+# ---------------------------------------------------------------------------
+
+_424B2_SYSTEM_PROMPT = """\
+You are a financial data analyst.  You are given a short excerpt from a
+424B2 structured product filing.  The excerpt was selected because it
+mentions a specific company.
+
+Extract a brief business description of that company from the excerpt.
+Respond ONLY with a valid JSON object — no markdown, no commentary:
+
+{
+  "brief_description": <1–2 sentence verbatim or near-verbatim quote, or null>,
+  "confidence": <0.0 – 1.0>
+}
+
+Rules:
+- Use verbatim or near-verbatim text from the excerpt when possible.
+- Return null if the excerpt does not contain a meaningful description.
+- Maximum 500 characters.
+"""
+
+
+def extract_brief_description_from_424b2(
+    context_text: str,
+    company_name: str,
+) -> FieldResult | None:
+    """Extract ``brief_description`` from a 424B2 filing excerpt.
+
+    This is the level-3 fallback in the brief_description waterfall.  Called
+    only when both yfinance and the 10-K LLM paths yielded no description.
+
+    Parameters
+    ----------
+    context_text:
+        A short window (~2 000 chars) from a 424B2 filing that mentions the
+        company by name.
+    company_name:
+        The company's name — included in the user prompt for context.
+
+    Returns
+    -------
+    FieldResult | None
+        ``None`` on LLM failure or if the model returns null confidence.
+    """
+    if not context_text or not context_text.strip():
+        return None
+
+    from underlying.llm_client import (
+        load_config, call_underlying_llm, clean_response, try_repair_json,
+    )
+
+    cfg = load_config()
+    user_prompt = (
+        f"Company: {company_name}\n\n"
+        f"--- 424B2 EXCERPT ---\n{context_text[:2_000]}\n--- END ---\n\n"
+        "Extract a brief description of this company from the excerpt above."
+    )
+
+    log.info(
+        "424B2 brief_description fallback: company=%r provider=%s",
+        company_name, cfg.provider,
+    )
+
+    try:
+        raw, input_tokens, output_tokens = call_underlying_llm(
+            _424B2_SYSTEM_PROMPT, user_prompt, cfg,
+        )
+    except Exception as exc:
+        log.warning("424B2 LLM call failed for %r: %s", company_name, exc)
+        return None
+
+    text = clean_response(raw)
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = try_repair_json(text)
+        if data is None:
+            log.warning("424B2 JSON parse failed for %r", company_name)
+            return None
+
+    desc = data.get("brief_description")
+    conf = _clamp_conf(data.get("confidence", 0.5))
+
+    if not desc or not isinstance(desc, str) or not desc.strip():
+        return None
+
+    return FieldResult(
+        field_name="brief_description",
+        value=desc.strip(),
+        confidence=conf,
+        source_excerpt=desc.strip()[:200],
+        source_type="424b2_llm",
+        needs_review=conf < config.EXTRACTION_CONFIDENCE_THRESHOLD,
+    )

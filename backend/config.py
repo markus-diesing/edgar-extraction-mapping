@@ -132,8 +132,21 @@ UNDERLYING_INGEST_MAX_CSV_ROWS  = 500
 UNDERLYING_JOB_POLL_INTERVAL    = 3                       # seconds (used by frontend)
 
 # Characters of stripped annual-report text passed to the Tier 2 LLM extraction
-# prompt (cover page + beginning of Item 1).  Keeping this small controls token cost.
+# prompt.  Used as the fallback window when Item 1 Business cannot be located in
+# the full filing text (e.g. 20-F filers with a different section structure).
 UNDERLYING_EXTRACTION_CHARS     = 8_000
+
+# Smart Item 1 / Business section window extraction (10-K / 20-F).
+# find_item1_window() searches the full downloaded filing text, locates the
+# "ITEM 1  BUSINESS" heading and returns a focused window instead of the first
+# UNDERLYING_EXTRACTION_CHARS chars (which often cover only the table of
+# contents and forward-looking-statement disclaimers for large-cap filers).
+UNDERLYING_ITEM1_CONTEXT_BEFORE = 300    # chars of context kept before the header
+UNDERLYING_ITEM1_WINDOW_CHARS   = 6_000  # chars extracted after the Item 1 header
+
+# Characters of 424B2 filing text searched when applying the level-3 fallback
+# for brief_description (last resort when yfinance and 10-K LLM both fail).
+UNDERLYING_424B2_SEARCH_CHARS   = 20_000
 
 # Filing-deadline days by SEC filer category for currentness checks.
 # Keys must match the `category` field in EDGAR submissions JSON (case-insensitive compare).

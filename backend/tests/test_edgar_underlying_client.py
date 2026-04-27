@@ -739,3 +739,94 @@ class TestFetchMetadata:
         )
         with pytest.raises(Exception):
             fetch_metadata("9999999999")
+
+
+# ---------------------------------------------------------------------------
+# find_item1_window
+# ---------------------------------------------------------------------------
+
+class TestFindItem1Window:
+    """find_item1_window() locates Item 1 Business section in 10-K text."""
+
+    from underlying.edgar_underlying_client import find_item1_window  # noqa: E402
+
+    def _call(self, text, form="10-K"):
+        from underlying.edgar_underlying_client import find_item1_window
+        return find_item1_window(text, form=form)
+
+    # ── found paths ────────────────────────────────────────────────────────
+
+    def test_standard_inline_heading(self):
+        """Inline 'Item 1. Business' heading followed by prose."""
+        preamble = "x" * 5_000
+        body = "Item 1. Business\nAcme Corp is a leading provider of widgets.\n" + "y" * 200
+        text = preamble + body
+        window, found = self._call(text)
+        assert found is True
+        assert "Acme Corp" in window
+
+    def test_allcaps_heading(self):
+        preamble = "z" * 3_000
+        body = "ITEM 1. BUSINESS\nTechCo makes software and stuff.\n" + "y" * 200
+        window, found = self._call(preamble + body)
+        assert found is True
+        assert "TechCo" in window
+
+    def test_split_heading_amat_style(self):
+        """'Item 1:\nBusiness\nApplied Materials, Inc. is...' (AMAT pattern)."""
+        preamble = "t" * 7_500
+        body = "Item 1:\nBusiness\nApplied Materials, Inc. is the global leader.\n" + "y" * 200
+        window, found = self._call(preamble + body)
+        assert found is True
+        assert "Applied Materials" in window
+
+    def test_context_before_is_included(self):
+        """A bit of text before the heading should appear in the window."""
+        lead = "PART I\n"
+        body = "Item 1. Business\nBigCorp provides services.\n" + "b" * 200
+        text = "a" * 4_000 + lead + body
+        window, found = self._call(text)
+        assert found is True
+        assert "PART I" in window   # context_before chars included
+
+    def test_toc_entry_skipped(self):
+        """TOC line like 'Item 1. Business  4' must not be mistaken for the real section."""
+        toc = "Item 1. Business  4\nItem 1A. Risk Factors  10\n"
+        preamble = "p" * 200
+        real_section = "Item 1. Business\nRealCorp develops awesome products.\n" + "r" * 300
+        text = preamble + toc + "p" * 3_000 + real_section
+        window, found = self._call(text)
+        assert found is True
+        assert "RealCorp" in window
+
+    # ── fallback paths ─────────────────────────────────────────────────────
+
+    def test_fallback_when_no_item1(self):
+        """When no Item 1 heading is present, returns the leading fallback window."""
+        text = "Risk factors and disclaimers... " * 500  # no Item 1 anywhere
+        window, found = self._call(text)
+        assert found is False
+        assert len(window) <= 6_300 + 10   # context_before + window_after + tiny slack
+
+    def test_empty_text_returns_empty(self):
+        window, found = self._call("")
+        assert window == ""
+        assert found is False
+
+    # ── 20-F path ─────────────────────────────────────────────────────────
+
+    def test_20f_form_targets_item4(self):
+        """20-F filings: find 'Item 4. Information on the Company'."""
+        preamble = "m" * 3_000
+        body = "Item 4. Information on the Company\nForeignCo is headquartered in Germany.\n" + "f" * 300
+        window, found = self._call(preamble + body, form="20-F")
+        assert found is True
+        assert "ForeignCo" in window
+
+    def test_10k_form_does_not_match_item4(self):
+        """10-K filer: 'Item 4' does NOT trigger the Item 1 finder."""
+        preamble = "k" * 3_000
+        body = "Item 4. Information on the Company\nDomesticCo is headquartered in the US.\n" + "d" * 300
+        window, found = self._call(preamble + body, form="10-K")
+        # Should NOT find this (wrong form)
+        assert found is False

@@ -39,6 +39,93 @@ log = logging.getLogger(__name__)
 # EDGAR API endpoints
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Item 1 Business section finder
+# ---------------------------------------------------------------------------
+
+# Matches standard 10-K section headings for "ITEM 1  BUSINESS" including
+# the AMAT-style split where "Item 1:" and "Business" are on separate lines.
+# The pattern is intentionally permissive — the TOC-vs-real-section distinction
+# is handled by inspecting the content that immediately follows each match.
+_ITEM1_HEADING_RE = re.compile(
+    r'ITEM\s+1[\s.:]*(?:\n\s*)?BUSINESS\b',
+    re.IGNORECASE,
+)
+
+# 20-F filers use "Item 4" (Information on the Company) for the business section.
+_ITEM4_HEADING_RE = re.compile(
+    r'ITEM\s+4[\s.:]*(?:\n\s*)?INFORMATION\s+ON\s+THE\s+COMPANY\b'
+    r'|ITEM\s+4[.:\s]+BUSINESS\s+OVERVIEW\b',
+    re.IGNORECASE,
+)
+
+# A table-of-contents entry is followed by whitespace + a page number (1–3 digits)
+# on the same or next line, with no substantial prose after it.
+_TOC_TRAILER_RE = re.compile(r'^[\s.\-]*\d{1,3}\s*$', re.MULTILINE)
+
+
+def find_item1_window(
+    text: str,
+    form: str = "10-K",
+    context_before: int = config.UNDERLYING_ITEM1_CONTEXT_BEFORE,
+    window_after:   int = config.UNDERLYING_ITEM1_WINDOW_CHARS,
+) -> tuple[str, bool]:
+    """Locate the Item 1 Business section and return a focused text window.
+
+    Searches the *full* stripped filing text (not just the first N chars) so
+    that filers with long preambles (forward-looking statements, risk factors)
+    before Part I are handled correctly.
+
+    For 20-F filers the search targets "Item 4  Information on the Company"
+    instead of "Item 1  Business".
+
+    Returns
+    -------
+    (window, found)
+        *window* is a string of up to ``context_before + window_after`` chars
+        centred on the located section header.  If the header cannot be found
+        the function falls back to the first ``context_before + window_after``
+        characters of *text*.
+        *found* is ``True`` when the header was located.
+    """
+    fallback_chars = context_before + window_after
+    if not text:
+        return "", False
+
+    heading_re = _ITEM4_HEADING_RE if form in ("20-F", "40-F") else _ITEM1_HEADING_RE
+
+    for m in heading_re.finditer(text):
+        # Inspect content immediately following the heading.
+        after = text[m.end(): m.end() + 400].strip()
+
+        # Reject TOC entries: the text right after the heading is just a page
+        # number (possibly with dot leaders), with no substantive prose.
+        if _TOC_TRAILER_RE.match(after[:80]):
+            log.debug("Skipping TOC Item 1 entry at pos %d", m.start())
+            continue
+
+        # Require at least 40 alpha characters in the next 300 chars to confirm
+        # this is the real section body and not another structural artifact.
+        alpha_count = sum(1 for c in after[:300] if c.isalpha())
+        if alpha_count < 40:
+            log.debug(
+                "Skipping low-content Item 1 candidate at pos %d (alpha=%d)",
+                m.start(), alpha_count,
+            )
+            continue
+
+        # Real section found — extract window with a little leading context.
+        start = max(0, m.start() - context_before)
+        end   = m.start() + window_after
+        log.debug(
+            "Item 1 Business section found at pos %d (form=%s)", m.start(), form
+        )
+        return text[start:end], True
+
+    # Not found: return the initial fallback window.
+    log.debug("Item 1 Business heading not found in text (len=%d, form=%s)", len(text), form)
+    return text[:fallback_chars], False
+
 _COMPANYFACTS_BASE = "https://data.sec.gov/api/xbrl/companyfacts"
 
 # ---------------------------------------------------------------------------

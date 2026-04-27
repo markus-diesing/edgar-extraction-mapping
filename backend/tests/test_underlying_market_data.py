@@ -300,3 +300,149 @@ class TestYahooFinanceClientTimeout:
         assert len(series) == m._MAX_HIST_ENTRIES
         # Most recent entries should be kept (last n entries of the sorted series)
         assert series[-1]["close"] == pytest.approx(float(n))
+
+
+# ---------------------------------------------------------------------------
+# BusinessInfoResult
+# ---------------------------------------------------------------------------
+
+class TestBusinessInfoResult:
+    def test_is_ok_true_when_summary_set(self):
+        from underlying.market_data_client import BusinessInfoResult
+        r = BusinessInfoResult()
+        r.long_business_summary = "Acme Corp makes widgets."
+        assert r.is_ok() is True
+
+    def test_is_ok_false_when_error(self):
+        from underlying.market_data_client import BusinessInfoResult
+        r = BusinessInfoResult()
+        r.error = "timeout"
+        r.long_business_summary = "Acme Corp makes widgets."
+        assert r.is_ok() is False
+
+    def test_is_ok_false_when_no_summary(self):
+        from underlying.market_data_client import BusinessInfoResult
+        r = BusinessInfoResult()
+        assert r.is_ok() is False
+
+
+# ---------------------------------------------------------------------------
+# _trim_to_sentences
+# ---------------------------------------------------------------------------
+
+class TestTrimToSentences:
+    def _call(self, text, max_chars=500):
+        from underlying.market_data_client import _trim_to_sentences
+        return _trim_to_sentences(text, max_chars)
+
+    def test_short_text_returned_unchanged(self):
+        text = "Acme makes widgets. It is based in NY."
+        assert self._call(text) == text.strip()
+
+    def test_long_text_trimmed_at_sentence_boundary(self):
+        # Build a text where the first sentence is short and fits
+        first = "Acme Corp makes widgets."
+        rest = " " + "B" * 600 + "."
+        result = self._call(first + rest, max_chars=50)
+        assert result == first
+
+    def test_always_returns_at_least_first_sentence(self):
+        # Single very long sentence → returned in full even if > max_chars
+        long_sentence = "A" * 600 + "."
+        result = self._call(long_sentence, max_chars=50)
+        assert result == long_sentence.rstrip()
+
+
+# ---------------------------------------------------------------------------
+# YahooFinanceClient.fetch_business_info
+# ---------------------------------------------------------------------------
+
+class TestFetchBusinessInfo:
+    @patch("underlying.market_data_client.yfinance")
+    def test_happy_path(self, mock_yf):
+        from underlying.market_data_client import YahooFinanceClient, _SUMMARY_MAX_CHARS
+        ticker_mock = MagicMock()
+        ticker_mock.info = {
+            "longBusinessSummary": "Acme Corp designs and sells widgets. It serves many markets.",
+            "sector": "Technology",
+            "industry": "Software",
+        }
+        mock_yf.Ticker.return_value = ticker_mock
+
+        client = YahooFinanceClient()
+        result = client.fetch_business_info("ACME")
+
+        assert result.is_ok()
+        assert result.ticker == "ACME"
+        assert "Acme Corp" in (result.long_business_summary or "")
+        assert result.sector == "Technology"
+        assert result.industry == "Software"
+        assert result.error is None
+
+    @patch("underlying.market_data_client.yfinance")
+    def test_empty_info_returns_error(self, mock_yf):
+        from underlying.market_data_client import YahooFinanceClient
+        ticker_mock = MagicMock()
+        ticker_mock.info = {}
+        mock_yf.Ticker.return_value = ticker_mock
+
+        result = YahooFinanceClient().fetch_business_info("ACME")
+        assert not result.is_ok()
+
+    @patch("underlying.market_data_client.yfinance")
+    def test_no_summary_key_is_ok_false(self, mock_yf):
+        from underlying.market_data_client import YahooFinanceClient
+        ticker_mock = MagicMock()
+        ticker_mock.info = {"sector": "Technology"}
+        mock_yf.Ticker.return_value = ticker_mock
+
+        result = YahooFinanceClient().fetch_business_info("ACME")
+        assert not result.is_ok()
+        assert result.sector == "Technology"
+
+    @patch("underlying.market_data_client.yfinance")
+    def test_yfinance_exception_returns_error(self, mock_yf):
+        from underlying.market_data_client import YahooFinanceClient
+        mock_yf.Ticker.side_effect = RuntimeError("network error")
+        result = YahooFinanceClient().fetch_business_info("ACME")
+        assert not result.is_ok()
+        assert "network error" in (result.error or "")
+
+    @patch("underlying.market_data_client.yfinance")
+    def test_summary_trimmed_to_sentences(self, mock_yf):
+        from underlying.market_data_client import YahooFinanceClient, _SUMMARY_MAX_CHARS
+        # Provide a very long summary
+        long_summary = "First sentence is short. " + "X" * 600 + ". Last part."
+        ticker_mock = MagicMock()
+        ticker_mock.info = {"longBusinessSummary": long_summary}
+        mock_yf.Ticker.return_value = ticker_mock
+
+        result = YahooFinanceClient().fetch_business_info("ACME")
+        assert result.is_ok()
+        # Should have been trimmed
+        assert len(result.long_business_summary or "") <= _SUMMARY_MAX_CHARS + 10
+
+
+# ---------------------------------------------------------------------------
+# Module-level fetch_business_info convenience function
+# ---------------------------------------------------------------------------
+
+class TestFetchBusinessInfoConvenience:
+    def setup_method(self):
+        import underlying.market_data_client as m
+        m._default_client = None
+
+    def teardown_method(self):
+        import underlying.market_data_client as m
+        m._default_client = None
+
+    @patch("underlying.market_data_client.yfinance")
+    def test_delegates_to_default_client(self, mock_yf):
+        from underlying.market_data_client import fetch_business_info
+        ticker_mock = MagicMock()
+        ticker_mock.info = {"longBusinessSummary": "Works great."}
+        mock_yf.Ticker.return_value = ticker_mock
+
+        result = fetch_business_info("MSFT")
+        assert result.is_ok()
+        assert "Works great" in (result.long_business_summary or "")

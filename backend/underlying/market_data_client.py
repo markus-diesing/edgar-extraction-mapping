@@ -45,6 +45,28 @@ log = logging.getLogger(__name__)
 # Data types
 # ---------------------------------------------------------------------------
 
+class BusinessInfoResult:
+    """Business description data fetched from Yahoo Finance's ``info`` dict.
+
+    This is a lightweight result object — separate from :class:`MarketDataResult`
+    because the ``info`` endpoint is a different HTTP call to Yahoo Finance and
+    has its own failure modes.
+    """
+
+    __slots__ = ("ticker", "long_business_summary", "sector", "industry", "error")
+
+    def __init__(self) -> None:
+        self.ticker: str = ""
+        self.long_business_summary: str | None = None
+        self.sector:   str | None = None
+        self.industry: str | None = None
+        self.error:    str | None = None
+
+    def is_ok(self) -> bool:
+        """True if a non-empty business summary was obtained."""
+        return self.error is None and bool(self.long_business_summary)
+
+
 class MarketDataResult:
     """Result object returned by :class:`MarketDataClient` implementations."""
 
@@ -117,6 +139,34 @@ _MAX_HIST_ENTRIES = 2_000
 # Seconds to wait for a yfinance.history() response before giving up.
 # yfinance itself has no timeout parameter; we enforce one via a thread future.
 _YFINANCE_TIMEOUT_SECONDS = 30
+
+
+# Seconds to wait for a yfinance.Ticker.info response.
+_YFINANCE_INFO_TIMEOUT_SECONDS = 20
+
+# Maximum characters kept from longBusinessSummary before sentence-trimming.
+# yfinance summaries are often 1 500–2 000 chars; we keep a focused excerpt.
+_SUMMARY_MAX_CHARS = 500
+
+
+def _trim_to_sentences(text: str, max_chars: int = _SUMMARY_MAX_CHARS) -> str:
+    """Return the first complete sentence(s) of *text* up to *max_chars*.
+
+    Splits on typical sentence endings (.  !  ?) followed by whitespace.
+    Always returns at least the first sentence even if it exceeds *max_chars*.
+    """
+    import re as _re
+    if len(text) <= max_chars:
+        return text.strip()
+    # Split on sentence-ending punctuation followed by whitespace
+    parts = _re.split(r'(?<=[.!?])\s+', text.strip())
+    result = ""
+    for part in parts:
+        candidate = (result + " " + part).strip() if result else part
+        if len(candidate) > max_chars and result:
+            break
+        result = candidate
+    return result or text[:max_chars].rstrip()
 
 
 class YahooFinanceClient:
@@ -223,6 +273,61 @@ class YahooFinanceClient:
         )
         return result
 
+    def fetch_business_info(self, ticker: str) -> BusinessInfoResult:
+        """Fetch ``longBusinessSummary`` and related fields from Yahoo Finance.
+
+        Uses ``yfinance.Ticker.info`` — a separate HTTP call from ``.history()``.
+        Returns a :class:`BusinessInfoResult` with ``error`` set on failure.
+        The summary is trimmed to at most :data:`_SUMMARY_MAX_CHARS` characters
+        while respecting sentence boundaries.
+
+        Parameters
+        ----------
+        ticker:
+            Exchange ticker symbol (e.g. ``"MSFT"``).
+        """
+        result = BusinessInfoResult()
+        result.ticker = ticker.upper()
+
+        log.info("Fetching business info: ticker=%s", ticker)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    lambda: yfinance.Ticker(ticker).info
+                )
+                info: dict[str, Any] = future.result(timeout=_YFINANCE_INFO_TIMEOUT_SECONDS)
+        except _FuturesTimeout:
+            log.warning(
+                "yfinance info timed out after %ds for %r",
+                _YFINANCE_INFO_TIMEOUT_SECONDS, ticker,
+            )
+            result.error = f"yfinance info timeout after {_YFINANCE_INFO_TIMEOUT_SECONDS}s"
+            return result
+        except Exception as exc:
+            log.warning("yfinance info error for %r: %s", ticker, exc)
+            result.error = str(exc)
+            return result
+
+        if not info:
+            result.error = f"Empty info dict for ticker {ticker!r}"
+            return result
+
+        raw_summary: str = info.get("longBusinessSummary") or ""
+        if raw_summary:
+            result.long_business_summary = _trim_to_sentences(raw_summary)
+        result.sector   = info.get("sector") or None
+        result.industry = info.get("industry") or None
+
+        if result.is_ok():
+            log.info(
+                "Business info OK: ticker=%s chars=%d",
+                ticker, len(result.long_business_summary or ""),
+            )
+        else:
+            log.info("Business info empty for ticker %r", ticker)
+
+        return result
+
 
 # ---------------------------------------------------------------------------
 # Module-level default instance
@@ -250,5 +355,20 @@ def set_default_client(client: MarketDataClient) -> None:
 
 
 def fetch_market_data(ticker: str, years: int | None = None) -> MarketDataResult:
-    """Convenience function: fetch via the default client."""
+    """Convenience function: fetch price history via the default client."""
     return get_default_client().fetch(ticker, years or config.MARKET_DATA_PRICE_SERIES_YEARS)
+
+
+def fetch_business_info(ticker: str) -> BusinessInfoResult:
+    """Convenience function: fetch business description via the default client.
+
+    Delegates to :meth:`YahooFinanceClient.fetch_business_info`.  If the default
+    client does not implement ``fetch_business_info`` (e.g. a custom test stub),
+    returns an empty :class:`BusinessInfoResult`.
+    """
+    client = get_default_client()
+    if hasattr(client, "fetch_business_info"):
+        return client.fetch_business_info(ticker)
+    result = BusinessInfoResult()
+    result.error = "Default client does not support fetch_business_info"
+    return result
