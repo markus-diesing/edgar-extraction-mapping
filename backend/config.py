@@ -65,32 +65,23 @@ CLAUDE_MODEL_REGISTRY: dict[str, dict] = {
         "note": "200k context. Extended to 1M via beta header (tokens >200k priced at $6/M).",
     },
     "claude-sonnet-4-20250514": {
-        "display_name":       "Claude Sonnet 4",
+        "display_name":       "Claude Sonnet 4 (deprecated)",
         "input_price_per_m":  3.00,
         "output_price_per_m": 15.00,
         "cache_write_per_m":  3.75,
         "cache_read_per_m":   0.30,
         "context_tokens":     200_000,
-        "note": "Original project default. Training cutoff March 2025.",
+        "note": "⚠ Deprecated — retiring 2026-06-15. Migrate to Sonnet 4.6.",
     },
     # ── Haiku (cheaper / faster) ──────────────────────────────────────────────
-    "claude-3-5-haiku-20241022": {
-        "display_name":       "Claude Haiku 3.5",
-        "input_price_per_m":  0.80,
-        "output_price_per_m": 4.00,
-        "cache_write_per_m":  1.00,
-        "cache_read_per_m":   0.08,
+    "claude-haiku-4-5-20251001": {
+        "display_name":       "Claude Haiku 4.5",
+        "input_price_per_m":  1.00,
+        "output_price_per_m": 5.00,
+        "cache_write_per_m":  1.25,
+        "cache_read_per_m":   0.10,
         "context_tokens":     200_000,
-        "note": "Fastest Claude 3.x model. ~3.75× cheaper than Sonnet on input.",
-    },
-    "claude-3-haiku-20240307": {
-        "display_name":       "Claude Haiku 3",
-        "input_price_per_m":  0.25,
-        "output_price_per_m": 1.25,
-        "cache_write_per_m":  0.30,
-        "cache_read_per_m":   0.03,
-        "context_tokens":     200_000,
-        "note": "Cheapest option. ~12× cheaper than Sonnet on input. Older capability level.",
+        "note": "Fastest 4.x model. ~3× cheaper than Sonnet on input. Training cutoff Jul 2025.",
     },
 }
 
