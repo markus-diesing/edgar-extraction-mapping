@@ -89,6 +89,10 @@ def load_config() -> LlmConfig:
         # when the provider is Anthropic — the UI reflects this by hiding the
         # model field and pointing the user to the Filings configuration section.
         model_raw = s.get("claude_model") or config.CLAUDE_MODEL_DEFAULT
+        # Force endpoint to empty so base_url falls through to PROVIDER_DEFAULTS
+        # ("https://api.anthropic.com"). A previously saved local URL such as
+        # "http://localhost:1234" must not bleed into the Anthropic call.
+        endpoint = ""
     elif not model_raw:
         # Local providers: fall back to sensible defaults when nothing is set
         model_raw = "qwen3-14b-mlx" if provider == "openai-compatible" else "llama3"

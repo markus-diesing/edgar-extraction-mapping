@@ -555,7 +555,14 @@ function UnderlyingLlmConfig() {
               <input
                 type="radio" name="ul-provider" value={val}
                 checked={provider === val}
-                onChange={() => { setProvider(val); setAvailModels([]); setTestResult(null) }}
+                onChange={() => {
+                  setProvider(val)
+                  setAvailModels([])
+                  setTestResult(null)
+                  // Clear the endpoint state when switching to Anthropic so the
+                  // stale LM Studio URL is not re-saved on the next Save / Test.
+                  if (val === 'anthropic') setEndpoint('')
+                }}
                 className="mt-0.5 accent-blue-600"
               />
               <div>
