@@ -1,12 +1,16 @@
 """
 Microsoft Entra ID (Azure AD) token validation for FastAPI.
 
-Every incoming request must carry a valid Bearer token issued by Entra.
-The JWKS public keys are fetched once and cached for JWKS_TTL_SECONDS.
+In Azure deployments (AZURE_TENANT_ID + AZURE_CLIENT_ID are set) every
+incoming request must carry a valid Bearer token issued by Entra.
+
+In local / developer mode (those env vars absent) authentication is bypassed
+entirely so the app works without an SSO configuration.  The JWKS public keys
+are fetched once and cached for JWKS_TTL_SECONDS.
 """
 import time
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 import jwt
@@ -18,7 +22,9 @@ import config
 
 log = logging.getLogger("auth")
 
-_bearer = HTTPBearer(auto_error=True)
+# auto_error=False: let the dependency decide whether a missing token is an
+# error rather than having HTTPBearer raise 403 unconditionally.
+_bearer = HTTPBearer(auto_error=False)
 
 # ---------------------------------------------------------------------------
 # JWKS client — lazily initialised, re-used across requests
@@ -47,17 +53,25 @@ def _get_jwks_client() -> PyJWKClient:
 # ---------------------------------------------------------------------------
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
 ) -> dict[str, Any]:
     """Validate the Entra Bearer token and return its claims.
 
-    Raises HTTP 401 if the token is missing, expired, or has wrong audience/issuer.
-    Raises HTTP 503 if Entra config is not set (deployment misconfiguration).
+    * Local / dev mode (AZURE_TENANT_ID not set): returns ``{}`` — all
+      requests are allowed through without a token.
+    * Azure deployment: validates the Bearer token; raises HTTP 401 on failure.
     """
     if not config.AZURE_TENANT_ID or not config.AZURE_CLIENT_ID:
+        # SSO not configured — local development / CI: open access.
+        log.debug("Auth bypass: AZURE_TENANT_ID not configured")
+        return {}
+
+    # SSO is configured — a valid Bearer token is required.
+    if not credentials:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Entra SSO not configured — set AZURE_TENANT_ID and AZURE_CLIENT_ID.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     token = credentials.credentials

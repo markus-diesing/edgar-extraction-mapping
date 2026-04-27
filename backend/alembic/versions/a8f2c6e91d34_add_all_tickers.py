@@ -29,10 +29,13 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Guard against databases where _migrate() already added this column before
     # this Alembic revision was stamped (e.g. after a manual `alembic stamp`).
+    # IMPORTANT: the guard wraps the entire batch_alter_table block — SQLite's
+    # batch mode copies the full table even when no ops are performed, so we
+    # must skip the context manager entirely when the column already exists.
     bind = op.get_bind()
     existing = {c['name'] for c in _sa_inspect(bind).get_columns('underlying_securities')}
-    with op.batch_alter_table('underlying_securities', schema=None) as batch_op:
-        if 'all_tickers' not in existing:
+    if 'all_tickers' not in existing:
+        with op.batch_alter_table('underlying_securities', schema=None) as batch_op:
             batch_op.add_column(sa.Column('all_tickers', sa.Text(), nullable=True))
 
 
