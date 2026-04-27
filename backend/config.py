@@ -34,14 +34,6 @@ ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 AZURE_TENANT_ID: str = os.environ.get("AZURE_TENANT_ID", "")
 AZURE_CLIENT_ID: str = os.environ.get("AZURE_CLIENT_ID", "")
 
-# ---------------------------------------------------------------------------
-# Azure AI Foundry — Qwen-32b serverless endpoint
-# Set automatically by Container Apps (injected from Bicep).
-# In local dev, leave blank to use the provider defaults from the Admin UI.
-# ---------------------------------------------------------------------------
-AZURE_AI_ENDPOINT: str = os.environ.get("AZURE_AI_ENDPOINT", "")
-AZURE_AI_API_KEY:  str = os.environ.get("AZURE_AI_API_KEY",  "")
-AZURE_AI_MODEL:    str = os.environ.get("AZURE_AI_MODEL",    "Qwen2.5-32B-Instruct")
 
 # ---------------------------------------------------------------------------
 # Claude model registry

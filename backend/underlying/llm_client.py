@@ -84,24 +84,10 @@ def load_config() -> LlmConfig:
     api_key   = s.get("underlying_llm_api_key",  "")
 
     if provider == "anthropic":
-        # For Anthropic, always mirror the active Filings model so both pipelines
-        # stay in sync.  The underlying_llm_model key is intentionally ignored
-        # when the provider is Anthropic — the UI reflects this by hiding the
-        # model field and pointing the user to the Filings configuration section.
+        # Mirror the active Filings model so both pipelines stay in sync.
         model_raw = s.get("claude_model") or config.CLAUDE_MODEL_DEFAULT
-        # Force endpoint to empty so base_url falls through to PROVIDER_DEFAULTS
-        # ("https://api.anthropic.com"). A previously saved local URL such as
-        # "http://localhost:1234" must not bleed into the Anthropic call.
         endpoint = ""
     else:
-        # When running in Azure with AI Foundry configured, auto-fill the
-        # openai-compatible endpoint and model from env vars so the Admin UI
-        # selection works without manual URL entry.
-        if provider == "openai-compatible" and not endpoint:
-            endpoint = config.AZURE_AI_ENDPOINT
-        if provider == "openai-compatible" and not model_raw:
-            model_raw = config.AZURE_AI_MODEL
-
         # Fall back to sensible local defaults when nothing is configured
         if not model_raw:
             model_raw = "qwen3-14b-mlx" if provider == "openai-compatible" else "llama3"
@@ -240,9 +226,7 @@ def _call_openai_compatible(
 ) -> tuple[str, int, int]:
     url = cfg.base_url + "/v1/chat/completions"
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    # cfg.api_key comes from the Admin UI; fall back to the env var set by
-    # Container Apps (sourced from Key Vault) when running in Azure.
-    api_key = cfg.api_key or config.AZURE_AI_API_KEY
+    api_key = cfg.api_key
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 

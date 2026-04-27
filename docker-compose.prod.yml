@@ -33,9 +33,6 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - AZURE_TENANT_ID=0513f305-0dbb-4e4e-b311-98405b8dc943
       - AZURE_CLIENT_ID=cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5
-      - AZURE_AI_ENDPOINT=
-      - AZURE_AI_API_KEY=
-      - AZURE_AI_MODEL=qwen3:14b
     volumes:
       - edgar-data:/app/data
       - edgar-logs:/app/logs
