@@ -94,19 +94,19 @@
           "format": "List of dates, typically quarterly, last one is the Maturity Date",
           "typical_location": "Key Terms table, left column"
         },
-        "structuredProductsGeneric.tradeDate": {
+        "structuredProductsGeneral.tradeDate": {
           "synonyms": ["Pricing Date"],
           "label_in_doc": "Pricing Date:",
           "format": "Date string, e.g. 'September 30, 2025'",
           "typical_location": "Key Terms table, left column"
         },
-        "structuredProductsGeneric.issueDate": {
+        "structuredProductsGeneral.issueDate": {
           "synonyms": ["Original Issue Date (Settlement Date)", "Original Issue Date"],
           "label_in_doc": "Original Issue Date (Settlement Date):",
           "format": "'On or about October 3, 2025'",
           "typical_location": "Key Terms table, left column"
         },
-        "structuredProductsGeneric.maturityDate": {
+        "structuredProductsGeneral.maturityDate": {
           "synonyms": ["Maturity Date"],
           "label_in_doc": "Maturity Date*:",
           "format": "Date string",
@@ -207,25 +207,25 @@
           "format": "'Interest, if payable, will be paid on the 3rd day of each month (or, if such day is not a business day, the next following business day), beginning on [date] and ending on the Maturity Date.'",
           "typical_location": "Key Terms table"
         },
-        "structuredProductsGeneric.tradeDate": {
+        "structuredProductsGeneral.tradeDate": {
           "synonyms": ["Pricing Date"],
           "label_in_doc": "Pricing Date:",
           "format": "Date string in Terms of the Notes table",
           "typical_location": "Terms of the Notes table, first row"
         },
-        "structuredProductsGeneric.issueDate": {
+        "structuredProductsGeneral.issueDate": {
           "synonyms": ["Settlement Date"],
           "label_in_doc": "Settlement Date:",
           "format": "Date string",
           "typical_location": "Terms of the Notes table and Key Terms table"
         },
-        "structuredProductsGeneric.maturityDate": {
+        "structuredProductsGeneral.maturityDate": {
           "synonyms": ["Maturity Date"],
           "label_in_doc": "Maturity Date:",
           "format": "Date string",
           "typical_location": "Terms of the Notes table and Key Terms table"
         },
-        "structuredProductsGeneric.valuationDate": {
+        "structuredProductsGeneral.valuationDate": {
           "synonyms": ["Valuation Date"],
           "label_in_doc": "Valuation Date:",
           "format": "Date string",
@@ -237,7 +237,7 @@
           "format": "'With respect to each Reference Asset, the closing level of that Reference Asset on the Valuation Date.'",
           "typical_location": "Key Terms table 'Final Level' row"
         },
-        "structuredProductsGeneric.notional": {
+        "structuredProductsGeneral.notional": {
           "synonyms": ["Principal Amount"],
           "label_in_doc": "Principal Amount column in Specific Terms table",
           "format": "Dollar amount, e.g. '$1,372,000.00'",
@@ -320,25 +320,25 @@
           "typical_location": "Note Offering table, 'Buffer' column",
           "_note": "UBS Buffer Autocallable product has a buffer feature: principal loss = (decline beyond buffer). If buffer = 15%, downside threshold = 85%, loss only occurs below 85% and is multiplied by 1/(1-buffer). Verify against PRISM schema buffer field."
         },
-        "structuredProductsGeneric.tradeDate": {
+        "structuredProductsGeneral.tradeDate": {
           "synonyms": ["Trade Date"],
           "label_in_doc": "Trade Date** in Key Dates table",
           "format": "Date string, e.g. 'March 27, 2026'",
           "typical_location": "Key Dates table on front cover"
         },
-        "structuredProductsGeneric.issueDate": {
+        "structuredProductsGeneral.issueDate": {
           "synonyms": ["Settlement Date"],
           "label_in_doc": "Settlement Date** in Key Dates table",
           "format": "Date string, e.g. 'March 31, 2026'",
           "typical_location": "Key Dates table on front cover"
         },
-        "structuredProductsGeneric.maturityDate": {
+        "structuredProductsGeneral.maturityDate": {
           "synonyms": ["Maturity Date"],
           "label_in_doc": "Maturity Date in Key Dates table",
           "format": "Date string",
           "typical_location": "Key Dates table"
         },
-        "structuredProductsGeneric.valuationDate": {
+        "structuredProductsGeneral.valuationDate": {
           "synonyms": ["Final Valuation Date"],
           "label_in_doc": "Final Valuation Date in Key Dates table",
           "format": "Date string, e.g. 'March 27, 2031'",
@@ -434,25 +434,25 @@
           "format": "'expected to be the third business day after each coupon observation date'",
           "typical_location": "Terms of Your Notes section"
         },
-        "structuredProductsGeneric.tradeDate": {
+        "structuredProductsGeneral.tradeDate": {
           "synonyms": ["trade date", "Trade date"],
           "label_in_doc": "Original issue date (set on the trade date):",
           "format": "Trade date is when terms are set. 'expected to be September 30, 2025'",
           "typical_location": "Cover page; Terms of Your Notes"
         },
-        "structuredProductsGeneric.issueDate": {
+        "structuredProductsGeneral.issueDate": {
           "synonyms": ["original issue date", "Original issue date"],
           "label_in_doc": "Original issue date:",
           "format": "'expected to be October 3, 2025'",
           "typical_location": "Cover page table header"
         },
-        "structuredProductsGeneric.maturityDate": {
+        "structuredProductsGeneral.maturityDate": {
           "synonyms": ["stated maturity date", "Stated maturity date"],
           "label_in_doc": "Stated maturity date (set on the trade date):",
           "format": "Date string",
           "typical_location": "Terms of Your Notes section"
         },
-        "structuredProductsGeneric.valuationDate": {
+        "structuredProductsGeneral.valuationDate": {
           "synonyms": ["determination date", "Determination date"],
           "label_in_doc": "Determination date (set on the trade date):",
           "format": "'the last coupon observation date, expected to be September 30, 2030'",
@@ -527,25 +527,25 @@
           "format": "Monthly dates. 'subject to postponement as described under ...'",
           "typical_location": "Terms of the Notes table, 'Observation Dates' row; separate 'Observation Dates, Contingent Payment Dates and Call Payment Dates' table"
         },
-        "structuredProductsGeneric.tradeDate": {
+        "structuredProductsGeneral.tradeDate": {
           "synonyms": ["Pricing Date"],
           "label_in_doc": "Pricing Date:",
           "format": "Date string, e.g. 'September 30, 2025'",
           "typical_location": "Terms of the Notes table"
         },
-        "structuredProductsGeneric.issueDate": {
+        "structuredProductsGeneral.issueDate": {
           "synonyms": ["Issue Date"],
           "label_in_doc": "Issue Date:",
           "format": "Date string, e.g. 'October 3, 2025'",
           "typical_location": "Terms of the Notes table"
         },
-        "structuredProductsGeneric.maturityDate": {
+        "structuredProductsGeneral.maturityDate": {
           "synonyms": ["Maturity Date"],
           "label_in_doc": "Maturity Date:",
           "format": "Date string",
           "typical_location": "Terms of the Notes table"
         },
-        "structuredProductsGeneric.valuationDate": {
+        "structuredProductsGeneral.valuationDate": {
           "synonyms": ["Valuation Date"],
           "label_in_doc": "Valuation Date:",
           "format": "Date string. Note: 'August 31, 2026, subject to postponement'",
@@ -761,7 +761,7 @@
       "_note": "Goldman Sachs filings explicitly use memory coupon: 'times the number of observation dates that have occurred ... minus the sum of all coupons previously paid'. Look for this formula structure to identify memory feature."
     },
 
-    "structuredProductsGeneric.tradeDate": {
+    "structuredProductsGeneral.tradeDate": {
       "description": "The date on which the economic terms are set (pricing/trade date).",
       "common_synonyms": [
         "Pricing Date",
@@ -779,7 +779,7 @@
       "value_format": "ISO date string YYYY-MM-DD"
     },
 
-    "structuredProductsGeneric.issueDate": {
+    "structuredProductsGeneral.issueDate": {
       "description": "The settlement/issue date when notes are delivered.",
       "common_synonyms": [
         "Settlement Date",
@@ -798,7 +798,7 @@
       "value_format": "ISO date string YYYY-MM-DD. Often T+2 or T+3 from trade/pricing date."
     },
 
-    "structuredProductsGeneric.maturityDate": {
+    "structuredProductsGeneral.maturityDate": {
       "description": "The final date on which notes mature and principal/final payment is made.",
       "common_synonyms": [
         "Maturity Date",
@@ -809,7 +809,7 @@
       "value_format": "ISO date string YYYY-MM-DD. Typically a few days after the final valuation/determination date."
     },
 
-    "structuredProductsGeneric.valuationDate": {
+    "structuredProductsGeneral.valuationDate": {
       "description": "The final observation date used to determine maturity payoff.",
       "common_synonyms": [
         "Valuation Date",
@@ -828,14 +828,14 @@
       "value_format": "ISO date string YYYY-MM-DD. Typically 2-5 business days before maturity date."
     },
 
-    "structuredProductsGeneric.currency": {
+    "structuredProductsGeneral.currency": {
       "description": "Currency of the notes.",
       "common_synonyms": ["USD", "US$", "U.S. dollars"],
       "value_format": "ISO 4217 code: 'USD'",
       "_note": "All filings in this corpus are USD-denominated. Bank of Montreal notes are stated in USD not CAD."
     },
 
-    "structuredProductsGeneric.notional": {
+    "structuredProductsGeneral.notional": {
       "description": "Total principal amount / face amount of the note offering.",
       "common_synonyms": [
         "Principal Amount",

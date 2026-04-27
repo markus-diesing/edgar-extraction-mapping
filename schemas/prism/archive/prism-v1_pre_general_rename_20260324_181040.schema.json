@@ -12,8 +12,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "structuredProductsGeneral": {
-                    "$ref": "#/$defs/structuredProductsGeneral"
+                "structuredProductsGeneric": {
+                    "$ref": "#/$defs/structuredProductsGeneric"
                 },
                 "downsideRisk": {
                     "$ref": "#/$defs/downsideRisk"
@@ -55,7 +55,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "structuredProductsGeneral",
+                "structuredProductsGeneric",
                 "downsideRisk",
                 "funding",
                 "coupon",
@@ -106,8 +106,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "structuredProductsGeneral": {
-                    "$ref": "#/$defs/structuredProductsGeneral"
+                "structuredProductsGeneric": {
+                    "$ref": "#/$defs/structuredProductsGeneric"
                 },
                 "downsideRisk": {
                     "$ref": "#/$defs/downsideRisk"
@@ -152,7 +152,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "structuredProductsGeneral",
+                "structuredProductsGeneric",
                 "downsideRisk",
                 "funding",
                 "coupon",
@@ -171,8 +171,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "structuredProductsGeneral": {
-                    "$ref": "#/$defs/structuredProductsGeneral"
+                "structuredProductsGeneric": {
+                    "$ref": "#/$defs/structuredProductsGeneric"
                 },
                 "autocall": {
                     "$ref": "#/$defs/autocall"
@@ -217,7 +217,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "structuredProductsGeneral",
+                "structuredProductsGeneric",
                 "autocall",
                 "coupon",
                 "funding",
@@ -236,8 +236,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "structuredProductsGeneral": {
-                    "$ref": "#/$defs/structuredProductsGeneral"
+                "structuredProductsGeneric": {
+                    "$ref": "#/$defs/structuredProductsGeneric"
                 },
                 "autocall": {
                     "$ref": "#/$defs/autocall"
@@ -285,7 +285,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "structuredProductsGeneral",
+                "structuredProductsGeneric",
                 "autocall",
                 "barrier",
                 "coupon",
@@ -345,8 +345,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "otcDerivativesGeneral": {
-                    "$ref": "#/$defs/otcDerivativesGeneral"
+                "otcDerivativesGeneric": {
+                    "$ref": "#/$defs/otcDerivativesGeneric"
                 },
                 "equityForward": {
                     "$ref": "#/$defs/equityForward"
@@ -382,7 +382,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "otcDerivativesGeneral",
+                "otcDerivativesGeneric",
                 "equityForward",
                 "knockOut",
                 "underlyingTerms"
@@ -436,8 +436,8 @@
                 "identifiers": {
                     "$ref": "#/$defs/Identifiers"
                 },
-                "structuredProductsGeneral": {
-                    "$ref": "#/$defs/structuredProductsGeneral"
+                "structuredProductsGeneric": {
+                    "$ref": "#/$defs/structuredProductsGeneric"
                 },
                 "downsideRisk": {
                     "$ref": "#/$defs/downsideRisk"
@@ -476,7 +476,7 @@
             "required": [
                 "model",
                 "identifiers",
-                "structuredProductsGeneral",
+                "structuredProductsGeneric",
                 "downsideRisk",
                 "autocall",
                 "underlyingTerms"
@@ -489,18 +489,14 @@
             "type": "object",
             "description": "Contains fields related to the standard autocall feature.",
             "properties": {
-                "observationFrequency": {
-                    "description": "Interval at which events are observed.",
-                    "$ref": "#/$defs/Frequency"
-                },
                 "offsetBusinessDays": {
                     "type": "integer",
                     "description": "Defines the period given in business days between an observation date and the respective payment.",
                     "minimum": 0
                 },
-                "autocallMemoryFlag": {
-                    "description": "If this is set to true, underlyings can breach the autocall level on different observation dates for the early redemption to be triggered (breaches are memorized for each underlying separately). ",
-                    "type": "boolean"
+                "observationFrequency": {
+                    "description": "Interval at which events are observed.",
+                    "$ref": "#/$defs/Frequency"
                 },
                 "autocallPayments": {
                     "type": "object",
@@ -511,6 +507,10 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "autocallMemoryFlag": {
+                    "description": "If this is set to true, underlyings can breach the autocall level on different observation dates for the early redemption to be triggered (breaches are memorized for each underlying separately). ",
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false
@@ -614,6 +614,11 @@
                     "description": "The total maximum possible number of shares that can be traded during the lifetime of the instrument including gearing if applicable.",
                     "minimum": 1
                 },
+                "guaranteedSchedulesNumber": {
+                    "type": "integer",
+                    "description": "Defines how many of the schedules are traded at a minimum even if the product is knocked out.",
+                    "minimum": 0
+                },
                 "tradedSharesDaily": {
                     "type": "integer",
                     "description": "The number of shares traded per day.",
@@ -629,11 +634,6 @@
                     },
                     "additionalProperties": false
                 },
-                "guaranteedSchedulesNumber": {
-                    "type": "integer",
-                    "description": "Defines how many of the schedules are traded at a minimum even if the product is knocked out.",
-                    "minimum": 0
-                },
                 "upsideFactor": {
                     "type": "number",
                     "description": "Multiplier used for amounts or shares if the value is above / at or above the threshold.",
@@ -642,11 +642,6 @@
                 "strikeRelative": {
                     "type": "number",
                     "description": "Fixed relative Strike value that might be known only after the initial fixing date in some cases."
-                },
-                "downsideFactor": {
-                    "type": "number",
-                    "description": "Multiplier used for amounts or shares if the value is below/ at or below the threshold.",
-                    "minimum": 0.01
                 },
                 "equityForwardStrips": {
                     "type": "object",
@@ -657,6 +652,11 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "downsideFactor": {
+                    "type": "number",
+                    "description": "Multiplier used for amounts or shares if the value is below/ at or below the threshold.",
+                    "minimum": 0.01
                 }
             },
             "additionalProperties": false
@@ -703,55 +703,39 @@
             },
             "additionalProperties": false
         },
-        "otcDerivativesGeneral": {
+        "otcDerivativesGeneric": {
             "type": "object",
             "description": "Fields that are used across all OTC derivatives.",
             "properties": {
-                "instrumentCurrency": {
-                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
-                    "$ref": "#/$defs/IsoCurrencyCode"
-                },
                 "name": {
                     "type": "string",
                     "description": "Full name of the instrument."
+                },
+                "expiryDate": {
+                    "description": "Date on which a trade between parties ends.",
+                    "$ref": "#/$defs/Date"
                 },
                 "settlementDate": {
                     "description": "Date on which all payment obligations for a trade are fulfilled.",
                     "$ref": "#/$defs/Date"
                 },
-                "expiryDate": {
-                    "description": "Date on which a trade between parties ends.",
-                    "$ref": "#/$defs/Date"
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
                 }
             },
             "additionalProperties": false
         },
-        "structuredProductsGeneral": {
+        "structuredProductsGeneric": {
             "type": "object",
             "description": "Contains fields that all structured products share.",
             "properties": {
-                "subscriptionEndDate": {
-                    "description": "Last date on which investors can subscribe.",
-                    "$ref": "#/$defs/Date"
-                },
-                "instrumentCurrency": {
-                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
-                    "$ref": "#/$defs/IsoCurrencyCode"
-                },
-                "quotation": {
-                    "description": "Defines if the instrument is quoted in percentage relative to the denomination or in absolute currency.",
+                "instrumentDataStatus": {
+                    "description": "Provides information on the lifecycle of the instrument data.",
                     "enum": [
-                        "absolute",
-                        "relative"
+                        "final",
+                        "indicative"
                     ]
-                },
-                "name": {
-                    "type": "string",
-                    "description": "Full name of the instrument."
-                },
-                "quantoFlag": {
-                    "description": "If true, the product is not subject to FX risk.",
-                    "type": "boolean"
                 },
                 "settlement": {
                     "description": "Defines how the repayment of the instrument for the holder can happen.",
@@ -761,16 +745,39 @@
                         "cash"
                     ]
                 },
-                "initialFixingDate": {
-                    "description": "Date on which the parameters and underlying strike values are determined.",
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the instrument."
+                },
+                "quotation": {
+                    "description": "Defines if the instrument is quoted in percentage relative to the denomination or in absolute currency.",
+                    "enum": [
+                        "absolute",
+                        "relative"
+                    ]
+                },
+                "subscriptionBeginDate": {
+                    "description": "First date on which investors can subscribe to buy the instrument.",
+                    "$ref": "#/$defs/Date"
+                },
+                "maturityDate": {
+                    "description": "Date on which the payoff amount—or shares in the case of physical delivery—are booked to the holder’s account.",
+                    "$ref": "#/$defs/Date"
+                },
+                "finalFixingDate": {
+                    "description": "Date on which all parameters to determine the final payoff amount to the holder of the instrument are fixed.",
                     "$ref": "#/$defs/Date"
                 },
                 "initialPaymentDate": {
                     "description": "The date on which the price for the instrument is deducted from the account of the buyer.",
                     "$ref": "#/$defs/Date"
                 },
-                "finalFixingDate": {
-                    "description": "Date on which all parameters to determine the final payoff amount to the holder of the instrument are fixed.",
+                "initialFixingDate": {
+                    "description": "Date on which the parameters and underlying strike values are determined.",
+                    "$ref": "#/$defs/Date"
+                },
+                "subscriptionEndDate": {
+                    "description": "Last date on which investors can subscribe.",
                     "$ref": "#/$defs/Date"
                 },
                 "issuePrice": {
@@ -782,20 +789,13 @@
                     "description": "The number of instruments that are supplied by the issuer.",
                     "minimum": 1
                 },
-                "maturityDate": {
-                    "description": "Date on which the payoff amount—or shares in the case of physical delivery—are booked to the holder’s account.",
-                    "$ref": "#/$defs/Date"
+                "quantoFlag": {
+                    "description": "If true, the product is not subject to FX risk.",
+                    "type": "boolean"
                 },
-                "subscriptionBeginDate": {
-                    "description": "First date on which investors can subscribe to buy the instrument.",
-                    "$ref": "#/$defs/Date"
-                },
-                "instrumentDataStatus": {
-                    "description": "Provides information on the lifecycle of the instrument data.",
-                    "enum": [
-                        "final",
-                        "indicative"
-                    ]
+                "instrumentCurrency": {
+                    "description": "The main currency of the instrument. Usually also the redemption currency (exceptions are physical deliveries or FX products where the alternative currency can be repaid).",
+                    "$ref": "#/$defs/IsoCurrencyCode"
                 }
             },
             "additionalProperties": false
