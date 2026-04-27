@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useMsal } from '@azure/msal-react'
 import { api } from './api.js'
 import IngestPanel from './components/IngestPanel.jsx'
 import FilingList from './components/FilingList.jsx'
@@ -20,6 +21,7 @@ function HealthDot({ healthy }) {
 }
 
 export default function App() {
+  const { instance } = useMsal()
   const [filings,      setFilings]      = useState([])
   const [selectedId,   setSelectedId]   = useState(null)
   const [health,       setHealth]       = useState(null)
@@ -123,6 +125,13 @@ export default function App() {
               )}
             </div>
           )}
+          <button
+            onClick={() => instance.logoutRedirect()}
+            className="text-xs text-slate-400 hover:text-white transition-colors"
+            title="Sign out"
+          >
+            Sign out
+          </button>
         </div>
       </header>
 
