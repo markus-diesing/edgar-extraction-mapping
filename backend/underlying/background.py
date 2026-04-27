@@ -176,20 +176,34 @@ def _process_one(
     # (e.g. INTC, INTU) whose 10-K preambles (forward-looking statements, ToC) extend
     # well past the legacy 8 000-char extraction window.
     extraction: ExtractionResult | None = None
-    extraction_text: str | None = None   # the window actually sent to the LLM
+    extraction_text: str | None = None   # Item 1 window stored for reviewer view
     if run_llm and meta.annual_filing_text:
         item1_window, item1_found = find_item1_window(
             meta.annual_filing_text,
             form=meta.reporting_form,
         )
+        # Store only the Item 1 window — this is what the reviewer sees in the
+        # "10-K Source" tab.  The cover page prefix (see below) is intentionally
+        # NOT persisted so the reviewer view stays focused on Item 1 content.
         extraction_text = item1_window
+
+        # Build the LLM input: cover page + Item 1 window.
+        # legal_name, share_class_name, share_type, and adr_flag all live on
+        # the 10-K cover page (first ~1 000 chars), which the Item 1 window
+        # does not include (Item 1 may be 50 000+ chars into the filing).
+        # Prepending the cover page restores those fields without requiring a
+        # larger overall extraction window — the extractor still truncates the
+        # combined text to UNDERLYING_EXTRACTION_CHARS internally.
+        cover_page = meta.annual_filing_text[:config.UNDERLYING_COVER_PAGE_CHARS]
+        extraction_input = cover_page + "\n\n" + item1_window
+
         log.info(
-            "Item 1 window for CIK %s: found=%s chars=%d",
-            cik, item1_found, len(item1_window),
+            "Item 1 window for CIK %s: found=%s chars=%d (extraction_input=%d with cover page)",
+            cik, item1_found, len(item1_window), len(extraction_input),
         )
         try:
             extraction = extract_underlying_fields(
-                filing_text=item1_window,
+                filing_text=extraction_input,
                 company_name=meta.company_name,
                 form=meta.reporting_form,
             )

@@ -151,6 +151,15 @@ UNDERLYING_EXTRACTION_CHARS     = 8_000
 UNDERLYING_ITEM1_CONTEXT_BEFORE = 300    # chars of context kept before the header
 UNDERLYING_ITEM1_WINDOW_CHARS   = 6_000  # chars extracted after the Item 1 header
 
+# Cover page prefix prepended to the Item 1 window when calling the LLM.
+# The registrant's legal name, share class description, and ADR flag all live
+# on the 10-K cover page (the first ~1 000 chars).  When the Item 1 window is
+# extracted far into a long filing this prefix ensures those fields remain
+# extractable without increasing the overall extraction window beyond
+# UNDERLYING_EXTRACTION_CHARS.  Stored last_10k_text is the Item 1 window only
+# (the cover prefix is not persisted — it would clutter the reviewer view).
+UNDERLYING_COVER_PAGE_CHARS     = 2_000  # chars taken from the very top of the filing
+
 # Characters of 424B2 filing text searched when applying the level-3 fallback
 # for brief_description (last resort when yfinance and 10-K LLM both fail).
 UNDERLYING_424B2_SEARCH_CHARS   = 20_000
