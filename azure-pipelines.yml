@@ -23,7 +23,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  serviceConnection: sc-lpa-edgar-azure
+  serviceConnection: azure-edgar
   resourceGroup: rg-lpa-edgar-sandbox-germanywestcentral
   acrName: crlpaedgarsandbox
   backendAppName: ca-edgar-backend
