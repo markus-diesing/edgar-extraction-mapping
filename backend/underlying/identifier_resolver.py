@@ -383,7 +383,24 @@ def resolve(raw: str, id_type: str | None = None) -> ResolutionResult:
 # Internal resolution helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_cik(cik_padded: str, source_id: str, source_type: str) -> ResolutionResult:
+def _resolve_cik(
+    cik_padded: str,
+    source_id: str,
+    source_type: str,
+    *,
+    preferred_ticker: str | None = None,
+) -> ResolutionResult:
+    """Resolve a CIK to a :class:`ResolutionResult`.
+
+    Parameters
+    ----------
+    preferred_ticker:
+        When set (e.g. the exact ticker the user typed, or the ticker returned
+        by OpenFIGI for a specific ISIN/CUSIP), auto-resolve to that class if
+        it is one of the multi-class candidates.  This avoids unnecessary
+        ``"multi_class"`` errors for companies that have several listed
+        series (e.g. preferred shares or notes) alongside their common stock.
+    """
     try:
         data = _fetch_submissions(cik_padded)
     except httpx.HTTPStatusError as exc:
@@ -395,6 +412,19 @@ def _resolve_cik(cik_padded: str, source_id: str, source_type: str) -> Resolutio
     if len(securities) == 1:
         return ResolutionResult(status="resolved", resolved=securities[0])
     if len(securities) > 1:
+        # If the caller supplied a preferred ticker (e.g. the user typed "KKR"
+        # and the company has KKR + KKR-PD + KKRS + KKRT), auto-resolve to the
+        # exact match.  Only fall back to multi_class when the preferred ticker
+        # is not among the candidates (should be rare).
+        if preferred_ticker:
+            pref_upper = preferred_ticker.upper()
+            exact = [s for s in securities if s.ticker.upper() == pref_upper]
+            if len(exact) == 1:
+                log.debug(
+                    "Auto-resolved multi-class CIK %s to ticker %s via preferred_ticker",
+                    cik_padded, preferred_ticker,
+                )
+                return ResolutionResult(status="resolved", resolved=exact[0])
         return ResolutionResult(status="multi_class", candidates=securities)
     return ResolutionResult(status="not_found")
 
@@ -406,7 +436,10 @@ def _resolve_ticker(ticker: str, source_id: str, source_type: str) -> Resolution
         log.debug("Ticker %r not found in company_tickers cache", ticker)
         # Fall back to name search so we still get candidates
         return _resolve_by_name(ticker, source_id, source_type)
-    return _resolve_cik(cik, source_id, source_type)
+    # Pass the user-supplied ticker as the preferred class so that companies with
+    # multiple listed series (e.g. KKR + KKR-PD + KKRS + KKRT) auto-resolve to
+    # the exact ticker the user requested instead of returning multi_class.
+    return _resolve_cik(cik, source_id, source_type, preferred_ticker=ticker)
 
 
 def _resolve_via_openfigi(identifier: str, id_type: str) -> ResolutionResult:
@@ -415,25 +448,26 @@ def _resolve_via_openfigi(identifier: str, id_type: str) -> ResolutionResult:
         log.info("OpenFIGI returned no results for %s %r", id_type, identifier)
         return ResolutionResult(status="not_found")
 
-    # Try each resolved ticker until we get a hit
+    # For each ticker returned by OpenFIGI, resolve its CIK.  Pass the
+    # OpenFIGI ticker as *preferred_ticker* so that a CIK with multiple share
+    # classes (e.g. KKR + preferred series) auto-resolves to the matched class
+    # rather than returning multi_class.
     candidates: list[ResolvedSecurity] = []
     cache = _load_ticker_cache()
     for ticker in tickers:
         cik = cache.get(ticker.upper())
         if not cik:
             continue
-        try:
-            data = _fetch_submissions(cik)
-        except Exception:
-            continue
-        securities = _submissions_to_resolved(data, identifier, id_type)
-        candidates.extend(securities)
+        result = _resolve_cik(cik, identifier, id_type, preferred_ticker=ticker)
+        if result.status == "resolved" and result.resolved:
+            candidates.append(result.resolved)
+        elif result.status == "multi_class":
+            candidates.extend(result.candidates)
 
     if not candidates:
         return ResolutionResult(status="not_found")
     if len(candidates) == 1:
         return ResolutionResult(status="resolved", resolved=candidates[0])
-    # Multiple tickers from FIGI → likely multi-class; return as candidates
     # De-duplicate by (cik, ticker)
     seen: set[tuple[str, str]] = set()
     unique: list[ResolvedSecurity] = []

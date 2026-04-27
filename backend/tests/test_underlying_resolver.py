@@ -311,3 +311,90 @@ class TestResolveErrors:
         result = resolve("MSFT", id_type="ticker")
         assert result.status == "error"
         assert "connection reset" in (result.error or "")
+
+
+# ---------------------------------------------------------------------------
+# Multi-class auto-resolution via preferred_ticker (KKR fix)
+# ---------------------------------------------------------------------------
+
+def _make_kkr_submissions() -> dict[str, Any]:
+    """Return an EDGAR submissions dict that mimics KKR's multi-class CIK."""
+    return {
+        "cik": "1404912",
+        "name": "KKR & CO INC",
+        "tickers": ["KKR", "KKR-PD", "KKRS", "KKRT"],
+        "exchanges": ["NYSE", "NYSE", "NYSE", "NYSE"],
+        "filings": {"recent": {"form": [], "filingDate": [], "reportDate": []}},
+    }
+
+
+class TestMultiClassAutoResolution:
+    """Verify that typing an exact common-stock ticker for a multi-class CIK
+    auto-resolves instead of returning the noisy 'multi_class' status."""
+
+    @patch("underlying.identifier_resolver._fetch_submissions")
+    @patch("underlying.identifier_resolver._load_ticker_cache")
+    def test_ticker_exact_match_auto_resolves(self, mock_cache, mock_fetch):
+        """User types 'KKR' → resolved to KKR, not multi_class."""
+        mock_cache.return_value = {"KKR": "0001404912"}
+        mock_fetch.return_value = _make_kkr_submissions()
+        result = resolve("KKR", id_type="ticker")
+        assert result.status == "resolved", f"Expected resolved, got {result.status}"
+        assert result.resolved is not None
+        assert result.resolved.ticker == "KKR"
+
+    @patch("underlying.identifier_resolver._fetch_submissions")
+    @patch("underlying.identifier_resolver._load_ticker_cache")
+    def test_ticker_preferred_series_also_resolves(self, mock_cache, mock_fetch):
+        """Typing 'KKR-PD' (preferred shares) also auto-resolves to that class."""
+        mock_cache.return_value = {"KKR-PD": "0001404912"}
+        mock_fetch.return_value = _make_kkr_submissions()
+        result = resolve("KKR-PD", id_type="ticker")
+        assert result.status == "resolved"
+        assert result.resolved.ticker == "KKR-PD"
+
+    @patch("underlying.identifier_resolver._fetch_submissions")
+    def test_cik_path_still_returns_multi_class(self, mock_fetch):
+        """Resolving by CIK directly has no preferred ticker → still multi_class.
+
+        This is the correct behaviour: when the user enters a raw CIK they
+        should be shown all share classes so they can pick the one they want.
+        """
+        mock_fetch.return_value = _make_kkr_submissions()
+        result = resolve("0001404912", id_type="cik")
+        assert result.status == "multi_class"
+        assert len(result.candidates) == 4
+
+    @patch("underlying.identifier_resolver._fetch_submissions")
+    @patch("underlying.identifier_resolver._load_ticker_cache")
+    @patch("underlying.identifier_resolver._openfigi_lookup")
+    def test_openfigi_preferred_ticker_resolves_multi_class(
+        self, mock_figi, mock_cache, mock_fetch
+    ):
+        """ISIN mapped to 'KKR' by OpenFIGI → auto-resolved despite multi-class CIK."""
+        mock_figi.return_value = ["KKR"]
+        mock_cache.return_value = {"KKR": "0001404912"}
+        mock_fetch.return_value = _make_kkr_submissions()
+        result = resolve("US48251W1044", id_type="isin")
+        assert result.status == "resolved"
+        assert result.resolved is not None
+        assert result.resolved.ticker == "KKR"
+
+    @patch("underlying.identifier_resolver._fetch_submissions")
+    @patch("underlying.identifier_resolver._load_ticker_cache")
+    @patch("underlying.identifier_resolver._openfigi_lookup")
+    def test_openfigi_two_common_tickers_stays_multi_class(
+        self, mock_figi, mock_cache, mock_fetch
+    ):
+        """When OpenFIGI returns GOOGL and GOOG (genuinely two share classes),
+        the result should remain multi_class even with preferred_ticker logic."""
+        mock_figi.return_value = ["GOOGL", "GOOG"]
+        mock_cache.return_value = {"GOOGL": "0001652044", "GOOG": "0001652044"}
+        mock_fetch.return_value = _make_submissions(
+            cik="0001652044", name="ALPHABET INC",
+            tickers=["GOOGL", "GOOG"], exchanges=["Nasdaq", "Nasdaq"],
+        )
+        result = resolve("US02079K3059", id_type="isin")
+        assert result.status == "multi_class"
+        tickers_returned = {c.ticker for c in result.candidates}
+        assert tickers_returned == {"GOOGL", "GOOG"}
