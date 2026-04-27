@@ -105,28 +105,28 @@ field_hints:
     format: "Monthly dates. 'subject to postponement as described under ...'"
     typical_location: "Terms of the Notes table, 'Observation Dates' row; separate 'Observation Dates, Contingent Payment Dates and Call Payment Dates' table"
 
-  structuredProductsGeneric.tradeDate:
+  structuredProductsGeneral.tradeDate:
     synonyms:
       - Pricing Date
     label_in_doc: "Pricing Date:"
     format: "Date string, e.g. 'September 30, 2025'"
     typical_location: Terms of the Notes table
 
-  structuredProductsGeneric.issueDate:
+  structuredProductsGeneral.issueDate:
     synonyms:
       - Issue Date
     label_in_doc: "Issue Date:"
     format: "Date string, e.g. 'October 3, 2025'"
     typical_location: Terms of the Notes table
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Maturity Date
     label_in_doc: "Maturity Date:"
     format: Date string
     typical_location: Terms of the Notes table
 
-  structuredProductsGeneric.valuationDate:
+  structuredProductsGeneral.valuationDate:
     synonyms:
       - Valuation Date
     label_in_doc: "Valuation Date:"
@@ -221,9 +221,9 @@ table_labels:
   "Contingent coupon rate":           "coupon.rate"
   "Contingent Coupon Rate":           "coupon.rate"
   # Dates
-  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
-  "Issue Date":                       "structuredProductsGeneric.issueDate"
-  "Valuation Date":                   "structuredProductsGeneric.valuationDate"
-  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
+  "Pricing Date":                     "structuredProductsGeneral.tradeDate"
+  "Issue Date":                       "structuredProductsGeneral.issueDate"
+  "Valuation Date":                   "structuredProductsGeneral.valuationDate"
+  "Maturity Date":                    "structuredProductsGeneral.maturityDate"
   # Identifiers
   "CUSIP":                            "identifiers.cusip"

@@ -125,7 +125,7 @@ field_hints:
     format: "'expected to be the third business day after each coupon observation date'"
     typical_location: Terms of Your Notes section
 
-  structuredProductsGeneric.tradeDate:
+  structuredProductsGeneral.tradeDate:
     synonyms:
       - trade date
       - Trade date
@@ -133,7 +133,7 @@ field_hints:
     format: "Trade date is when terms are set. 'expected to be September 30, 2025'"
     typical_location: Cover page; Terms of Your Notes
 
-  structuredProductsGeneric.issueDate:
+  structuredProductsGeneral.issueDate:
     synonyms:
       - original issue date
       - Original issue date
@@ -141,7 +141,7 @@ field_hints:
     format: "'expected to be October 3, 2025'"
     typical_location: Cover page table header
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - stated maturity date
       - Stated maturity date
@@ -149,7 +149,7 @@ field_hints:
     format: Date string
     typical_location: Terms of Your Notes section
 
-  structuredProductsGeneric.valuationDate:
+  structuredProductsGeneral.valuationDate:
     synonyms:
       - determination date
       - Determination date
@@ -179,10 +179,10 @@ table_labels:
   "Coupon trigger level":             "coupon.barrierLevel"
   "Coupon Trigger Level":             "coupon.barrierLevel"
   # Date labels
-  "Trade date":                       "structuredProductsGeneric.tradeDate"
-  "Original issue date":              "structuredProductsGeneric.issueDate"
-  "Stated maturity date":             "structuredProductsGeneric.maturityDate"
-  "Determination date":               "structuredProductsGeneric.valuationDate"
+  "Trade date":                       "structuredProductsGeneral.tradeDate"
+  "Original issue date":              "structuredProductsGeneral.issueDate"
+  "Stated maturity date":             "structuredProductsGeneral.maturityDate"
+  "Determination date":               "structuredProductsGeneral.valuationDate"
   # Underlier
   "Initial underlier level":          "underlyingTerms.underlyingAssets[*].initialLevel"
   "Underlier":                        "underlyingTerms.underlyingAssets[*].name"

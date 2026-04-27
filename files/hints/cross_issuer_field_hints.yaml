@@ -285,7 +285,7 @@ autocall.memory:
     observation dates that have occurred ... minus the sum of all coupons
     previously paid'. Look for this formula structure to identify memory feature.
 
-structuredProductsGeneric.tradeDate:
+structuredProductsGeneral.tradeDate:
   description: The date on which the economic terms are set (pricing/trade date).
   common_synonyms:
     - Pricing Date
@@ -300,7 +300,7 @@ structuredProductsGeneric.tradeDate:
     BofA Finance: Pricing Date
   value_format: ISO date string YYYY-MM-DD
 
-structuredProductsGeneric.issueDate:
+structuredProductsGeneral.issueDate:
   description: The settlement/issue date when notes are delivered.
   common_synonyms:
     - Settlement Date
@@ -316,7 +316,7 @@ structuredProductsGeneric.issueDate:
     BofA Finance: Issue Date
   value_format: ISO date string YYYY-MM-DD. Often T+2 or T+3 from trade/pricing date.
 
-structuredProductsGeneric.maturityDate:
+structuredProductsGeneral.maturityDate:
   description: The final date on which notes mature and principal/final payment is made.
   common_synonyms:
     - Maturity Date
@@ -325,7 +325,7 @@ structuredProductsGeneric.maturityDate:
     - stated maturity date
   value_format: ISO date string YYYY-MM-DD. Typically a few days after the final valuation/determination date.
 
-structuredProductsGeneric.valuationDate:
+structuredProductsGeneral.valuationDate:
   description: The final observation date used to determine maturity payoff.
   common_synonyms:
     - Valuation Date
@@ -341,7 +341,7 @@ structuredProductsGeneric.valuationDate:
     BofA Finance: Valuation Date
   value_format: ISO date string YYYY-MM-DD. Typically 2-5 business days before maturity date.
 
-structuredProductsGeneric.currency:
+structuredProductsGeneral.currency:
   description: Currency of the notes.
   common_synonyms:
     - USD
@@ -352,7 +352,7 @@ structuredProductsGeneric.currency:
     All filings in this corpus are USD-denominated. Bank of Montreal notes are
     stated in USD not CAD.
 
-structuredProductsGeneric.notional:
+structuredProductsGeneral.notional:
   description: Total principal amount / face amount of the note offering.
   common_synonyms:
     - Principal Amount
@@ -510,3 +510,156 @@ identifiers.isin:
     - "ISIN:"
   value_format: "12-character alphanumeric string starting with country code, e.g. 'US90310EGG44'"
   _note: UBS filings include ISIN in the Note Offering table. Other issuers may not.
+
+identifiers.commonCode:
+  description: >
+    9-digit numeric identifier assigned by Euroclear and Clearstream for settlement
+    and clearing of international securities. Found in OTC and cross-border instruments.
+  common_synonyms:
+    - Common Code
+    - Euroclear/Clearstream Code
+    - common code
+  value_format: "9-digit numeric string, e.g. '123456789'. Pattern: ^\\d{9}$"
+  _note: >
+    Present primarily on BMO OTC instruments and internationally cleared products.
+    Typically appears alongside ISIN in the identifier block of the filing cover page.
+
+identifiers.bmoOtcIdentifier:
+  description: >
+    Internal identifier used by Bank of Montreal for OTC-structured products.
+    Appears in BMO OTC swap filings alongside CUSIP/ISIN.
+  common_synonyms:
+    - BMO OTC Identifier
+    - BMO Identifier
+    - OTC Reference
+  value_format: "String (exact format defined by BMO internally)"
+  _note: Only applicable to BMO OTC models (otcAutocallBarrierCouponSwap).
+
+funding.reofferPricePercent:
+  description: >
+    The re-offer price as a fraction (not percent) of denomination — the price at
+    which dealers/distributors re-sell notes to end investors. May differ from
+    issuePricePercent if distribution fees are reflected separately.
+  common_synonyms:
+    - Reoffer Price
+    - Reoffering Price
+    - Re-offer Price
+    - Reoffered Price
+    - public offering price (when different from issue price)
+  value_format: >
+    Convert to decimal fraction: '100.00%' → 1.00; '$1,000 per $1,000 principal' → 1.00.
+    When reoffer price equals issue price (most common), use the same value as issuePricePercent.
+  caution: >
+    Do NOT confuse with issuePricePercent. The reoffer price is the dealer's selling
+    price to investors; the issue price is the price paid to the issuer. When only one
+    price is stated (e.g. 'Price to Public: $1,000'), use it for both fields.
+
+coupon.couponPayments[*].memoryFlag:
+  description: >
+    Boolean flag on each ConditionalFixCouponSchedule entry indicating whether
+    a memory coupon feature applies — i.e., missed coupons from prior periods
+    accumulate and are paid later if the coupon condition is subsequently met.
+  common_synonyms:
+    - Memory Coupon
+    - memory coupon
+    - cumulative coupon
+    - catch-up coupon
+    - accrued coupon
+    - previously unpaid coupons
+  value_format: "Boolean: true if memory feature applies to this coupon period"
+  issuer_specific:
+    Goldman Sachs: >
+      Memory coupon formula is explicit: '[coupon amount] × number of observation dates
+      elapsed minus sum of coupons previously paid'. Set memoryFlag: true for all entries.
+    JPMorgan: Typically no memory coupon — barrier notes pay coupon only if condition met.
+    Bank of Montreal: No memory coupon in standard barrier notes.
+  caution: >
+    The memory flag applies per coupon period entry. If the product has a memory feature,
+    set memoryFlag: true on every ConditionalFixCouponSchedule entry in the schedule.
+
+otcDerivativesGeneral.tradeDate:
+  description: >
+    For OTC deals: the date on which the agreement becomes effective between the
+    counterparties (trade/execution date). Distinct from the value/settlement date.
+  common_synonyms:
+    - Trade Date
+    - trade date
+    - Execution Date
+    - Transaction Date
+  issuer_specific:
+    Bank of Montreal: "Trade Date (in OTC swap term sheet, typically same as Pricing Date)"
+  value_format: ISO date string YYYY-MM-DD.
+  _note: >
+    This field is on the otcDerivativesGeneral block, used only by OTC models
+    (otcAutocallBarrierCouponSwap). For standard 424B2 notes use
+    structuredProductsGeneral.initialFixingDate instead.
+
+otcDerivativesGeneral.tradedUnits:
+  description: >
+    For OTC deals: the number of units traded (notional units of the structured leg).
+    Represents the quantity of the structured product leg in the swap.
+  common_synonyms:
+    - Traded Units
+    - traded units
+    - Number of Units
+    - Notional Units
+    - Quantity
+  value_format: "String representation of the numeric quantity, e.g. '1000'"
+  _note: Only applicable to OTC models (otcAutocallBarrierCouponSwap).
+
+referenceRates:
+  description: >
+    A map of reference rates used for income calculations such as floating coupon
+    payments. Keys are short identifiers (e.g. 'R1'); values are Reference objects
+    pointing to an interestRate instrument (SOFR, EURIBOR, SARON, etc.).
+  common_synonyms:
+    - Reference Rate
+    - Floating Rate
+    - SOFR
+    - EURIBOR
+    - SARON
+    - benchmark rate
+  value_format: >
+    Object keyed by short identifier (R1, R2, …), each value is a Reference:
+    {"R1": {"$ref": "<identifier of the interestRate instrument>"}}
+  _note: >
+    Used in yieldEnhancementBuffer*/yieldEnhancementCallable* and
+    otcAutocallBarrierCouponSwap models for floating-rate coupon legs.
+    Only populate when the filing references a benchmark floating rate.
+
+issuerCall.issuerCallSchedule:
+  description: >
+    Schedule of dates on which the issuer may exercise its discretionary call
+    option to early-redeem the notes. Unlike autocall (level-triggered), an
+    issuer call fires at the issuer's sole discretion on any call date.
+  common_synonyms:
+    - Issuer Call Date
+    - Callable on
+    - Optional Redemption Date
+    - Redemption Option Date
+    - Call Date (issuer discretion)
+    - we may redeem
+    - issuer may redeem
+  value_format: >
+    Object keyed by ISO-8601 datetime (YYYY-MM-DDTHH:MM:SSZ), each entry
+    containing repaymentAmount (number) and optionally dates (IssuerCallDates).
+  caution: >
+    Distinguish carefully from autocall: an autocall fires AUTOMATICALLY when
+    the underlying reaches a trigger level; an issuer call requires the issuer
+    to actively exercise the option. Filing language for issuer calls includes
+    'at our option', 'we may redeem', 'the issuer may elect to redeem'.
+    Bank of Montreal 'Optional Early Redemption' is an INDEX-TRIGGERED AUTOCALL
+    — do NOT map it to issuerCall.
+
+issuerCall.issuerCallFrequency:
+  description: How often the issuer call option may be exercised.
+  common_synonyms:
+    - callable monthly
+    - callable quarterly
+    - quarterly call option
+    - semi-annual call option
+    - annual call option
+  value_format: >
+    Discriminated union {"$type": "<frequency>"} — same Frequency enum as
+    coupon.couponFrequency and autocall.observationFrequency.
+    Examples: {"$type": "quarterly"}, {"$type": "annually"}

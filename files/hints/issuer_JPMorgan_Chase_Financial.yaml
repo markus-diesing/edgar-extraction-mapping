@@ -133,14 +133,14 @@ field_hints:
     format: List of dates, typically quarterly, last one is the Maturity Date
     typical_location: Key Terms table, left column
 
-  structuredProductsGeneric.tradeDate:
+  structuredProductsGeneral.tradeDate:
     synonyms:
       - Pricing Date
     label_in_doc: "Pricing Date:"
     format: "Date string, e.g. 'September 30, 2025'"
     typical_location: Key Terms table, left column
 
-  structuredProductsGeneric.issueDate:
+  structuredProductsGeneral.issueDate:
     synonyms:
       - Original Issue Date (Settlement Date)
       - Original Issue Date
@@ -148,7 +148,7 @@ field_hints:
     format: "'On or about October 3, 2025'"
     typical_location: Key Terms table, left column
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Maturity Date
     label_in_doc: "Maturity Date*:"
@@ -210,10 +210,10 @@ table_labels:
   "Trigger Value":                    "barrier.triggerDetails.triggerLevel"
   "Interest Barrier":                 "coupon.barrierLevel"
   # Date labels
-  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
-  "Original Issue Date (Settlement Date)": "structuredProductsGeneric.issueDate"
-  "Stated Maturity Date":             "structuredProductsGeneric.maturityDate"
-  "Final Review Date":                "structuredProductsGeneric.valuationDate"
+  "Pricing Date":                     "structuredProductsGeneral.tradeDate"
+  "Original Issue Date (Settlement Date)": "structuredProductsGeneral.issueDate"
+  "Stated Maturity Date":             "structuredProductsGeneral.maturityDate"
+  "Final Review Date":                "structuredProductsGeneral.valuationDate"
   # Underlying
   "Index":                            "underlyingTerms.underlyingAssets[*].name"
   "Initial Value":                    "underlyingTerms.underlyingAssets[*].initialLevel"

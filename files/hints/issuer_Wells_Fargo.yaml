@@ -65,7 +65,7 @@ field_hints:
       No monthly or quarterly equivalent stated.
     typical_location: KEY TERMS table
 
-  structuredProductsGeneric.maturityDate:
+  structuredProductsGeneral.maturityDate:
     synonyms:
       - Stated Maturity Date
     label_in_doc: "Stated Maturity Date"
@@ -148,11 +148,11 @@ table_labels:
   # Fixed-rate note fields only
   "Interest Rate":                    "coupon.rate"
   "Fixed Interest Rate":              "coupon.rate"
-  "Maturity Date":                    "structuredProductsGeneric.maturityDate"
-  "Issue Date":                       "structuredProductsGeneric.issueDate"
-  "Settlement Date":                  "structuredProductsGeneric.issueDate"
-  "Trade Date":                       "structuredProductsGeneric.tradeDate"
-  "Pricing Date":                     "structuredProductsGeneric.tradeDate"
+  "Maturity Date":                    "structuredProductsGeneral.maturityDate"
+  "Issue Date":                       "structuredProductsGeneral.issueDate"
+  "Settlement Date":                  "structuredProductsGeneral.issueDate"
+  "Trade Date":                       "structuredProductsGeneral.tradeDate"
+  "Pricing Date":                     "structuredProductsGeneral.tradeDate"
   "CUSIP":                            "identifiers.cusip"
   "CUSIP No.":                        "identifiers.cusip"
-  "Aggregate Principal Amount":       "structuredProductsGeneric.notional"
+  "Aggregate Principal Amount":       "structuredProductsGeneral.notional"
