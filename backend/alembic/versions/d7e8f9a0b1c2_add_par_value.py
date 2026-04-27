@@ -35,5 +35,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.batch_alter_table('underlying_securities', schema=None) as batch_op:
-        batch_op.drop_column('par_value')
+    bind = op.get_bind()
+    existing = {c['name'] for c in _sa_inspect(bind).get_columns('underlying_securities')}
+    if 'par_value' in existing:
+        with op.batch_alter_table('underlying_securities', schema=None) as batch_op:
+            batch_op.drop_column('par_value')

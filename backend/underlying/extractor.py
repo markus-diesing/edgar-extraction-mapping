@@ -194,6 +194,11 @@ def _build_user_prompt(
 ) -> str:
     truncated = filing_text[:UNDERLYING_EXTRACTION_CHARS]
     ticker_line = f"Ticker: {ticker}\n" if ticker else ""
+    ticker_instruction = (
+        f"  For share_class_name and par_value extract the row whose"
+        f" Trading Symbol is {ticker}."
+        if ticker else ""
+    )
     return (
         f"Company: {company_name}\n"
         f"Filing form: {form}\n"
@@ -201,12 +206,7 @@ def _build_user_prompt(
         f"\n--- FILING TEXT (first {UNDERLYING_EXTRACTION_CHARS} characters) ---\n"
         f"{truncated}\n"
         f"--- END OF TEXT ---\n\n"
-        "Extract the requested fields from the text above."
-        + (
-            f"  For share_class_name and par_value extract the row whose"
-            f" Trading Symbol is {ticker}."
-            if ticker else ""
-        )
+        f"Extract the requested fields from the text above.{ticker_instruction}"
     )
 
 

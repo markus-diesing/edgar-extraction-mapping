@@ -39,6 +39,13 @@ import httpx
 
 import config
 
+# Optional dependency — install json-repair>=0.30.0 for robust JSON repair.
+# Falls back to suffix-injection repair if the library is unavailable.
+try:
+    from json_repair import repair_json as _json_repair  # type: ignore[import]
+except ImportError:
+    _json_repair = None  # type: ignore[assignment]
+
 log = logging.getLogger(__name__)
 
 _TIMEOUT = 120.0   # 14B MLX models can be slow — generous headroom
@@ -140,14 +147,14 @@ def try_repair_json(raw: str) -> dict | None:
     Returns the parsed ``dict`` on success, ``None`` if all attempts fail.
     """
     # Stage 1: json_repair (robust, handles unescaped quotes and other issues)
-    try:
-        from json_repair import repair_json  # optional dependency
-        repaired = repair_json(raw, return_objects=True)
-        if isinstance(repaired, dict):
-            log.info("JSON repair (json_repair library) succeeded")
-            return repaired
-    except Exception:
-        pass  # library unavailable or repair failed — fall through
+    if _json_repair is not None:
+        try:
+            repaired = _json_repair(raw, return_objects=True)
+            if isinstance(repaired, dict):
+                log.info("JSON repair (json_repair library) succeeded")
+                return repaired
+        except (ValueError, TypeError, RecursionError):
+            pass  # repair failed — fall through to suffix injection
 
     # Stage 2: suffix-injection repair for truncated responses
     for suffix in _REPAIR_SUFFIXES:
