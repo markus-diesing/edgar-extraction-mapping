@@ -9,6 +9,10 @@
 //   - Container Apps Environment       (cae-lpa-edgar-sandbox)
 //   - Backend Container App            (ca-edgar-backend)  — internal ingress
 //   - Frontend Container App           (ca-edgar-frontend) — external ingress
+//   - Storage account for AI Foundry   (stlpaedgarai)
+//   - Azure AI Foundry Hub             (aih-lpa-edgar-sandbox)
+//   - Azure AI Foundry Project         (aip-lpa-edgar-sandbox)
+//   - Qwen-32b serverless endpoint     (qwen32b)
 //
 // NOTE: Data is ephemeral in this sandbox configuration (SQLite lives in the
 // container). Add an Azure Files mount and migrate to WAL-safe storage before
@@ -26,16 +30,22 @@ var envName          = 'cae-lpa-edgar-sandbox'
 var identityName     = 'id-lpa-edgar-sandbox'
 var backendAppName   = 'ca-edgar-backend'
 var frontendAppName  = 'ca-edgar-frontend'
+var aiStorageName    = 'stlpaedgarai'
+var aiHubName        = 'aih-lpa-edgar-sandbox'
+var aiProjectName    = 'aip-lpa-edgar-sandbox'
+var qwenEndpointName = 'qwen32b'
 
-var azureTenantId  = '0513f305-0dbb-4e4e-b311-98405b8dc943'
-var azureClientId  = 'cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5'
+// Qwen-32b from Alibaba Cloud via the Azure AI Foundry model catalog.
+// If this version is superseded, update to the latest in the azureml-qwen registry.
+var qwenModelId = 'azureml://registries/azureml-qwen/models/Qwen2.5-32B-Instruct/versions/6'
 
-// Placeholder image used on first deploy before real images exist in ACR
+var azureTenantId = '0513f305-0dbb-4e4e-b311-98405b8dc943'
+var azureClientId = 'cffd2bfb-d624-4ddb-9850-fe5fe19f6bf5'
+
+// Placeholder used on first deploy before real images are in ACR
 var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
 // ── Managed identity ──────────────────────────────────────────────────────────
-// Created first so role assignments can reference its principalId before
-// the Container Apps are provisioned.
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
@@ -84,6 +94,19 @@ resource kvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
+// Key Vault Secrets Officer on KV for the AI Foundry Hub's system identity,
+// so the Hub can store its own secrets (model keys etc.)
+var kvSecretsOfficerRoleId = 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
+resource kvSecretsOfficerForHub 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(kv.id, aiHub.id, kvSecretsOfficerRoleId)
+  scope: kv
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsOfficerRoleId)
+    principalId: aiHub.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ── Log Analytics ─────────────────────────────────────────────────────────────
 resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: logWorkspaceName
@@ -91,6 +114,68 @@ resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   properties: {
     sku: { name: 'PerGB2018' }
     retentionInDays: 30
+  }
+}
+
+// ── Storage account for AI Foundry Hub ───────────────────────────────────────
+resource aiStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: aiStorageName
+  location: location
+  sku: { name: 'Standard_LRS' }
+  kind: 'StorageV2'
+  properties: { minimumTlsVersion: 'TLS1_2' }
+}
+
+// ── Azure AI Foundry Hub ──────────────────────────────────────────────────────
+resource aiHub 'Microsoft.MachineLearningServices/workspaces@2024-07-01-preview' = {
+  name: aiHubName
+  location: location
+  kind: 'Hub'
+  identity: { type: 'SystemAssigned' }
+  sku: { name: 'Basic', tier: 'Basic' }
+  properties: {
+    storageAccount: aiStorage.id
+    keyVault: kv.id
+    containerRegistry: acr.id
+    friendlyName: 'EDGAR AI Foundry'
+  }
+}
+
+// ── Azure AI Foundry Project ──────────────────────────────────────────────────
+resource aiProject 'Microsoft.MachineLearningServices/workspaces@2024-07-01-preview' = {
+  name: aiProjectName
+  location: location
+  kind: 'Project'
+  identity: { type: 'SystemAssigned' }
+  sku: { name: 'Basic', tier: 'Basic' }
+  properties: {
+    hubResourceId: aiHub.id
+    friendlyName: 'EDGAR'
+  }
+}
+
+// ── Qwen-32b Serverless Endpoint ──────────────────────────────────────────────
+// Deploys Qwen2.5-32B-Instruct as a pay-per-token (MaaS) serverless endpoint.
+// The endpoint exposes an OpenAI-compatible /v1/chat/completions API.
+resource qwenEndpoint 'Microsoft.MachineLearningServices/workspaces/serverlessEndpoints@2024-07-01-preview' = {
+  name: qwenEndpointName
+  parent: aiProject
+  location: location
+  sku: { name: 'Consumption' }
+  properties: {
+    modelId: qwenModelId
+    authMode: 'Key'
+  }
+}
+
+// Store the Qwen endpoint primary key in Key Vault so the backend can read it
+// via the managed identity — no secrets in code or env files.
+resource aiKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  name: 'azure-ai-api-key'
+  parent: kv
+  dependsOn: [kvSecretsOfficerForHub]
+  properties: {
+    value: qwenEndpoint.listKeys().primaryKey
   }
 }
 
@@ -110,8 +195,6 @@ resource env 'Microsoft.App/managedEnvironments@2024-03-01' = {
 }
 
 // ── Backend Container App ─────────────────────────────────────────────────────
-// Internal ingress only — not reachable from the internet.
-// The Anthropic API key is read from Key Vault at runtime via the managed identity.
 resource backend 'Microsoft.App/containerApps@2024-03-01' = {
   name: backendAppName
   location: location
@@ -131,20 +214,30 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
         server: acr.properties.loginServer
         identity: identity.id
       }]
-      secrets: [{
-        name: 'anthropic-api-key'
-        keyVaultUrl: '${kv.properties.vaultUri}secrets/anthropic-api-key'
-        identity: identity.id
-      }]
+      secrets: [
+        {
+          name: 'anthropic-api-key'
+          keyVaultUrl: '${kv.properties.vaultUri}secrets/anthropic-api-key'
+          identity: identity.id
+        }
+        {
+          name: 'azure-ai-api-key'
+          keyVaultUrl: '${kv.properties.vaultUri}secrets/azure-ai-api-key'
+          identity: identity.id
+        }
+      ]
     }
     template: {
       containers: [{
         name: 'backend'
         image: placeholderImage
         env: [
-          { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }
-          { name: 'AZURE_TENANT_ID', value: azureTenantId }
-          { name: 'AZURE_CLIENT_ID', value: azureClientId }
+          { name: 'ANTHROPIC_API_KEY',  secretRef: 'anthropic-api-key' }
+          { name: 'AZURE_AI_ENDPOINT',  value: qwenEndpoint.properties.inferenceEndpoint.uri }
+          { name: 'AZURE_AI_API_KEY',   secretRef: 'azure-ai-api-key' }
+          { name: 'AZURE_AI_MODEL',     value: 'Qwen2.5-32B-Instruct' }
+          { name: 'AZURE_TENANT_ID',    value: azureTenantId }
+          { name: 'AZURE_CLIENT_ID',    value: azureClientId }
         ]
         resources: {
           cpu: json('0.5')
@@ -154,12 +247,10 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
       scale: { minReplicas: 1, maxReplicas: 1 }
     }
   }
-  dependsOn: [acrPull, kvSecretsUser]
+  dependsOn: [acrPull, kvSecretsUser, aiKeySecret]
 }
 
 // ── Frontend Container App ────────────────────────────────────────────────────
-// External ingress — the public entry point for users.
-// VITE_BACKEND_URL points to the backend's internal Container Apps hostname.
 resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
   name: frontendAppName
   location: location
@@ -185,9 +276,9 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
         name: 'frontend'
         image: placeholderImage
         env: [
-          { name: 'VITE_BACKEND_URL', value: 'http://${backendAppName}' }
-          { name: 'VITE_AZURE_TENANT_ID', value: azureTenantId }
-          { name: 'VITE_AZURE_CLIENT_ID', value: azureClientId }
+          { name: 'VITE_BACKEND_URL',      value: 'http://${backendAppName}' }
+          { name: 'VITE_AZURE_TENANT_ID',  value: azureTenantId }
+          { name: 'VITE_AZURE_CLIENT_ID',  value: azureClientId }
         ]
         resources: {
           cpu: json('0.25')
@@ -201,6 +292,7 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ── Outputs ───────────────────────────────────────────────────────────────────
-output acrLoginServer string = acr.properties.loginServer
-output frontendFqdn string = frontend.properties.configuration.ingress.fqdn
-output keyVaultName string = kv.name
+output acrLoginServer   string = acr.properties.loginServer
+output frontendFqdn     string = frontend.properties.configuration.ingress.fqdn
+output qwenEndpointUrl  string = qwenEndpoint.properties.inferenceEndpoint.uri
+output keyVaultName     string = kv.name

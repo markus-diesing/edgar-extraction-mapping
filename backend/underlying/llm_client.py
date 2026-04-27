@@ -83,6 +83,14 @@ def load_config() -> LlmConfig:
     model_raw = s.get("underlying_llm_model",    "")
     api_key   = s.get("underlying_llm_api_key",  "")
 
+    # When running in Azure with AI Foundry configured, auto-fill the
+    # openai-compatible endpoint and model from env vars so the Admin UI
+    # selection works without manual URL entry.
+    if provider == "openai-compatible" and not endpoint:
+        endpoint = config.AZURE_AI_ENDPOINT
+    if provider == "openai-compatible" and not model_raw:
+        model_raw = config.AZURE_AI_MODEL
+
     # Fall back to sensible model defaults when nothing is configured
     if not model_raw:
         if provider == "anthropic":
@@ -226,8 +234,11 @@ def _call_openai_compatible(
 ) -> tuple[str, int, int]:
     url = cfg.base_url + "/v1/chat/completions"
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    if cfg.api_key:
-        headers["Authorization"] = f"Bearer {cfg.api_key}"
+    # cfg.api_key comes from the Admin UI; fall back to the env var set by
+    # Container Apps (sourced from Key Vault) when running in Azure.
+    api_key = cfg.api_key or config.AZURE_AI_API_KEY
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     # Append /no_think to suppress Qwen3 chain-of-thought (harmless on others)
     messages = [
