@@ -11,6 +11,13 @@ export default function AuthGate({ children }) {
   // Wire the token provider as soon as MSAL finishes initialising.
   useEffect(() => {
     if (!isAuthenticated) return
+
+    // acquireTokenSilent requires an active account to be set.
+    if (!instance.getActiveAccount()) {
+      const accounts = instance.getAllAccounts()
+      if (accounts.length > 0) instance.setActiveAccount(accounts[0])
+    }
+
     setTokenProvider(async () => {
       try {
         const result = await instance.acquireTokenSilent(loginRequest)
