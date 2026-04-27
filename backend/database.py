@@ -185,6 +185,7 @@ class UnderlyingSecurity(Base):
     cik                      = Column(String, index=True)
     ticker                   = Column(String, index=True)
     ticker_bb                = Column(String)           # Bloomberg ticker (user-supplied)
+    all_tickers              = Column(Text)             # JSON array: all tickers for this CIK (incl. preferred/note series)
     source_identifier        = Column(String)           # raw value the user typed
     source_identifier_type   = Column(String)           # ticker|isin|cusip|cik|name|bb_ticker
 

@@ -258,6 +258,26 @@ function OverviewTab({ sec }) {
       <Section title="Identification">
         <MetaRow label="CIK"               value={sec.cik}                      mono />
         <MetaRow label="Ticker"            value={sec.ticker}                   mono />
+        {/* Show all sibling tickers when this CIK has multiple listed share classes */}
+        {Array.isArray(sec.all_tickers) && sec.all_tickers.length > 1 && (
+          <div className="flex gap-2 py-0.5">
+            <span className="text-slate-400 text-xs w-40 shrink-0">Share Classes</span>
+            <span className="flex flex-wrap gap-1">
+              {sec.all_tickers.map(t => (
+                <span
+                  key={t}
+                  className={
+                    t === sec.ticker
+                      ? 'font-mono text-[11px] font-semibold bg-lpa-blue text-white rounded px-1.5 py-px'
+                      : 'font-mono text-[11px] text-slate-600 bg-slate-100 border border-slate-200 rounded px-1.5 py-px'
+                  }
+                >
+                  {t}
+                </span>
+              ))}
+            </span>
+          </div>
+        )}
         <MetaRow label="Bloomberg Ticker"  value={sec.ticker_bb}                mono />
         <MetaRow label="Source Identifier" value={sec.source_identifier}        mono />
         <MetaRow label="Source Type"       value={sec.source_identifier_type} />

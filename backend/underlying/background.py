@@ -335,6 +335,10 @@ def _upsert_security(
             row = existing
 
         # ── Tier 1 — submissions API ──────────────────────────────────
+        # Persist all tickers for this CIK so multi-class siblings are visible
+        # in the UI even after we've auto-resolved to one preferred ticker.
+        if resolved_sec is not None and getattr(resolved_sec, "tickers", None):
+            row.all_tickers = json.dumps(resolved_sec.tickers)
         row.company_name           = meta.company_name
         row.exchange               = (meta.exchanges[0] if meta.exchanges else "")
         row.reporting_form         = meta.reporting_form

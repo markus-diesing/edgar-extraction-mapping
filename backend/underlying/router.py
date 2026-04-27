@@ -113,6 +113,7 @@ def _security_to_dict(row: UnderlyingSecurity, include_fields: bool = False) -> 
         "cik":                    row.cik,
         "ticker":                 row.ticker,
         "ticker_bb":              row.ticker_bb,
+        "all_tickers":            _parse_json_field(row.all_tickers),
         "source_identifier":      row.source_identifier,
         "source_identifier_type": row.source_identifier_type,
         "company_name":           row.company_name,
