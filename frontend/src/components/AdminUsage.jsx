@@ -373,7 +373,8 @@ function ModelConfig({ availableModels, activeModel, onModelChanged }) {
     setMsg('')
     try {
       await api.updateSettings({ claude_model: selected })
-      setMsg(`✓ Active model changed to ${selected}`)
+      const name = availableModels?.find(m => m.model_id === selected)?.display_name || selected
+      setMsg(`✓ Active model changed to ${name}`)
       onModelChanged?.()
       setTimeout(() => setMsg(''), 4000)
     } catch (e) {

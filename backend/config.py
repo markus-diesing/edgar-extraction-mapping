@@ -45,6 +45,7 @@ AZURE_CLIENT_ID: str = os.environ.get("AZURE_CLIENT_ID", "")
 # Add newer models here — the Admin UI and cost calculations derive from this dict.
 # ---------------------------------------------------------------------------
 CLAUDE_MODEL_REGISTRY: dict[str, dict] = {
+    # ── Sonnet (standard / recommended) ──────────────────────────────────────
     "claude-sonnet-4-6": {
         "display_name":       "Claude Sonnet 4.6 (latest)",
         "input_price_per_m":  3.00,
@@ -71,6 +72,25 @@ CLAUDE_MODEL_REGISTRY: dict[str, dict] = {
         "cache_read_per_m":   0.30,
         "context_tokens":     200_000,
         "note": "Original project default. Training cutoff March 2025.",
+    },
+    # ── Haiku (cheaper / faster) ──────────────────────────────────────────────
+    "claude-3-5-haiku-20241022": {
+        "display_name":       "Claude Haiku 3.5",
+        "input_price_per_m":  0.80,
+        "output_price_per_m": 4.00,
+        "cache_write_per_m":  1.00,
+        "cache_read_per_m":   0.08,
+        "context_tokens":     200_000,
+        "note": "Fastest Claude 3.x model. ~3.75× cheaper than Sonnet on input.",
+    },
+    "claude-3-haiku-20240307": {
+        "display_name":       "Claude Haiku 3",
+        "input_price_per_m":  0.25,
+        "output_price_per_m": 1.25,
+        "cache_write_per_m":  0.30,
+        "cache_read_per_m":   0.03,
+        "context_tokens":     200_000,
+        "note": "Cheapest option. ~12× cheaper than Sonnet on input. Older capability level.",
     },
 }
 

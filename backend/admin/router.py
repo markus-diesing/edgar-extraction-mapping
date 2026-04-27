@@ -443,7 +443,14 @@ class UnderlyingLlmSettingsBody(BaseModel):
 
 
 def _build_underlying_cfg():
-    """Build an LlmConfig from current settings (lazy import avoids circular deps)."""
+    """Build an LlmConfig from current settings (lazy import avoids circular deps).
+
+    For the Anthropic provider the underlying LLM mirrors the Filings model
+    (``claude_model`` in settings), exactly as ``load_config()`` in llm_client
+    does.  Using ``CLAUDE_MODEL_DEFAULT`` directly here would cause Test
+    Connection to always report the default model even after the user has
+    changed it via Apply.
+    """
     from underlying.llm_client import LlmConfig, PROVIDER_DEFAULTS
     s = settings_store.get_settings()
     provider  = s.get("underlying_llm_provider", "anthropic")
@@ -452,7 +459,8 @@ def _build_underlying_cfg():
     api_key   = s.get("underlying_llm_api_key",  "")
     if not model_raw:
         if provider == "anthropic":
-            model_raw = config.CLAUDE_MODEL_DEFAULT
+            # Mirror the active Filings model — keep in sync with load_config()
+            model_raw = s.get("claude_model") or config.CLAUDE_MODEL_DEFAULT
         elif provider == "openai-compatible":
             model_raw = "qwen3-14b-mlx"
         else:
