@@ -1,6 +1,6 @@
 sectioned_extraction: true
 section_merge_confidence_delta: 0.1
 classification_gate_confidence: 0.85
-underlying_llm_provider: openai-compatible
-underlying_llm_endpoint: http://192.168.210.239:1234
-underlying_llm_model: qwen3-14b-mlx
+underlying_llm_provider: anthropic
+underlying_llm_endpoint: ''
+underlying_llm_model: ''
