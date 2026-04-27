@@ -5,12 +5,8 @@ export const setTokenProvider = (fn) => { _getToken = fn }
 
 const _authHeader = async () => {
   if (!_getToken) return {}
-  try {
-    const token = await _getToken()
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  } catch {
-    return {}
-  }
+  const token = await _getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 const call = async (method, path, body) => {

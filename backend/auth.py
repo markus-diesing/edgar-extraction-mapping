@@ -63,11 +63,17 @@ def get_current_user(
     token = credentials.credentials
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+        # Entra access tokens for custom scopes carry aud = "api://<client-id>"
+        # (the Application ID URI).  Accept both forms so the check works
+        # whether or not the "api://" prefix was used when registering the app.
         claims = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256"],
-            audience=config.AZURE_CLIENT_ID,
+            audience=[
+                config.AZURE_CLIENT_ID,
+                f"api://{config.AZURE_CLIENT_ID}",
+            ],
             issuer=f"https://login.microsoftonline.com/{config.AZURE_TENANT_ID}/v2.0",
         )
     except PyJWTError as exc:

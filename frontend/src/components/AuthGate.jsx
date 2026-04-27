@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useIsAuthenticated, useMsal } from '@azure/msal-react'
-import { InteractionStatus } from '@azure/msal-browser'
+import { InteractionStatus, InteractionRequiredAuthError } from '@azure/msal-browser'
 import { loginRequest } from '../auth/msalConfig.js'
 import { setTokenProvider } from '../api.js'
 
@@ -12,8 +12,17 @@ export default function AuthGate({ children }) {
   useEffect(() => {
     if (!isAuthenticated) return
     setTokenProvider(async () => {
-      const result = await instance.acquireTokenSilent(loginRequest)
-      return result.accessToken
+      try {
+        const result = await instance.acquireTokenSilent(loginRequest)
+        return result.accessToken
+      } catch (err) {
+        if (err instanceof InteractionRequiredAuthError) {
+          // Cached token expired or consent needed — restart the login flow.
+          instance.loginRedirect(loginRequest)
+          return null
+        }
+        throw err
+      }
     })
     return () => setTokenProvider(null)
   }, [isAuthenticated, instance])
