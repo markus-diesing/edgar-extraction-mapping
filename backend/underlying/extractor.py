@@ -29,8 +29,10 @@ Design decisions
 * Confidence < ``EXTRACTION_CONFIDENCE_THRESHOLD`` flags the field for review.
 * Failures (network, JSON parse) return an empty ExtractionResult so the
   caller can still write Tier 1 data to the DB.
-* ``try_repair_json`` (from llm_client) recovers truncated JSON responses
-  produced by LM Studio MLX (confirmed bug as of Apr 2026).
+* ``try_repair_json`` (from llm_client) recovers malformed JSON responses:
+  unescaped inner double-quotes (SEC filing text with ``("VCS")``) handled
+  by the json_repair library; LM Studio MLX truncation covered by suffix
+  injection fallback.
 """
 from __future__ import annotations
 

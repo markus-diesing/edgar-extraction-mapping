@@ -128,18 +128,33 @@ _REPAIR_SUFFIXES: list[str] = [
 
 def try_repair_json(raw: str) -> dict | None:
     """
-    Attempt suffix-injection repair on a truncated JSON string.
+    Attempt to repair a malformed JSON string from the LLM.
 
-    LM Studio MLX occasionally truncates generated content and reports
-    ``finish_reason: "stop"`` anyway.  We try common closing suffixes to
-    recover whatever fields were already fully generated.
+    Two-stage strategy:
+    1. ``json_repair`` library — handles a wide class of LLM output issues:
+       unescaped inner double-quotes (e.g. ``("VCS")`` in SEC filing text),
+       trailing commas, missing colons, etc.
+    2. Suffix-injection fallback — covers LM Studio MLX truncation where
+       ``finish_reason="stop"`` fires before the JSON is complete.
 
     Returns the parsed ``dict`` on success, ``None`` if all attempts fail.
     """
+    # Stage 1: json_repair (robust, handles unescaped quotes and other issues)
+    try:
+        from json_repair import repair_json  # optional dependency
+        repaired = repair_json(raw, return_objects=True)
+        if isinstance(repaired, dict):
+            log.info("JSON repair (json_repair library) succeeded")
+            return repaired
+    except Exception:
+        pass  # library unavailable or repair failed — fall through
+
+    # Stage 2: suffix-injection repair for truncated responses
     for suffix in _REPAIR_SUFFIXES:
         with contextlib.suppress(json.JSONDecodeError, ValueError):
             data = json.loads(raw + suffix)
             if isinstance(data, dict):
+                log.info("JSON repair (suffix injection) succeeded with %r", suffix)
                 return data
     return None
 
