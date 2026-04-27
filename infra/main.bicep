@@ -163,7 +163,7 @@ resource qwenEndpoint 'Microsoft.MachineLearningServices/workspaces/serverlessEn
   location: location
   sku: { name: 'Consumption' }
   properties: {
-    modelId: qwenModelId
+    modelSettings: { modelId: qwenModelId }
     authMode: 'Key'
   }
 }
