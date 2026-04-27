@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { useIsAuthenticated, useMsal } from '@azure/msal-react'
+import { useEffect, useRef } from 'react'
+import { useIsAuthenticated, useMsal, useAccount } from '@azure/msal-react'
 import { InteractionStatus, InteractionRequiredAuthError } from '@azure/msal-browser'
 import { loginRequest } from '../auth/msalConfig.js'
 import { setTokenProvider } from '../api.js'
@@ -7,19 +7,32 @@ import { setTokenProvider } from '../api.js'
 export default function AuthGate({ children }) {
   const { instance, inProgress } = useMsal()
   const isAuthenticated = useIsAuthenticated()
+  // useAccount returns the active account, or the sole account if only one is signed in.
+  const account = useAccount()
+  const accountRef = useRef(account)
+
+  // Keep the ref current so the token callback always sees the latest account
+  // even if it was captured in a closure before accounts were populated.
+  useEffect(() => {
+    accountRef.current = account
+  }, [account])
 
   useEffect(() => {
     if (!isAuthenticated) return
 
     setTokenProvider(async () => {
-      // Look up the account at call time so we never close over a stale value.
-      const account = instance.getAllAccounts()[0] ?? instance.getActiveAccount()
-      if (!account) return null
+      // Read from ref (always fresh) then fall back to direct MSAL lookups.
+      const acct =
+        accountRef.current ??
+        instance.getActiveAccount() ??
+        instance.getAllAccounts()[0]
+
+      if (!acct) return null
 
       try {
         const result = await instance.acquireTokenSilent({
           ...loginRequest,
-          account,
+          account: acct,
         })
         return result.accessToken
       } catch (err) {
